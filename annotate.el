@@ -26,15 +26,14 @@
 (defun annotate-create-annotation (start end &optional arg)
   "Create a new annotation for selected region."
   (interactive "r")
-  (let* ((overlay-highlight (make-overlay start end))
-         (eol (save-excursion (move-end-of-line nil) (point)))
-         (overlay-eol (make-overlay eol eol))
-         (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
+  (let ((overlay-highlight (make-overlay start end))
+        (annotation (read-from-minibuffer "Annotation: "))
+        (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
     (overlay-put overlay-highlight 'face annotate-highlight-face)
-    (overlay-put overlay-eol 'after-string
-                 (concat prefix (propertize
-                                 (read-from-minibuffer "Annotation: ")
-                                 'face annotate-annotation-face)))))
+    (setq annotation (propertize annotation 'face annotate-annotation-face))
+    (save-excursion
+      (move-end-of-line nil)
+      (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n")))))
 
 (defun annotate-line-length ()
   "The length of the line from beginning to end."
