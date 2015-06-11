@@ -83,3 +83,25 @@
          ((region-active-p) (region-end))
          ((thing-at-point 'symbol) (cdr (bounds-of-thing-at-point 'symbol)))
          (t (1+ (point))))))
+
+(defun annotate-save-annotations ()
+  "Save all annotations to disk."
+  (interactive)
+  (let ((annotations
+         (mapcar 'annotate-describe-annotation (overlays-in 0 (buffer-size)))))
+    (append-to-file (concat (format "\n:%s\n" (buffer-file-name))
+                            (apply 'concat annotations))
+                    nil annotate-file)))
+
+(defun annotate-describe-annotation (highlight)
+  (save-excursion
+    (goto-char (overlay-start highlight))
+    (format "%s (line %s, %s-%s): %s\n"
+            (prin1-to-string (buffer-substring-no-properties
+                              (overlay-start highlight)
+                              (overlay-end highlight)))
+            (line-number-at-pos)
+            (current-column)
+            (+ (current-column) (- (overlay-end highlight)
+                                   (overlay-start highlight)))
+            (prin1-to-string (overlay-get highlight 'annotation)))))
