@@ -23,18 +23,46 @@
   :type 'number
   :group 'annotate)
 
-(defun annotate-create-annotation ()
-  "Create a new annotation for selected region."
+(defun annotate-annotate ()
+  "Create, modify, or delete annotation."
   (interactive)
-  (destructuring-bind (start end) (annotate-bounds)
-    (let ((overlay-highlight (make-overlay start end))
-          (annotation (read-from-minibuffer "Annotation: "))
-          (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
-      (overlay-put overlay-highlight 'face annotate-highlight-face)
-      (setq annotation (propertize annotation 'face annotate-annotation-face))
-      (save-excursion
-        (move-end-of-line nil)
-        (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n"))))))
+  (let ((overlay (car (overlays-at (point)))))
+    (message "%s" (overlayp overlay))
+    (cond ((and (overlayp overlay) (overlay-get overlay 'annotation))
+            (annotate-change-annotation (point)))
+           (t
+            (destructuring-bind (start end) (annotate-bounds)
+               (annotate-create-annotation start end))))))
+
+(defun annotate-create-annotation (start end)
+  "Create a new annotation for selected region."
+  (interactive "r")
+  (let ((highlight (make-overlay start end))
+        (annotation (read-from-minibuffer "Annotation: "))
+        (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
+    (overlay-put highlight 'face annotate-highlight-face)
+    (overlay-put highlight 'annotation annotation)
+    (setq annotation (propertize annotation 'face annotate-annotation-face))
+    (save-excursion
+      (move-end-of-line nil)
+      (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n")))))
+
+(defun annotate-change-annotation (pos)
+  "Change annotation at point. If empty, delete annotation."
+  (interactive "d")
+  (let* ((highlight (car (overlays-at pos)))
+         (annotation (read-from-minibuffer "Annotation: " (overlay-get highlight 'annotation)))
+         (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
+    (save-excursion
+      (move-end-of-line nil)
+      (cond
+       ((string= "" annotation)
+        (delete-overlay highlight)
+        (remove-text-properties (point) (1+ (point)) '(display nil)))
+       (t
+        (overlay-put highlight 'annotation annotation)
+        (setq annotation (propertize annotation 'face annotate-annotation-face))
+        (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n")))))))
 
 (defun annotate-line-length ()
   "The length of the line from beginning to end."
