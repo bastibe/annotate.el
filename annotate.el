@@ -40,12 +40,13 @@
   (let ((highlight (make-overlay start end))
         (annotation (read-from-minibuffer "Annotation: "))
         (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
-    (overlay-put highlight 'face annotate-highlight-face)
-    (overlay-put highlight 'annotation annotation)
-    (setq annotation (propertize annotation 'face annotate-annotation-face))
-    (save-excursion
-      (move-end-of-line nil)
-      (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n")))))
+    (when (not (string= "" annotation))
+      (overlay-put highlight 'face annotate-highlight-face)
+      (overlay-put highlight 'annotation annotation)
+      (setq annotation (propertize annotation 'face annotate-annotation-face))
+      (save-excursion
+        (move-end-of-line nil)
+        (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n"))))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
