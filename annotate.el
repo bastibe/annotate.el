@@ -23,17 +23,18 @@
   :type 'number
   :group 'annotate)
 
-(defun annotate-create-annotation (start end &optional arg)
+(defun annotate-create-annotation ()
   "Create a new annotation for selected region."
-  (interactive "r")
-  (let ((overlay-highlight (make-overlay start end))
-        (annotation (read-from-minibuffer "Annotation: "))
-        (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
-    (overlay-put overlay-highlight 'face annotate-highlight-face)
-    (setq annotation (propertize annotation 'face annotate-annotation-face))
-    (save-excursion
-      (move-end-of-line nil)
-      (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n")))))
+  (interactive)
+  (destructuring-bind (start end) (annotate-bounds)
+    (let ((overlay-highlight (make-overlay start end))
+          (annotation (read-from-minibuffer "Annotation: "))
+          (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
+      (overlay-put overlay-highlight 'face annotate-highlight-face)
+      (setq annotation (propertize annotation 'face annotate-annotation-face))
+      (save-excursion
+        (move-end-of-line nil)
+        (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n"))))))
 
 (defun annotate-line-length ()
   "The length of the line from beginning to end."
@@ -42,3 +43,14 @@
     (let ((eol (point)))
       (move-beginning-of-line nil)
       (- eol (point)))))
+
+(defun annotate-bounds ()
+  "The bounds of the region or whatever is at point."
+  (list (cond
+         ((region-active-p) (region-beginning))
+         ((thing-at-point 'symbol) (car (bounds-of-thing-at-point 'symbol)))
+         (t (point)))
+        (cond
+         ((region-active-p) (region-end))
+         ((thing-at-point 'symbol) (cdr (bounds-of-thing-at-point 'symbol)))
+         (t (1+ (point))))))
