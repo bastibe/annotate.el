@@ -1,10 +1,31 @@
+;;; annotate.el --- annotate files without changing them
+;; Copyright (C) 2015 Bastian Bechtold
+
+;; Author: Bastian Bechtold
+;; Maintainer: Bastian Bechtold
+;; URL: https://github.com/bastibe/annotate.el
+;; Created: 2015-06-10
+;; Version: 0.1
+
+;; This package provides the minor mode annotate-mode, which add
+;; annotations to arbitrary files without changing the files
+;; themselves. Annotations are saved in annotate-file (~/.annotations
+;; by default).
+;;
+;; To add annotations to a file, select a region and hit C-c C-a. The
+;; region will be underlined, and the annotation will be displayed in
+;; the right margin. Annotations are saved whenever the file is saved.
+
+;;; Code:
 (require 'cl)
 
+;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
   :version 0.1
   :group 'text)
 
+;;;###autoload
 (define-minor-mode annotate-mode
   "Toggle Annotate mode."
   :init-value nil
@@ -17,21 +38,25 @@
 
 (define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
 
-(defcustom annotate-file "~/.file-annotations"
+;;;###autoload
+(defcustom annotate-file "~/.annotations"
   "File where annotations are stored."
   :type 'file
   :group 'annotate)
 
+;;;###autoload
 (defface annotate-highlight
   '((t (:underline "coral")))
   "Face for annotation highlights."
   :group 'annotate)
 
+;;;###autoload
 (defface annotate-annotation
   '((t (:background "coral" :foreground "black")))
   "Face for annotations."
   :group 'annotate)
 
+;;;###autoload
 (defcustom annotate-annotation-column 85
   "Where annotations appear."
   :type 'number
@@ -47,6 +72,7 @@
   (annotate-clear-annotations)
   (remove-hook 'after-save-hook 'annotate-save-annotations t))
 
+;;;###autoload
 (defun annotate-annotate ()
   "Create, modify, or delete annotation."
   (interactive)
@@ -57,6 +83,7 @@
             (destructuring-bind (start end) (annotate-bounds)
                (annotate-create-annotation start end))))))
 
+;;;###autoload
 (defun annotate-save-annotations ()
   "Save all annotations to disk."
   (interactive)
@@ -72,6 +99,7 @@
     (annotate-dump-annotation-data all-annotations)
     (message "Annotations saved.")))
 
+;;;###autoload
 (defun annotate-load-annotations ()
   "Load all annotations from disk."
   (interactive)
@@ -99,6 +127,7 @@
                                  (concat prefix text "\n"))))))
       (message "Annotations loaded."))))
 
+;;;###autoload
 (defun annotate-clear-annotations ()
   "Clear all current annotations."
   (interactive)
@@ -161,12 +190,14 @@
          (t (1+ (point))))))
 
 (defun annotate-describe-annotation (highlight)
+  "Return list that describes the overlay `highlight`."
   (list
    (overlay-start highlight)
    (overlay-end highlight)
    (overlay-get highlight 'annotation)))
 
 (defun annotate-load-annotation-data ()
+  "Read and return saved annotations."
   (with-temp-buffer
     (when (file-exists-p annotate-file)
       (insert-file-contents annotate-file))
@@ -176,7 +207,9 @@
              (read (current-buffer))))))
 
 (defun annotate-dump-annotation-data (data)
+  "Save `data` into annotation file."
   (with-temp-file annotate-file
     (prin1 data (current-buffer))))
 
 (provide 'annotate)
+;;; annotate.el ends here
