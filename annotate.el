@@ -10,12 +10,22 @@
   :type 'file
   :group 'annotate)
 
-(defcustom annotate-highlight-face 'highlight
+(defface annotate-highlight
+  '((t (:underline "coral")))
+  "Face for annotation highlights."
+  :group 'annotate)
+
+(defcustom annotate-highlight-face 'annotate-highlight
   "Face for annotations."
   :type 'face
   :group 'annotate)
 
-(defcustom annotate-annotation-face 'highlight
+(defface annotate-annotation
+  '((t (:background "coral" :foreground "black")))
+  "Face for annotations."
+  :group 'annotate)
+
+(defcustom annotate-annotation-face 'annotate-annotation
   "Face for annotations."
   :type 'face
   :group 'annotate)
