@@ -1,3 +1,5 @@
+(require 'cl)
+
 (defgroup annotate nil
   "Annotate files without changing them."
   :version 0.1
