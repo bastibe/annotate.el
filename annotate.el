@@ -5,6 +5,18 @@
   :version 0.1
   :group 'text)
 
+(define-minor-mode annotate-mode
+  "Toggle Annotate mode."
+  :init-value nil
+  :lighter " Ann"
+  :keymap (make-sparse-keymap)
+  :group 'annotate
+  :after-hook (if annotate-mode
+                  (annotate-initialize)
+                (annotate-shutdown)))
+
+(define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
+
 (defcustom annotate-file "~/.file-annotations"
   "File where annotations are stored."
   :type 'file
@@ -15,19 +27,9 @@
   "Face for annotation highlights."
   :group 'annotate)
 
-(defcustom annotate-highlight-face 'annotate-highlight
-  "Face for annotations."
-  :type 'face
-  :group 'annotate)
-
 (defface annotate-annotation
   '((t (:background "coral" :foreground "black")))
   "Face for annotations."
-  :group 'annotate)
-
-(defcustom annotate-annotation-face 'annotate-annotation
-  "Face for annotations."
-  :type 'face
   :group 'annotate)
 
 (defcustom annotate-annotation-column 85
@@ -35,16 +37,79 @@
   :type 'number
   :group 'annotate)
 
+(defun annotate-initialize ()
+  "Load annotations and set up save hook."
+  (annotate-load-annotations)
+  (add-hook 'after-save-hook 'annotate-save-annotations t t))
+
+(defun annotate-shutdown ()
+  "Clear annotations and remove save hook."
+  (annotate-clear-annotations)
+  (remove-hook 'after-save-hook 'annotate-save-annotations t))
+
 (defun annotate-annotate ()
   "Create, modify, or delete annotation."
   (interactive)
   (let ((overlay (car (overlays-at (point)))))
-    (message "%s" (overlayp overlay))
     (cond ((and (overlayp overlay) (overlay-get overlay 'annotation))
             (annotate-change-annotation (point)))
            (t
             (destructuring-bind (start end) (annotate-bounds)
                (annotate-create-annotation start end))))))
+
+(defun annotate-save-annotations ()
+  "Save all annotations to disk."
+  (interactive)
+  (let ((file-annotations
+         (mapcar 'annotate-describe-annotation (overlays-in 0 (buffer-size))))
+        (all-annotations (annotate-load-annotation-data)))
+    (if (assoc-string (buffer-file-name) all-annotations)
+        (setcdr (assoc-string (buffer-file-name) all-annotations)
+                file-annotations)
+      (setq all-annotations
+            (push (cons (buffer-file-name) file-annotations)
+                  all-annotations)))
+    (annotate-dump-annotation-data all-annotations)
+    (message "Annotations saved.")))
+
+(defun annotate-load-annotations ()
+  "Load all annotations from disk."
+  (interactive)
+  (let ((annotations (cdr (assoc-string (buffer-file-name)
+                                        (annotate-load-annotation-data)))))
+    (when (eq nil annotations)
+      (message "No annotations found."))
+    (when (not (eq nil annotations))
+      (save-excursion
+        (dolist (annotation annotations)
+          (let* ((start (nth 0 annotation))
+                 (end (nth 1 annotation))
+                 (text (nth 2 annotation))
+                 (highlight (make-overlay start end)))
+            (overlay-put highlight 'face 'annotate-highlight)
+            (overlay-put highlight 'annotation text)
+            (setq text (propertize text 'face 'annotate-annotation))
+            (goto-char end)
+            (move-end-of-line nil)
+            (let ((prefix (make-string (- annotate-annotation-column
+                                          (annotate-line-length)) ? )))
+              (put-text-property (point)
+                                 (1+ (point))
+                                 'display
+                                 (concat prefix text "\n"))))))
+      (message "Annotations loaded."))))
+
+(defun annotate-clear-annotations ()
+  "Clear all current annotations."
+  (interactive)
+  (let ((highlights
+         (overlays-in 0 (buffer-size))))
+    (save-excursion
+      (dolist (highlight highlights)
+        (goto-char (overlay-end highlight))
+        (move-end-of-line nil)
+        (delete-overlay highlight)
+        (remove-text-properties (point) (1+ (point)) '(display nil))))))
 
 (defun annotate-create-annotation (start end)
   "Create a new annotation for selected region."
@@ -52,9 +117,9 @@
         (annotation (read-from-minibuffer "Annotation: "))
         (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
     (when (not (string= "" annotation))
-      (overlay-put highlight 'face annotate-highlight-face)
+      (overlay-put highlight 'face 'annotate-highlight)
       (overlay-put highlight 'annotation annotation)
-      (setq annotation (propertize annotation 'face annotate-annotation-face))
+      (setq annotation (propertize annotation 'face 'annotate-annotation))
       (save-excursion
         (move-end-of-line nil)
         (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n"))))))
@@ -73,7 +138,7 @@
         (remove-text-properties (point) (1+ (point)) '(display nil)))
        (t
         (overlay-put highlight 'annotation annotation)
-        (setq annotation (propertize annotation 'face annotate-annotation-face))
+        (setq annotation (propertize annotation 'face 'annotate-annotation))
         (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n")))))))
 
 (defun annotate-line-length ()
@@ -95,47 +160,6 @@
          ((thing-at-point 'symbol) (cdr (bounds-of-thing-at-point 'symbol)))
          (t (1+ (point))))))
 
-(defun annotate-save-annotations ()
-  "Save all annotations to disk."
-  (interactive)
-  (let ((file-annotations
-         (mapcar 'annotate-describe-annotation (overlays-in 0 (buffer-size))))
-        (all-annotations (annotate-load-annotation-data)))
-    (if (assoc-string (buffer-file-name) all-annotations)
-        (setcdr (assoc-string (buffer-file-name) all-annotations)
-                file-annotations)
-      (setq all-annotations
-            (push (cons (buffer-file-name) file-annotations)
-                  all-annotations)))
-    (annotate-dump-annotation-data all-annotations)))
-
-(defun annotate-load-annotations ()
-  "Load all annotations from disk."
-  (interactive)
-  (let ((annotations (cdr (assoc-string (buffer-file-name)
-                                        (annotate-load-annotation-data)))))
-    (message "%s" annotations)
-    (when (not (eq nil annotations))
-      (save-excursion
-        (dolist (annotation annotations)
-          (message "%s" annotation)
-          (let* ((start (nth 0 annotation))
-                 (end (nth 1 annotation))
-                 (text (nth 2 annotation))
-                 (highlight (make-overlay start end)))
-            (message "%s" annotation)
-            (overlay-put highlight 'face annotate-highlight-face)
-            (overlay-put highlight 'annotation text)
-            (setq text (propertize text 'face annotate-annotation-face))
-            (goto-char end)
-            (move-end-of-line nil)
-            (let ((prefix (make-string (- annotate-annotation-column
-                                          (annotate-line-length)) ? )))
-              (put-text-property (point)
-                                 (1+ (point))
-                                 'display
-                                 (concat prefix text "\n")))))))))
-
 (defun annotate-describe-annotation (highlight)
   (list
    (overlay-start highlight)
@@ -154,3 +178,5 @@
 (defun annotate-dump-annotation-data (data)
   (with-temp-file annotate-file
     (prin1 data (current-buffer))))
+
+(provide 'annotate)
