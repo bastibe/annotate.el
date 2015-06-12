@@ -48,7 +48,6 @@
 
 (defun annotate-create-annotation (start end)
   "Create a new annotation for selected region."
-  (interactive "r")
   (let ((highlight (make-overlay start end))
         (annotation (read-from-minibuffer "Annotation: "))
         (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
@@ -62,7 +61,6 @@
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
-  (interactive "d")
   (let* ((highlight (car (overlays-at pos)))
          (annotation (read-from-minibuffer "Annotation: " (overlay-get highlight 'annotation)))
          (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
