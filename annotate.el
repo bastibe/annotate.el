@@ -65,6 +65,7 @@
          (annotation (read-from-minibuffer "Annotation: " (overlay-get highlight 'annotation)))
          (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
     (save-excursion
+      (goto-char (overlay-end highlight))
       (move-end-of-line nil)
       (cond
        ((string= "" annotation)
