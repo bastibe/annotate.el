@@ -30,7 +30,7 @@
   :type 'face
   :group 'annotate)
 
-(defcustom annotate-annotation-column 90
+(defcustom annotate-annotation-column 85
   "Where annotations appear."
   :type 'number
   :group 'annotate)
