@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.1.1
+;; Version: 0.1.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -31,10 +31,10 @@
 
 ;;; Commentary:
 
-;; This package provides the minor mode annotate-mode, which add
+;; This package provides the minor mode annotate-mode, which can add
 ;; annotations to arbitrary files without changing the files
-;; themselves. Annotations are saved in annotate-file (~/.annotations
-;; by default).
+;; themselves. Annotations are saved in the annotate-file
+;; (~/.annotations by default).
 ;;
 ;; To add annotations to a file, select a region and hit C-c C-a. The
 ;; region will be underlined, and the annotation will be displayed in
@@ -46,7 +46,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version 0.1.1
+  :version "0.1.2"
   :group 'text)
 
 ;;;###autoload
