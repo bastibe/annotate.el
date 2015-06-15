@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.1.4
+;; Version: 0.1.5
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -46,7 +46,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.1.4"
+  :version "0.1.5"
   :group 'text)
 
 ;;;###autoload
@@ -145,8 +145,7 @@
             (setq text (propertize text 'face 'annotate-annotation))
             (goto-char end)
             (move-end-of-line nil)
-            (let ((prefix (make-string (- annotate-annotation-column
-                                          (annotate-line-length)) ? )))
+            (let ((prefix (annotate-make-prefix)))
               (put-text-property (point)
                                  (1+ (point))
                                  'display
@@ -169,8 +168,7 @@
 (defun annotate-create-annotation (start end)
   "Create a new annotation for selected region."
   (let ((annotation (read-from-minibuffer "Annotation: "))
-        (prefix (make-string (- annotate-annotation-column
-                                (annotate-line-length)) ? )))
+        (prefix (annotate-make-prefix)))
     (when (not (or (eq nil annotation) (string= "" annotation)))
       (let ((highlight (make-overlay start end)))
         (overlay-put highlight 'face 'annotate-highlight)
@@ -186,7 +184,7 @@
   "Change annotation at point. If empty, delete annotation."
   (let* ((highlight (car (overlays-at pos)))
          (annotation (read-from-minibuffer "Annotation: " (overlay-get highlight 'annotation)))
-         (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
+         (prefix (annotate-make-prefix)))
     (save-excursion
       (goto-char (overlay-end highlight))
       (move-end-of-line nil)
@@ -203,13 +201,17 @@
         (setq annotation (propertize annotation 'face 'annotate-annotation))
         (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n")))))))
 
-(defun annotate-line-length ()
-  "The length of the line from beginning to end."
+(defun annotate-make-prefix ()
+  "An empty string from the end of the line upto the annotation."
   (save-excursion
     (move-end-of-line nil)
-    (let ((eol (point)))
+    (let ((eol (point))
+          (prefix-length nil))
       (move-beginning-of-line nil)
-      (- eol (point)))))
+      (setq prefix-length (- annotate-annotation-column (- eol (point))))
+      (if (< prefix-length 2)
+          (make-string 2 ? )
+        (make-string prefix-length ? )))))
 
 (defun annotate-bounds ()
   "The bounds of the region or whatever is at point."
