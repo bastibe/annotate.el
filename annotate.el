@@ -129,6 +129,9 @@
   (interactive)
   (let ((annotations (cdr (assoc-string (buffer-file-name)
                                         (annotate-load-annotation-data)))))
+    ;; remove empty annotations created by earlier bug:
+    (setq annotations (remove-if (lambda (ann) (eq (nth 2 ann) nil))
+                                 annotations))
     (when (eq nil annotations)
       (message "No annotations found."))
     (when (not (eq nil annotations))
@@ -166,16 +169,18 @@
 
 (defun annotate-create-annotation (start end)
   "Create a new annotation for selected region."
-  (let ((highlight (make-overlay start end))
-        (annotation (read-from-minibuffer "Annotation: "))
-        (prefix (make-string (- annotate-annotation-column (annotate-line-length)) ? )))
-    (when (not (string= "" annotation))
-      (overlay-put highlight 'face 'annotate-highlight)
-      (overlay-put highlight 'annotation annotation)
-      (setq annotation (propertize annotation 'face 'annotate-annotation))
-      (save-excursion
-        (move-end-of-line nil)
-        (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n"))))))
+  (let ((annotation (read-from-minibuffer "Annotation: "))
+        (prefix (make-string (- annotate-annotation-column
+                                (annotate-line-length)) ? )))
+    (when (not (or (eq nil annotation) (string= "" annotation)))
+      (let ((highlight (make-overlay start end)))
+        (overlay-put highlight 'face 'annotate-highlight)
+        (overlay-put highlight 'annotation annotation)
+        (setq annotation (propertize annotation 'face 'annotate-annotation))
+        (save-excursion
+          (move-end-of-line nil)
+          (put-text-property (point) (1+ (point))
+                             'display (concat prefix annotation "\n")))))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
@@ -186,9 +191,13 @@
       (goto-char (overlay-end highlight))
       (move-end-of-line nil)
       (cond
+       ;; annotation was cancelled:
+       ((eq nil annotation))
+       ;; annotation was erased:
        ((string= "" annotation)
         (delete-overlay highlight)
         (remove-text-properties (point) (1+ (point)) '(display nil)))
+       ;; annotation was changed:
        (t
         (overlay-put highlight 'annotation annotation)
         (setq annotation (propertize annotation 'face 'annotate-annotation))
