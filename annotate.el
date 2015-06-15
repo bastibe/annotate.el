@@ -177,6 +177,7 @@
         (overlay-put highlight 'annotation annotation)
         (setq annotation (propertize annotation 'face 'annotate-annotation))
         (save-excursion
+          (goto-char (max start end))
           (move-end-of-line nil)
           (put-text-property (point) (1+ (point))
                              'display (concat prefix annotation "\n")))))))
