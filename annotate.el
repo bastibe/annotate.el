@@ -156,13 +156,18 @@
 (defun annotate-clear-annotations ()
   "Clear all current annotations."
   (interactive)
-  (let ((highlights
+  (let ((overlays
          (overlays-in 0 (buffer-size))))
+    ;; only remove annotations, not all overlays
+    (setq overlays (remove-if
+                    (lambda (ov)
+                      (eq nil (overlay-get ov 'annotation)))
+                    overlays))
     (save-excursion
-      (dolist (highlight highlights)
-        (goto-char (overlay-end highlight))
+      (dolist (ov overlays)
+        (goto-char (overlay-end ov))
         (move-end-of-line nil)
-        (delete-overlay highlight)
+        (delete-overlay ov)
         (remove-text-properties (point) (1+ (point)) '(display nil))))))
 
 (defun annotate-create-annotation (start end)
