@@ -111,8 +111,7 @@
 (defun annotate-save-annotations ()
   "Save all annotations to disk."
   (interactive)
-  (let ((file-annotations
-         (mapcar 'annotate-describe-annotation (overlays-in 0 (buffer-size))))
+  (let ((file-annotations (annotate-describe-annotations))
         (all-annotations (annotate-load-annotation-data)))
     (if (assoc-string (buffer-file-name) all-annotations)
         (setcdr (assoc-string (buffer-file-name) all-annotations)
@@ -222,12 +221,19 @@
          ((thing-at-point 'symbol) (cdr (bounds-of-thing-at-point 'symbol)))
          (t (1+ (point))))))
 
-(defun annotate-describe-annotation (highlight)
-  "Return list that describes the overlay `highlight`."
-  (list
-   (overlay-start highlight)
-   (overlay-end highlight)
-   (overlay-get highlight 'annotation)))
+(defun annotate-describe-annotations ()
+  "Return a list of all annotations in the current buffer."
+  (let ((overlays (overlays-in 0 (buffer-size))))
+    (setq overlays
+          (remove-if
+           (lambda (ov)
+             (eq nil (overlay-get ov 'annotation)))
+           overlays))
+    (mapcar (lambda (ov)
+              (list (overlay-start ov)
+                    (overlay-end ov)
+                    (overlay-get ov 'annotation)))
+            overlays)))
 
 (defun annotate-load-annotation-data ()
   "Read and return saved annotations."
