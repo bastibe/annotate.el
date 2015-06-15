@@ -1,5 +1,10 @@
-Annotate.el
+Annotate.el [![MELPA][mi]][m] [![MELPA-STABLE][msi]][ms]
 ===========
+
+[mi]: http://melpa.org/packages/annotate-badge.svg
+[m]: http://melpa.org/#/annotate
+[msi]: http://stable.melpa.org/packages/annotate-badge.svg
+[ms]: http://stable.melpa.org/#/annotate
 
 This package provides a minor mode `annotate-mode`, which can add annotations to arbitrary files without changing the files themselves. This is very useful for code reviews. When `annotate-mode` is active, `C-c C-a` will create, edit, or delete annotations. 
 
