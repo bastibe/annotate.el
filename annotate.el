@@ -86,6 +86,12 @@
   :type 'number
   :group 'annotate)
 
+;;;###autoload
+(defcustom annotate-diff-export-context 2
+  "How many lines of context to include in diff export."
+  :type 'number
+  :group 'annotate)
+
 (defun annotate-initialize ()
   "Load annotations and set up save hook."
   (annotate-load-annotations)
@@ -121,6 +127,83 @@
                   all-annotations)))
     (annotate-dump-annotation-data all-annotations)
     (message "Annotations saved.")))
+
+;;;###autoload
+(defun annotate-export-annotations ()
+  "Export all annotations as a diff-like file."
+  (interactive)
+  (let ((export-buffer (generate-new-buffer "*annotations*"))
+        (annotations (annotate-describe-annotations))
+        (filename (buffer-file-name)))
+    (with-current-buffer export-buffer
+      (insert "--- " filename "\n")
+      (insert "+++ " filename "\n"))
+    (save-excursion
+      (dolist (ann annotations)
+        (let ((start (nth 0 ann))
+              (end (nth 1 ann))
+              (text (nth 2 ann))
+              (bol nil)
+              (eol nil)
+              (line nil)
+              (previous-lines nil)
+              (following-lines nil))
+          (goto-char start)
+          (beginning-of-line)
+          (setq bol (point))
+          (beginning-of-line (- (1- annotate-diff-export-context)))
+          (setq previous-lines (buffer-substring-no-properties (point) (1- bol)))
+          (goto-char end)
+          (end-of-line)
+          (setq eol (point))
+          (end-of-line (1+ annotate-diff-export-context))
+          (setq following-lines (buffer-substring-no-properties (1+ eol) (point)))
+          (setq line (buffer-substring bol eol))
+          (with-current-buffer export-buffer
+            (insert (annotate-diff-line-range start end) "\n")
+            (insert (annotate-prefix-lines previous-lines " "))
+            (insert (annotate-prefix-lines line "-"))
+            (let ((selection (butlast (split-string (annotate-prefix-lines line "+") "\n"))))
+              (cond ((= (length selection) 1)
+                     (insert (first selection) "\n")
+                     (unless (string= (first selection) "+")
+                       (insert "#"
+                               (make-string (- start bol) ? )
+                               (make-string (- end start) ?~)
+                               "\n"))
+                     (insert "#" (make-string (- start bol) ? ) text "\n"))
+                    (t
+                     (insert (first selection) "\n")
+                     (insert "#"
+                             (make-string (- start bol) ? )
+                             (make-string (- (length (first selection)) (- start bol)) ?~)
+                             "\n")
+                     (dolist (line (cdr (butlast selection)))
+                       (insert line "\n"
+                               "#" (make-string (length line) ?~) "\n"))
+                     (insert (car (last selection)) "\n")
+                     (insert "#"
+                             (make-string (- (length (car (last selection))) (- eol end) 1) ?~)
+                             "\n")
+                     (insert "#" text "\n"))))
+            (insert (annotate-prefix-lines following-lines " "))))))
+          (switch-to-buffer export-buffer)
+          (diff-mode)
+          (view-mode)))
+
+(defun annotate-prefix-lines (text prefix)
+  "Prepend PREFIX to each line in TEXT."
+  ;; don't split a single new line into two lines
+  (let ((lines (if (string= text "\n")
+                   '("")
+                 (split-string text "\n"))))
+    (apply 'concat (map 'list (lambda (l) (concat prefix l "\n")) lines))))
+
+(defun annotate-diff-line-range (start end)
+  "Calculate diff-like line range for annotation."
+  (format "@@ -%i,%i +%i,%i @@"
+          (line-number-at-pos start) (line-number-at-pos start)
+          (line-number-at-pos end) (line-number-at-pos end)))
 
 ;;;###autoload
 (defun annotate-load-annotations ()
