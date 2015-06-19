@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.2.1
+;; Version: 0.2.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -41,11 +41,12 @@
 ;; the right margin. Annotations are saved whenever the file is saved.
 
 ;;; Code:
+(require 'cl)
 
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.2.1"
+  :version "0.2.2"
   :group 'text)
 
 ;;;###autoload
@@ -109,8 +110,8 @@
     (cond ((and (overlayp overlay) (overlay-get overlay 'annotation))
            (annotate-change-annotation (point)))
           (t
-           (let ((bounds (annotate-bounds)))
-             (annotate-create-annotation (car bounds) (cadr bounds)))))))
+           (destructuring-bind (start end) (annotate-bounds)
+             (annotate-create-annotation start end))))))
 
 ;;;###autoload
 (defun annotate-save-annotations ()
