@@ -136,10 +136,14 @@
         (annotations (annotate-describe-annotations))
         (filename (buffer-file-name)))
     (with-current-buffer export-buffer
-      (insert "--- " filename "\n")
-      (insert "+++ " filename "\n"))
+      (let ((time-string
+             (format-time-string "%F %H:%M:%S.%N %z"
+                                 (nth 5 (file-attributes filename 'integer)))))
+        (insert "--- " filename "\t" time-string "\n")
+        (insert "+++ " filename "\t" time-string "\n")))
     (save-excursion
-      (dolist (ann annotations)
+      (dolist (ann (sort annotations (lambda (a1 a2)
+                                       (< (car a1) (car a2)))))
         (let ((start (nth 0 ann))
               (end (nth 1 ann))
               (text (nth 2 ann))
@@ -147,7 +151,8 @@
               (eol nil)
               (line nil)
               (previous-lines nil)
-              (following-lines nil))
+              (following-lines nil)
+              (diff-range nil))
           (goto-char start)
           (beginning-of-line)
           (setq bol (point))
@@ -159,8 +164,9 @@
           (end-of-line (1+ annotate-diff-export-context))
           (setq following-lines (buffer-substring-no-properties (1+ eol) (point)))
           (setq line (buffer-substring bol eol))
+          (setq diff-range (annotate-diff-line-range start end))
           (with-current-buffer export-buffer
-            (insert (annotate-diff-line-range start end) "\n")
+            (insert "@@ " diff-range " @@\n")
             (insert (annotate-prefix-lines previous-lines " "))
             (insert (annotate-prefix-lines line "-"))
             (let ((selection (butlast (split-string (annotate-prefix-lines line "+") "\n"))))
@@ -201,9 +207,10 @@
 
 (defun annotate-diff-line-range (start end)
   "Calculate diff-like line range for annotation."
-  (format "@@ -%i,%i +%i,%i @@"
-          (line-number-at-pos start) (line-number-at-pos start)
-          (line-number-at-pos end) (line-number-at-pos end)))
+  (let ((start-line (line-number-at-pos start))
+        (diff-size (+ (* 2 annotate-diff-export-context)
+                      (1+ (- (line-number-at-pos end) (line-number-at-pos start))))))
+  (format "-%i,%i +%i,%i" start-line diff-size start-line diff-size)))
 
 ;;;###autoload
 (defun annotate-load-annotations ()
