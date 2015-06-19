@@ -148,7 +148,9 @@ An example might look like this:
 This diff does not contain any changes, but highlights the
 annotation, and can be conveniently viewed in diff-mode."
   (interactive)
-  (let ((export-buffer (generate-new-buffer "*annotations*"))
+  (let ((export-buffer (generate-new-buffer (concat
+                                             (buffer-file-name)
+                                             ".annotations.diff")))
         (annotations (annotate-describe-annotations))
         (filename (buffer-file-name)))
     ;; write the diff file description
