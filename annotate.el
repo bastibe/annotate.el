@@ -130,79 +130,131 @@
 
 ;;;###autoload
 (defun annotate-export-annotations ()
-  "Export all annotations as a diff-like file."
+  "Export all annotations as a unified diff file.
+An example might look like this:
+
+--- /home/bastibe/Projects/annotate.el/annotate.el	2015-06-19 15:13:36.718796738 +0200
++++ /home/bastibe/Projects/annotate.el/annotate.el	2015-06-19 15:13:36.718796738 +0200
+@@ -73,5 +73,5 @@
+ ;;;###autoload
+ (defface annotate-highlight
+-  '((t (:underline \"coral\")))
++  '((t (:underline \"coral\")))
+#        ~~~~~~~~~~~~~~~~~~
+#        this doesn't work in cli
+   \"Face for annotation highlights.\"
+   :group 'annotate)
+
+This diff does not contain any changes, but highlights the
+annotation, and can be conveniently viewed in diff-mode."
   (interactive)
   (let ((export-buffer (generate-new-buffer "*annotations*"))
         (annotations (annotate-describe-annotations))
         (filename (buffer-file-name)))
+    ;; write the diff file description
     (with-current-buffer export-buffer
       (let ((time-string
              (format-time-string "%F %H:%M:%S.%N %z"
                                  (nth 5 (file-attributes filename 'integer)))))
         (insert "--- " filename "\t" time-string "\n")
         (insert "+++ " filename "\t" time-string "\n")))
+    ;; write diff, highlight, and comment for each annotation
     (save-excursion
+      ;; sort annotations by location in the file
       (dolist (ann (sort annotations (lambda (a1 a2)
                                        (< (car a1) (car a2)))))
-        (let ((start (nth 0 ann))
-              (end (nth 1 ann))
-              (text (nth 2 ann))
-              (bol nil)
-              (eol nil)
-              (line nil)
-              (previous-lines nil)
-              (following-lines nil)
-              (diff-range nil))
-          (goto-char start)
-          (beginning-of-line)
-          (setq bol (point))
-          (beginning-of-line (- (1- annotate-diff-export-context)))
-          (setq previous-lines (buffer-substring-no-properties (point) (1- bol)))
-          (goto-char end)
-          (end-of-line)
-          (setq eol (point))
-          (end-of-line (1+ annotate-diff-export-context))
-          (setq following-lines (buffer-substring-no-properties (1+ eol) (point)))
-          (setq line (buffer-substring bol eol))
-          (setq diff-range (annotate-diff-line-range start end))
+        (let* ((start (nth 0 ann))
+               (end (nth 1 ann))
+               (text (nth 2 ann))
+               ;; beginning of first annotated line
+               (bol (progn (goto-char start)
+                           (beginning-of-line)
+                           (point)))
+               ;; end of last annotated line
+               (eol (progn (goto-char end)
+                           (end-of-line)
+                           (point)))
+               ;; all lines that contain annotations
+               (annotated-lines (buffer-substring bol eol))
+               ;; context lines before the annotation
+               (previous-lines (annotate-context-before start))
+               ;; context lines after the annotation
+               (following-lines (annotate-context-after end))
+               ;; line header for diff chunk
+               (diff-range (annotate-diff-line-range start end)))
           (with-current-buffer export-buffer
             (insert "@@ " diff-range " @@\n")
-            (insert (annotate-prefix-lines previous-lines " "))
-            (insert (annotate-prefix-lines line "-"))
-            (let ((selection (butlast (split-string (annotate-prefix-lines line "+") "\n"))))
-              (cond ((= (length selection) 1)
-                     (insert (first selection) "\n")
-                     (unless (string= (first selection) "+")
-                       (insert "#"
-                               (make-string (- start bol) ? )
-                               (make-string (- end start) ?~)
-                               "\n"))
-                     (insert "#" (make-string (- start bol) ? ) text "\n"))
-                    (t
-                     (insert (first selection) "\n")
-                     (insert "#"
-                             (make-string (- start bol) ? )
-                             (make-string (- (length (first selection)) (- start bol)) ?~)
-                             "\n")
-                     (dolist (line (cdr (butlast selection)))
-                       (insert line "\n"
-                               "#" (make-string (length line) ?~) "\n"))
-                     (insert (car (last selection)) "\n")
-                     (insert "#"
-                             (make-string (- (length (car (last selection))) (- eol end) 1) ?~)
-                             "\n")
-                     (insert "#" text "\n"))))
-            (insert (annotate-prefix-lines following-lines " "))))))
+            (insert (annotate-prefix-lines " " previous-lines))
+            (insert (annotate-prefix-lines "-" annotated-lines))
+            ;; loop over annotation lines and insert with highlight
+            ;; and annotation text
+            (let ((annotation-line-list
+                   (butlast (split-string
+                             (annotate-prefix-lines "+" annotated-lines)
+                             "\n"))))
+              (cond
+               ;; annotation has only one line
+               ((= (length annotation-line-list) 1)
+                (insert (first annotation-line-list) "\n")
+                (unless (string= (first annotation-line-list) "+")
+                  (insert "#"
+                          (make-string (- start bol) ? )
+                          (make-string (- end start) ?~)
+                          "\n"))
+                (insert "#" (make-string (- start bol) ? ) text "\n"))
+               ;; annotation has more than one line
+               (t
+                (let ((line (first annotation-line-list))) ; first line
+                  ;; first diff line
+                  (insert line "\n")
+                  ;; underline highlight (from start to eol)
+                  (unless (string= line "+") ; empty line
+                    (insert "#"
+                            (make-string (- start bol) ? )
+                            (make-string (- (length line) (- start bol)) ?~)
+                            "\n")))
+                (dolist (line (cdr (butlast annotation-line-list))) ; nth line
+                  ;; nth diff line
+                  (insert line "\n")
+                  ;; nth underline highlight (from bol to eol)
+                  (unless (string= line "+")
+                    (insert "#" (make-string (length line) ?~) "\n")))
+                (let ((line (car (last annotation-line-list))))
+                  ;; last diff line
+                  (insert line "\n")
+                  ;; last underline highlight (from bol to end)
+                  (unless (string= line "+")
+                    (insert "#"
+                            (make-string (- (length line) (- eol end) 1) ?~)
+                            "\n")))
+                ;; annotation text
+                (insert "#" text "\n"))))
+            (insert (annotate-prefix-lines " " following-lines))))))
           (switch-to-buffer export-buffer)
           (diff-mode)
           (view-mode)))
 
-(defun annotate-prefix-lines (text prefix)
+(defun annotate-context-before (pos)
+  "Context lines before POS."
+  (save-excursion
+    (goto-char pos)
+    (beginning-of-line)
+    (let ((bol (point)))
+      (beginning-of-line (- (1- annotate-diff-export-context)))
+      (buffer-substring-no-properties (point) (1- bol)))))
+
+(defun annotate-context-after (pos)
+  "Context lines after POS."
+  (save-excursion
+    (goto-char pos)
+    (end-of-line)
+    (let ((eol (point)))
+      (end-of-line (1+ annotate-diff-export-context))
+      (buffer-substring-no-properties (1+ eol) (point)))))
+
+(defun annotate-prefix-lines (prefix text)
   "Prepend PREFIX to each line in TEXT."
-  ;; don't split a single new line into two lines
-  (let ((lines (if (string= text "\n")
-                   '("")
-                 (split-string text "\n"))))
+  (let ((lines (split-string text "\n")))
     (apply 'concat (map 'list (lambda (l) (concat prefix l "\n")) lines))))
 
 (defun annotate-diff-line-range (start end)
