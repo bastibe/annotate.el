@@ -31,6 +31,11 @@
      ,@body
      (f-delete default-directory :force)))
 
+(require 'undercover)
+(undercover "*.el" "annotate/*.el"
+            (:exclude "*-test.el")
+            (:send-report nil)
+            (:report-file "/tmp/undercover-report.json"))
 (require 'ert)
 (require 'annotate)
 

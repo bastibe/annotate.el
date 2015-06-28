@@ -11,7 +11,11 @@
 
 (add-to-list 'load-path annotate.el-root-path)
 
-(require 'annotate.el)
+(require 'undercover)
+(undercover "*.el" "annotate/*.el"
+            (:exclude "*-test.el")
+            (:report-file "/tmp/undercover-report.json"))
+(require 'annotate)
 (require 'espuds)
 (require 'ert)
 
