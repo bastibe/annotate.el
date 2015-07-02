@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.2.2
+;; Version: 0.2.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -46,7 +46,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.2.2"
+  :version "0.2.3"
   :group 'text)
 
 ;;;###autoload
@@ -92,6 +92,12 @@
   :type 'number
   :group 'annotate)
 
+;;;###autoload
+(defcustom annotate-use-messages t
+  "Whether status messages may appear in the minibuffer."
+  :type 'boolean
+  :group 'annotate)
+
 (defun annotate-initialize ()
   "Load annotations and set up save hook."
   (annotate-load-annotations)
@@ -126,7 +132,8 @@
             (push (cons (buffer-file-name) file-annotations)
                   all-annotations)))
     (annotate-dump-annotation-data all-annotations)
-    (message "Annotations saved.")))
+    (if annotate-use-messages
+        (message "Annotations saved."))))
 
 ;;;###autoload
 (defun annotate-export-annotations ()
@@ -275,7 +282,7 @@ annotation, and can be conveniently viewed in diff-mode."
     ;; remove empty annotations created by earlier bug:
     (setq annotations (remove-if (lambda (ann) (eq (nth 2 ann) nil))
                                  annotations))
-    (when (eq nil annotations)
+    (when (and (eq nil annotations) annotate-use-messages)
       (message "No annotations found."))
     (when (not (eq nil annotations))
       (save-excursion
@@ -294,7 +301,8 @@ annotation, and can be conveniently viewed in diff-mode."
                                  (1+ (point))
                                  'display
                                  (concat prefix text "\n"))))))
-      (message "Annotations loaded."))))
+      (if annotate-use-messages
+          (message "Annotations loaded.")))))
 
 ;;;###autoload
 (defun annotate-clear-annotations ()
