@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.2.3
+;; Version: 0.2.4
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -46,7 +46,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.2.3"
+  :version "0.2.4"
   :group 'text)
 
 ;;;###autoload
@@ -278,7 +278,8 @@ annotation, and can be conveniently viewed in diff-mode."
   "Load all annotations from disk."
   (interactive)
   (let ((annotations (cdr (assoc-string (buffer-file-name)
-                                        (annotate-load-annotation-data)))))
+                                        (annotate-load-annotation-data))))
+        (modified-p (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
     (setq annotations (remove-if (lambda (ann) (eq (nth 2 ann) nil))
                                  annotations))
@@ -301,6 +302,7 @@ annotation, and can be conveniently viewed in diff-mode."
                                  (1+ (point))
                                  'display
                                  (concat prefix text "\n"))))))
+      (set-buffer-modified-p modified-p)
       (if annotate-use-messages
           (message "Annotations loaded.")))))
 
@@ -309,7 +311,8 @@ annotation, and can be conveniently viewed in diff-mode."
   "Clear all current annotations."
   (interactive)
   (let ((overlays
-         (overlays-in 0 (buffer-size))))
+         (overlays-in 0 (buffer-size)))
+        (modified-p (buffer-modified-p)))
     ;; only remove annotations, not all overlays
     (setq overlays (remove-if
                     (lambda (ov)
@@ -320,7 +323,8 @@ annotation, and can be conveniently viewed in diff-mode."
         (goto-char (overlay-end ov))
         (move-end-of-line nil)
         (delete-overlay ov)
-        (remove-text-properties (point) (1+ (point)) '(display nil))))))
+        (remove-text-properties (point) (1+ (point)) '(display nil))))
+    (set-buffer-modified-p modified-p)))
 
 (defun annotate-create-annotation (start end)
   "Create a new annotation for selected region."
