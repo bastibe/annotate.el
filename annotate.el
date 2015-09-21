@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.2.4
+;; Version: 0.3.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -39,6 +39,10 @@
 ;; To add annotations to a file, select a region and hit C-c C-a. The
 ;; region will be underlined, and the annotation will be displayed in
 ;; the right margin. Annotations are saved whenever the file is saved.
+;;
+;; Use C-c C-n to jump to the next annotation and C-c C-p to jump to
+;; the previous annotation. Use M-x annotate-export-annotations to
+;; save annotations as a no-difference diff file.
 
 ;;; Code:
 (require 'cl)
@@ -46,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.2.4"
+  :version "0.3.0"
   :group 'text)
 
 ;;;###autoload
@@ -61,6 +65,8 @@
                 (annotate-shutdown)))
 
 (define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
+(define-key annotate-mode-map (kbd "C-c C-n") 'annotate-next-annotation)
+(define-key annotate-mode-map (kbd "C-c C-p") 'annotate-previous-annotation)
 
 ;;;###autoload
 (defcustom annotate-file "~/.annotations"
@@ -118,6 +124,49 @@
           (t
            (destructuring-bind (start end) (annotate-bounds)
              (annotate-create-annotation start end))))))
+
+;;;###autoload
+(defun annotate-next-annotation ()
+  "Move point to the next annotation."
+  (interactive)
+  ;; get all following overlays
+  (let ((overlays
+         (overlays-in (point) (buffer-size))))
+    ;; skip overlays not created by annotate.el
+    (setq overlays (remove-if
+                    (lambda (ov)
+                      (eq nil (overlay-get ov 'annotation)))
+                    overlays))
+    ;; skip properties under point
+    (dolist (current (overlays-at (point)))
+      (setq overlays (remove current overlays)))
+    ;; sort overlays ascending
+    (setq overlays (sort overlays (lambda (x y)
+                                    (< (overlay-start x) (overlay-start y)))))
+    (if (eq nil overlays)
+        (message "No further annotations.")
+      ;; jump to first overlay list
+      (goto-char (overlay-start (nth 0 overlays))))))
+
+;;;###autoload
+(defun annotate-previous-annotation ()
+  "Move point to the previous annotation."
+  (interactive)
+  ;; get all previous overlays
+  (let ((overlays
+         (overlays-in 0 (point))))
+    ;; skip overlays not created by annotate.el
+    (setq overlays (remove-if
+                    (lambda (ov)
+                      (eq nil (overlay-get ov 'annotation)))
+                    overlays))
+    ;; sort overlays descending
+    (setq overlays (sort overlays (lambda (x y)
+                                    (> (overlay-start x) (overlay-start y)))))
+    (if (eq nil overlays)
+        (message "No previous annotations.")
+      ;; jump to first overlay in list
+      (goto-char (overlay-start (nth 0 overlays))))))
 
 ;;;###autoload
 (defun annotate-save-annotations ()
