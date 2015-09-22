@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.3.1
+;; Version: 0.3.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.3.1"
+  :version "0.3.2"
   :group 'text)
 
 ;;;###autoload
@@ -426,17 +426,18 @@ annotation, and can be conveniently viewed in diff-mode."
 (defun annotate-bounds ()
   "The bounds of the region or whatever is at point."
   (list (cond
-         ((region-active-p) (region-beginning))
+         ((use-region-p) (region-beginning))
          ((thing-at-point 'symbol) (car (bounds-of-thing-at-point 'symbol)))
          (t (point)))
         (cond
-         ((region-active-p) (region-end))
+         ((use-region-p) (region-end))
          ((thing-at-point 'symbol) (cdr (bounds-of-thing-at-point 'symbol)))
          (t (1+ (point))))))
 
 (defun annotate-describe-annotations ()
   "Return a list of all annotations in the current buffer."
   (let ((overlays (overlays-in 0 (buffer-size))))
+    ;; skip non-annotation overlays
     (setq overlays
           (cl-remove-if
            (lambda (ov)
