@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.3.4
+;; Version: 0.3.5
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.3.4"
+  :version "0.3.5"
   :group 'text)
 
 ;;;###autoload
@@ -173,12 +173,13 @@
   "Save all annotations to disk."
   (interactive)
   (let ((file-annotations (annotate-describe-annotations))
-        (all-annotations (annotate-load-annotation-data)))
-    (if (assoc-string (buffer-file-name) all-annotations)
-        (setcdr (assoc-string (buffer-file-name) all-annotations)
+        (all-annotations (annotate-load-annotation-data))
+        (filename (substring-no-properties (buffer-file-name))))
+    (if (assoc-string filename all-annotations)
+        (setcdr (assoc-string filename all-annotations)
                 file-annotations)
       (setq all-annotations
-            (push (cons (buffer-file-name) file-annotations)
+            (push (cons filename file-annotations)
                   all-annotations)))
     ;; remove duplicate entries (a user reported seeing them)
     (dolist (entry all-annotations)
@@ -211,11 +212,11 @@ An example might look like this:
 This diff does not contain any changes, but highlights the
 annotation, and can be conveniently viewed in diff-mode."
   (interactive)
-  (let ((export-buffer (generate-new-buffer (concat
-                                             (buffer-file-name)
+  (let* ((filename (substring-no-properties (buffer-file-name)))
+         (export-buffer (generate-new-buffer (concat
+                                              filename
                                              ".annotations.diff")))
-        (annotations (annotate-describe-annotations))
-        (filename (buffer-file-name)))
+        (annotations (annotate-describe-annotations)))
     ;; write the diff file description
     (with-current-buffer export-buffer
       (let ((time-string
@@ -333,8 +334,9 @@ annotation, and can be conveniently viewed in diff-mode."
 (defun annotate-load-annotations ()
   "Load all annotations from disk."
   (interactive)
-  (let ((annotations (cdr (assoc-string (buffer-file-name)
-                                        (annotate-load-annotation-data))))
+  (let ((annotations (cdr (assoc-string
+                           (substring-no-properties (buffer-file-name))
+                           (annotate-load-annotation-data))))
         (modified-p (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
     (setq annotations (cl-remove-if (lambda (ann) (eq (nth 2 ann) nil))
