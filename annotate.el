@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.3.0
+;; Version: 0.3.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 ;; region will be underlined, and the annotation will be displayed in
 ;; the right margin. Annotations are saved whenever the file is saved.
 ;;
-;; Use C-c C-n to jump to the next annotation and C-c C-p to jump to
+;; Use C-c ] to jump to the next annotation and C-c [ to jump to
 ;; the previous annotation. Use M-x annotate-export-annotations to
 ;; save annotations as a no-difference diff file.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.3.0"
+  :version "0.3.1"
   :group 'text)
 
 ;;;###autoload
@@ -65,8 +65,8 @@
                 (annotate-shutdown)))
 
 (define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
-(define-key annotate-mode-map (kbd "C-c C-n") 'annotate-next-annotation)
-(define-key annotate-mode-map (kbd "C-c C-p") 'annotate-previous-annotation)
+(define-key annotate-mode-map (kbd "C-c ]") 'annotate-next-annotation)
+(define-key annotate-mode-map (kbd "C-c [") 'annotate-previous-annotation)
 
 ;;;###autoload
 (defcustom annotate-file "~/.annotations"
