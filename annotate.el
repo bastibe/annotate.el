@@ -45,7 +45,7 @@
 ;; save annotations as a no-difference diff file.
 
 ;;; Code:
-(require 'cl)
+(require 'cl-lib)
 
 ;;;###autoload
 (defgroup annotate nil
@@ -122,7 +122,7 @@
     (cond ((and (overlayp overlay) (overlay-get overlay 'annotation))
            (annotate-change-annotation (point)))
           (t
-           (destructuring-bind (start end) (annotate-bounds)
+           (cl-destructuring-bind (start end) (annotate-bounds)
              (annotate-create-annotation start end))))))
 
 ;;;###autoload
@@ -133,7 +133,7 @@
   (let ((overlays
          (overlays-in (point) (buffer-size))))
     ;; skip overlays not created by annotate.el
-    (setq overlays (remove-if
+    (setq overlays (cl-remove-if
                     (lambda (ov)
                       (eq nil (overlay-get ov 'annotation)))
                     overlays))
@@ -156,7 +156,7 @@
   (let ((overlays
          (overlays-in 0 (point))))
     ;; skip overlays not created by annotate.el
-    (setq overlays (remove-if
+    (setq overlays (cl-remove-if
                     (lambda (ov)
                       (eq nil (overlay-get ov 'annotation)))
                     overlays))
@@ -253,8 +253,8 @@ annotation, and can be conveniently viewed in diff-mode."
               (cond
                ;; annotation has only one line
                ((= (length annotation-line-list) 1)
-                (insert (first annotation-line-list) "\n")
-                (unless (string= (first annotation-line-list) "+")
+                (insert (car annotation-line-list) "\n")
+                (unless (string= (car annotation-line-list) "+")
                   (insert "#"
                           (make-string (- start bol) ? )
                           (make-string (- end start) ?~)
@@ -262,7 +262,7 @@ annotation, and can be conveniently viewed in diff-mode."
                 (insert "#" (make-string (- start bol) ? ) text "\n"))
                ;; annotation has more than one line
                (t
-                (let ((line (first annotation-line-list))) ; first line
+                (let ((line (car annotation-line-list))) ; first line
                   ;; first diff line
                   (insert line "\n")
                   ;; underline highlight (from start to eol)
@@ -313,7 +313,7 @@ annotation, and can be conveniently viewed in diff-mode."
 (defun annotate-prefix-lines (prefix text)
   "Prepend PREFIX to each line in TEXT."
   (let ((lines (split-string text "\n")))
-    (apply 'concat (map 'list (lambda (l) (concat prefix l "\n")) lines))))
+    (apply 'concat (mapcar (lambda (l) (concat prefix l "\n")) lines))))
 
 (defun annotate-diff-line-range (start end)
   "Calculate diff-like line range for annotation."
@@ -330,7 +330,7 @@ annotation, and can be conveniently viewed in diff-mode."
                                         (annotate-load-annotation-data))))
         (modified-p (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
-    (setq annotations (remove-if (lambda (ann) (eq (nth 2 ann) nil))
+    (setq annotations (cl-remove-if (lambda (ann) (eq (nth 2 ann) nil))
                                  annotations))
     (when (and (eq nil annotations) annotate-use-messages)
       (message "No annotations found."))
@@ -363,7 +363,7 @@ annotation, and can be conveniently viewed in diff-mode."
          (overlays-in 0 (buffer-size)))
         (modified-p (buffer-modified-p)))
     ;; only remove annotations, not all overlays
-    (setq overlays (remove-if
+    (setq overlays (cl-remove-if
                     (lambda (ov)
                       (eq nil (overlay-get ov 'annotation)))
                     overlays))
@@ -438,7 +438,7 @@ annotation, and can be conveniently viewed in diff-mode."
   "Return a list of all annotations in the current buffer."
   (let ((overlays (overlays-in 0 (buffer-size))))
     (setq overlays
-          (remove-if
+          (cl-remove-if
            (lambda (ov)
              (eq nil (overlay-get ov 'annotation)))
            overlays))
