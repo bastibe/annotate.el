@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.3.3
+;; Version: 0.3.4
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.3.3"
+  :version "0.3.4"
   :group 'text)
 
 ;;;###autoload
@@ -180,6 +180,9 @@
       (setq all-annotations
             (push (cons (buffer-file-name) file-annotations)
                   all-annotations)))
+    ;; remove duplicate entries (a user reported seeing them)
+    (dolist (entry all-annotations)
+      (delete-dups entry))
     ;; skip files with no annotations
     (annotate-dump-annotation-data (cl-remove-if
                                     (lambda (entry)
