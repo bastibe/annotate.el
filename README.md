@@ -25,3 +25,49 @@ Annotations can be exported `annotate-export-annotations` as commented unified d
 - annotations in org-mode source blocks will be underlined, but the annotations don't show up. This is likely a fundamental incompatibility with the way source blocks are highlighted and the way annotations are displayed.
 
 This package is released under the MIT license.
+
+### Changelog
+
+- **2015-06-12 V0.1 Bastian Bechtold**  
+  First working release.
+
+- **2015-06-12 V0.1.1 Bastian Bechtold**  
+  Improve documentation and add license.
+
+- **2015-06-12 V0.1.2 Bastian Bechtold**  
+  Fix typo and version error.
+
+- **2015-06-15 V0.1.3 Bastian Bechtold**  
+  Improve README and auto-remove empty annotations created by earlier bug.
+
+- **2015-06-15 V0.1.4 Bastian Bechtold**  
+  Minor bug fixes.
+
+- **2015-06-15 V0.1.5 Bastian Bechtold**  
+  Annotations now work on long lines.
+
+- **2015-06-19 V0.2.0 Bastian Bechtold**  
+  Annotations can be exported as unified diff files.  
+  Several smaller bug fixes.
+
+- **2015-06-19 V0.2.1 Bastian Bechtold**  
+  Now with fewer compile warnings (turns out, not really).
+
+- **2015-06-19 V0.2.2 Bastian Bechtold**  
+  Now with more compile warnings (0.2.1 didn't work).
+
+- **2015-07-02 V0.2.3 Bastian Bechtold**  
+  Can now disable minibuffer messages.
+
+- **2015-09-17 V0.2.4 Bastian Bechtold**  
+  Load and Clear don't mark buffer as modified any more.
+
+- **2015-09-21 V0.3.0 Bastian Bechtold**  
+  Add key bindings for jumping to next/previous annotation.
+
+- **2015-09-22 V0.3.1 Bastian Bechtold**  
+  Change key bindings for jumping as to conform with Emacs' standards.  
+  Didn't change the main key binding though, because I don't know a good alternative.
+
+- **2015-09-23 V0.4.0 Bastian Bechtold**  
+  Completely reworked the display engine for annotations. You can now have several annotations per line, and annotations should not move any more when editing the line they are on. Finally, annotations can now span several lines.
