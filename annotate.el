@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.3.5
+;; Version: 0.4.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.3.5"
+  :version "0.4.0"
   :group 'text)
 
 ;;;###autoload
@@ -105,14 +105,20 @@
   :group 'annotate)
 
 (defun annotate-initialize ()
-  "Load annotations and set up save hook."
+  "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
-  (add-hook 'after-save-hook 'annotate-save-annotations t t))
+  (add-hook 'after-save-hook 'annotate-save-annotations t t)
+  (font-lock-add-keywords
+   nil '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                      (1 (annotate--change-guard))))))
 
 (defun annotate-shutdown ()
-  "Clear annotations and remove save hook."
+  "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
-  (remove-hook 'after-save-hook 'annotate-save-annotations t))
+  (remove-hook 'after-save-hook 'annotate-save-annotations t)
+  (font-lock-remove-keywords
+   nil '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                      (1 (annotate--change-guard))))))
 
 ;;;###autoload
 (defun annotate-annotate ()
@@ -123,7 +129,9 @@
            (annotate-change-annotation (point)))
           (t
            (cl-destructuring-bind (start end) (annotate-bounds)
-             (annotate-create-annotation start end))))))
+             (annotate-create-annotation start end)))))
+  (font-lock-fontify-block 1)
+  (set-buffer-modified-p t))
 
 ;;;###autoload
 (defun annotate-next-annotation ()
@@ -300,6 +308,101 @@ annotation, and can be conveniently viewed in diff-mode."
           (diff-mode)
           (view-mode)))
 
+(defun annotate--font-lock-matcher (limit)
+  "Finds the next annotation. Matches two areas:
+- the area between the overlay and the annotation
+- the newline that will display the annotation
+
+The first match will get `annotate--change-guard` as its
+`insert-behind-hook`, to make sure that if a newline is inserted
+between the overlay and the annotation, the `display` property of
+the newline is properly disposed of.
+
+The second match will get `annotate-annotation-builder` as its
+`display` property, which makes the newline look like an
+annotation plus the newline."
+  (goto-char (next-overlay-change (point)))
+  (if (>= (point) limit)
+      nil ; no match found before limit
+    (progn
+      ;; go to the end of the longest overlay under point
+      (let ((overlays (sort (overlays-at (point))
+                            (lambda (x y)
+                              (> (overlay-end x) (overlay-end y))))))
+        (goto-char (overlay-end (car overlays))))
+      ;; capture the area from the overlay to EOL for the modification guard
+      ;; and the newline itself for the annotation.
+      (re-search-forward "\\(.*\\)\\(\n\\)")
+      t)))
+
+(defun annotate-lineate (text)
+  "Breaks `text` into lines to fit in the annotation space"
+  (let ((available-width (- (window-body-width)
+                            annotate-annotation-column))
+        (lineated "")
+        (current-pos 0))
+    (while (< current-pos (string-width text))
+      (setq lineated
+            (concat
+             lineated
+             (substring text current-pos
+                        (min (string-width text)
+                             (+ current-pos available-width -1)))
+             "\n"))
+      (setq current-pos (+ current-pos available-width -1)))
+    ;; strip trailing newline, if any
+    (if (string= (substring lineated (1- (string-bytes lineated))) "\n")
+        (substring lineated 0 (1- (string-bytes lineated)))
+      lineated)))
+
+(defun annotate--annotation-builder ()
+  "Searches the line before point for annotations, and returns a
+`facespec` with the annotation in its `display` property."
+  (save-excursion
+    (goto-char (1- (point))) ; we start at the start of the next line
+    ;; find overlays in the preceding line
+    (let* ((prefix (annotate-make-prefix)) ; white space before first annotation
+           (text "")
+           (bol (progn (beginning-of-line) (point)))
+           (eol (progn (end-of-line) (point)))
+           (overlays (sort (overlays-in bol eol)
+                           (lambda (x y)
+                             (< (overlay-end x) (overlay-end y))))))
+      ;; put each annotation on its own line
+      (dolist (ov overlays)
+        (if (overlay-get ov 'annotation)
+            (dolist (l (save-match-data (split-string (annotate-lineate (overlay-get ov 'annotation)) "\n")))
+              (setq text
+                    (concat text prefix
+                            (propertize l 'face 'annotate-annotation)
+                            "\n"))
+              ;; white space before for all but the first annotation
+              (setq prefix (make-string annotate-annotation-column ? )))))
+      ;; build facecpec with the annotation text as display property
+      (list 'face 'default 'display text))))
+
+(defun annotate--remove-annotation-property (begin end)
+  "Cleans up annotation properties associated with a region."
+  ;; inhibit infinite loop
+  (setq inhibit-modification-hooks t)
+  (save-excursion
+    (goto-char end)
+    ;; go to the EOL where the
+    ;; annotated newline used to be
+    (end-of-line)
+    ;; strip dangling display property
+    (remove-text-properties
+     (point) (1+ (point)) '(display nil)))
+  (setq inhibit-modification-hooks nil))
+
+(defun annotate--change-guard ()
+  "Returns a `facespec` with an `insert-behind-hooks` property
+that strips dangling `display` properties of text insertions if
+text is inserted. This cleans up after newline insertions between
+an overlay and it's annotation."
+  (list 'face nil
+        'insert-behind-hooks '(annotate--remove-annotation-property)))
+
 (defun annotate-context-before (pos)
   "Context lines before POS."
   (save-excursion
@@ -340,29 +443,20 @@ annotation, and can be conveniently viewed in diff-mode."
         (modified-p (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
     (setq annotations (cl-remove-if (lambda (ann) (eq (nth 2 ann) nil))
-                                 annotations))
+                                    annotations))
     (when (and (eq nil annotations) annotate-use-messages)
       (message "No annotations found."))
     (when (not (eq nil annotations))
       (save-excursion
         (dolist (annotation annotations)
-          (let* ((start (nth 0 annotation))
-                 (end (nth 1 annotation))
-                 (text (nth 2 annotation))
-                 (highlight (make-overlay start end)))
-            (overlay-put highlight 'face 'annotate-highlight)
-            (overlay-put highlight 'annotation text)
-            (setq text (propertize text 'face 'annotate-annotation))
-            (goto-char end)
-            (move-end-of-line nil)
-            (let ((prefix (annotate-make-prefix)))
-              (put-text-property (point)
-                                 (1+ (point))
-                                 'display
-                                 (concat prefix text "\n"))))))
-      (set-buffer-modified-p modified-p)
-      (if annotate-use-messages
-          (message "Annotations loaded.")))))
+          (let ((start (nth 0 annotation))
+                (end (nth 1 annotation))
+                (text (nth 2 annotation)))
+            (annotate-create-annotation start end text)))))
+    (set-buffer-modified-p modified-p)
+    (font-lock-fontify-buffer)
+    (if annotate-use-messages
+        (message "Annotations loaded."))))
 
 ;;;###autoload
 (defun annotate-clear-annotations ()
@@ -376,34 +470,30 @@ annotation, and can be conveniently viewed in diff-mode."
                     (lambda (ov)
                       (eq nil (overlay-get ov 'annotation)))
                     overlays))
-    (save-excursion
-      (dolist (ov overlays)
-        (goto-char (overlay-end ov))
-        (move-end-of-line nil)
-        (delete-overlay ov)
-        (remove-text-properties (point) (1+ (point)) '(display nil))))
+    (dolist (ov overlays)
+      (annotate--remove-annotation-property
+       (overlay-start ov)
+       (overlay-end ov))
+      (delete-overlay ov))
     (set-buffer-modified-p modified-p)))
 
-(defun annotate-create-annotation (start end)
+(defun annotate-create-annotation (start end &optional text)
   "Create a new annotation for selected region."
-  (let ((annotation (read-from-minibuffer "Annotation: "))
-        (prefix (annotate-make-prefix)))
+  (let ((annotation (or text (read-from-minibuffer "Annotation: "))))
     (when (not (or (eq nil annotation) (string= "" annotation)))
       (let ((highlight (make-overlay start end)))
         (overlay-put highlight 'face 'annotate-highlight)
-        (overlay-put highlight 'annotation annotation)
-        (setq annotation (propertize annotation 'face 'annotate-annotation))
-        (save-excursion
-          (goto-char (max start end))
-          (move-end-of-line nil)
-          (put-text-property (point) (1+ (point))
-                             'display (concat prefix annotation "\n")))))))
+        (overlay-put highlight 'annotation annotation))))
+  (save-excursion
+    (goto-char end)
+    (font-lock-fontify-block 1)))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
   (let* ((highlight (car (overlays-at pos)))
-         (annotation (read-from-minibuffer "Annotation: " (overlay-get highlight 'annotation)))
-         (prefix (annotate-make-prefix)))
+         (annotation (read-from-minibuffer
+                      "Annotation: "
+                      (overlay-get highlight 'annotation))))
     (save-excursion
       (goto-char (overlay-end highlight))
       (move-end-of-line nil)
@@ -412,13 +502,12 @@ annotation, and can be conveniently viewed in diff-mode."
        ((eq nil annotation))
        ;; annotation was erased:
        ((string= "" annotation)
-        (delete-overlay highlight)
-        (remove-text-properties (point) (1+ (point)) '(display nil)))
+        (annotate--remove-annotation-property
+         (overlay-start highlight)
+         (overlay-end highlight))
+        (delete-overlay highlight))
        ;; annotation was changed:
-       (t
-        (overlay-put highlight 'annotation annotation)
-        (setq annotation (propertize annotation 'face 'annotate-annotation))
-        (put-text-property (point) (1+ (point)) 'display (concat prefix annotation "\n")))))))
+       (t (overlay-put highlight 'annotation annotation))))))
 
 (defun annotate-make-prefix ()
   "An empty string from the end of the line upto the annotation."
@@ -430,6 +519,7 @@ annotation, and can be conveniently viewed in diff-mode."
       (setq prefix-length (- annotate-annotation-column (- eol (point))))
       (if (< prefix-length 2)
           (make-string 2 ? )
+
         (make-string prefix-length ? )))))
 
 (defun annotate-bounds ()

@@ -22,7 +22,6 @@ Annotations can be exported `annotate-export-annotations` as commented unified d
 
 ### Incompatibilities:
 
-- you can't annotate org-mode source code blocks.
-- `form-feed-mode`. For unknown reasons, `form-feed-mode` erases all annotations (to be more precise: the `display` text properties of the line feed characters, which is what `annotate` uses to display it's annotations).
+- annotations in org-mode source blocks will be underlined, but the annotations don't show up. This is likely a fundamental incompatibility with the way source blocks are highlighted and the way annotations are displayed.
 
 This package is released under the MIT license.
