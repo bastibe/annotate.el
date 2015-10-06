@@ -233,7 +233,7 @@ An example might look like this:"
                   (make-string (max 0 (- ov-start bol (string-width comment-start))) ? )
                   (make-string (max 0 (- eol ov-start)) ?~)))
         ;; fully underline second to second-to-last line
-        (while (< (progn (next-line)
+        (while (< (progn (forward-line)
                          (end-of-line)
                          (point)) (overlay-end ov))
           (let ((bol (progn (beginning-of-line)
