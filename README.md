@@ -72,5 +72,5 @@ This package is released under the MIT license.
 - **2015-09-23 V0.4.0 Bastian Bechtold**  
   Completely reworked the display engine for annotations. You can now have several annotations per line, and annotations should not move any more when editing the line they are on. Finally, annotations can now span several lines.
 
-- **2015-10-06 V0.4.2 Bastian Bechtold**  
-  Bugfixes. No more hidden newlines, no more annotations in undo-list, no more error messages with annotations at bol, mark deactivated after creating annotation.
+- **2015-10-06 V0.4.3 Bastian Bechtold**  
+  Bugfixes. No more hidden newlines, no more annotations in undo-list, no more error messages with annotations at bol, mark deactivated after creating annotation, annotations auto-reflow on frame size change.

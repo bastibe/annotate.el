@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.4.2
+;; Version: 0.4.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.4.2"
+  :version "0.4.3"
   :group 'text)
 
 ;;;###autoload
@@ -108,6 +108,7 @@
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
   (add-hook 'after-save-hook 'annotate-save-annotations t t)
+  (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer t t)
   (font-lock-add-keywords
    nil '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
                                       (1 (annotate--change-guard))))))
@@ -116,6 +117,7 @@
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
   (remove-hook 'after-save-hook 'annotate-save-annotations t)
+  (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer t)
   (font-lock-remove-keywords
    nil '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
                                       (1 (annotate--change-guard))))))
