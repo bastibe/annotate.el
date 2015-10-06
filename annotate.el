@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.4.3
+;; Version: 0.4.4
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.4.3"
+  :version "0.4.4"
   :group 'text)
 
 ;;;###autoload
@@ -102,6 +102,12 @@
 (defcustom annotate-use-messages t
   "Whether status messages may appear in the minibuffer."
   :type 'boolean
+  :group 'annotate)
+
+;;;###autoload
+(defcustom annotate-integrate-marker " ANNOTATION: "
+  "Marker that is written before every integrated annotation."
+  :type 'string
   :group 'annotate)
 
 (defun annotate-initialize ()
@@ -201,6 +207,66 @@
                                     all-annotations))
     (if annotate-use-messages
         (message "Annotations saved."))))
+
+;;;###autoload
+(defun annotate-integrate-annotations ()
+  "Write all annotations into the file as comments below the annotated line.
+An example might look like this:"
+  (interactive)
+  (save-excursion
+    (dolist (ov (sort (overlays-in 0 (buffer-size))
+                      (lambda (o1 o2)
+                        (< (overlay-start o1) (overlay-start o2)))))
+      (goto-char (overlay-start ov))
+      (cond
+       ;; overlay spans more than one line
+       ((string-match "\n" (buffer-substring (overlay-start ov)
+                                             (overlay-end ov)))
+        ;; partially underline first line
+        (let ((ov-start (point))
+              (bol (progn (beginning-of-line)
+                          (point)))
+              (eol (progn (end-of-line)
+                          (point))))
+          (end-of-line)
+          (insert "\n" comment-start
+                  (make-string (max 0 (- ov-start bol (string-width comment-start))) ? )
+                  (make-string (max 0 (- eol ov-start)) ?~)))
+        ;; fully underline second to second-to-last line
+        (while (< (progn (next-line)
+                         (end-of-line)
+                         (point)) (overlay-end ov))
+          (let ((bol (progn (beginning-of-line)
+                            (point)))
+                (eol (progn (end-of-line)
+                            (point))))
+            (end-of-line)
+            (insert "\n" comment-start
+                    (make-string (max 0 (- eol bol (string-width comment-start))) ?~))))
+        ;; partially underline last line
+        (let ((bol (progn (beginning-of-line)
+                          (point)))
+              (ov-end (overlay-end ov)))
+          (end-of-line)
+          (insert "\n" comment-start
+                  (make-string (max 0 (- ov-end bol (string-width comment-start))) ?~)))
+        ;; insert actual annotation text
+        (insert "\n" comment-start annotate-integrate-marker (overlay-get ov 'annotation)))
+       ;; overlay is within one line
+       (t
+        (let ((ov-start (overlay-start ov))
+              (ov-end (overlay-end ov))
+              (bol (progn (beginning-of-line)
+                          (point))))
+          (end-of-line)
+          (insert "\n" comment-start
+                  (make-string (max 0 (- ov-start bol (string-width comment-start))) ? )
+                  (if (= bol ov-start)
+                      (make-string (max 0 (- ov-end ov-start 1)) ?~)
+                    (make-string (max 0 (- ov-end ov-start)) ?~))
+                    "\n" comment-start annotate-integrate-marker (overlay-get ov 'annotation)))))
+      (remove-text-properties
+         (point) (1+ (point)) '(display nil)))))
 
 ;;;###autoload
 (defun annotate-export-annotations ()
@@ -335,7 +401,7 @@ annotation plus the newline."
             (goto-char (overlay-end (car overlays)))))
       ;; capture the area from the overlay to EOL for the modification guard
       ;; and the newline itself for the annotation.
-      (re-search-forward "\\(.*\\)\\(\n\\)")
+      (re-search-forward "\\(.*\\(\n\\)\\)")
       t)))
 
 (defun annotate-lineate (text)
@@ -411,7 +477,7 @@ that strips dangling `display` properties of text insertions if
 text is inserted. This cleans up after newline insertions between
 an overlay and it's annotation."
   (list 'face nil
-        'insert-behind-hooks '(annotate--remove-annotation-property)))
+        'insert-in-front-hooks '(annotate--remove-annotation-property)))
 
 (defun annotate-context-before (pos)
   "Context lines before POS."

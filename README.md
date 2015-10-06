@@ -74,3 +74,6 @@ This package is released under the MIT license.
 
 - **2015-10-06 V0.4.3 Bastian Bechtold**  
   Bugfixes. No more hidden newlines, no more annotations in undo-list, no more error messages with annotations at bol, mark deactivated after creating annotation, annotations auto-reflow on frame size change.
+
+- **2015-10-06 V0.4.4 Bastian Bechtold**  
+  Added a new export system. Let's see if it turns out to be more useful than the previous one.
