@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.4.1
+;; Version: 0.4.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.4.1"
+  :version "0.4.2"
   :group 'text)
 
 ;;;###autoload
@@ -390,6 +390,8 @@ annotation plus the newline."
   "Cleans up annotation properties associated with a region."
   ;; inhibit infinite loop
   (setq inhibit-modification-hooks t)
+  ;; inhibit property removal to the undo list
+  (buffer-disable-undo)
   (save-excursion
     (goto-char end)
     ;; go to the EOL where the
@@ -398,6 +400,7 @@ annotation plus the newline."
     ;; strip dangling display property
     (remove-text-properties
      (point) (1+ (point)) '(display nil)))
+  (buffer-enable-undo)
   (setq inhibit-modification-hooks nil))
 
 (defun annotate--change-guard ()
