@@ -380,7 +380,11 @@ annotation plus the newline."
               ;; white space before for all but the first annotation
               (setq prefix (make-string annotate-annotation-column ? )))))
       ;; build facecpec with the annotation text as display property
-      (list 'face 'default 'display text))))
+      (if (string= text "")
+          ;; annotation has been removed: remove display prop
+          (list 'face 'default 'display nil)
+        ;; annotation has been changed/added: change/add display prop
+        (list 'face 'default 'display text)))))
 
 (defun annotate--remove-annotation-property (begin end)
   "Cleans up annotation properties associated with a region."
