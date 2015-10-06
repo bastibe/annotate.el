@@ -329,7 +329,8 @@ annotation plus the newline."
       (let ((overlays (sort (overlays-at (point))
                             (lambda (x y)
                               (> (overlay-end x) (overlay-end y))))))
-        (goto-char (overlay-end (car overlays))))
+        (if overlays
+            (goto-char (overlay-end (car overlays)))))
       ;; capture the area from the overlay to EOL for the modification guard
       ;; and the newline itself for the annotation.
       (re-search-forward "\\(.*\\)\\(\n\\)")
