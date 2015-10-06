@@ -484,7 +484,8 @@ an overlay and it's annotation."
     (when (not (or (eq nil annotation) (string= "" annotation)))
       (let ((highlight (make-overlay start end)))
         (overlay-put highlight 'face 'annotate-highlight)
-        (overlay-put highlight 'annotation annotation))))
+        (overlay-put highlight 'annotation annotation))
+      (if (use-region-p) (deactivate-mark))))
   (save-excursion
     (goto-char end)
     (font-lock-fontify-block 1)))
