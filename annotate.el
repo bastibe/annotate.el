@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.4.4
+;; Version: 0.4.5
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.4.4"
+  :version "0.4.5"
   :group 'text)
 
 ;;;###autoload
@@ -420,8 +420,8 @@ annotation plus the newline."
              "\n"))
       (setq current-pos (+ current-pos available-width -1)))
     ;; strip trailing newline, if any
-    (if (string= (substring lineated (1- (string-bytes lineated))) "\n")
-        (substring lineated 0 (1- (string-bytes lineated)))
+    (if (string= (substring lineated -1) "\n")
+        (substring lineated 0 -1)
       lineated)))
 
 (defun annotate--annotation-builder ()
