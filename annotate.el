@@ -627,7 +627,9 @@ an overlay and it's annotation."
 
 (defun annotate-load-annotation-data ()
   "Read and return saved annotations."
+  (setq local-annotate-file annotate-file)
   (with-temp-buffer
+    (setq-local annotate-file local-annotate-file)
     (when (file-exists-p annotate-file)
       (insert-file-contents annotate-file))
     (goto-char (point-max))
