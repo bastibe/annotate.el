@@ -627,13 +627,16 @@ an overlay and it's annotation."
 
 (defun annotate-load-annotation-data ()
   "Read and return saved annotations."
-  (with-temp-buffer
-    (when (file-exists-p annotate-file)
-      (insert-file-contents annotate-file))
-    (goto-char (point-max))
-    (cond ((= (point) 1) nil)
-          (t (goto-char (point-min))
-             (read (current-buffer))))))
+  ;; use the buffer-local value
+  ;; (the global value was possibly overwritten)
+  (let ((local-annotate-file annotate-file))
+    (with-temp-buffer
+      (when (file-exists-p local-annotate-file)
+	(insert-file-contents local-annotate-file))
+      (goto-char (point-max))
+      (cond ((= (point) 1) nil)
+	    (t (goto-char (point-min))
+	       (read (current-buffer)))))))
 
 (defun annotate-dump-annotation-data (data)
   "Save `data` into annotation file."
