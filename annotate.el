@@ -404,11 +404,12 @@ annotation plus the newline."
       (re-search-forward "\\(.*\\(\n\\)\\)")
       t)))
 
-(defun annotate-lineate (text)
+(defun annotate-lineate (text line-width)
   "Breaks `text` into lines to fit in the annotation space"
   (let ((available-width (- (window-body-width)
                             annotate-annotation-column))
-        (lineated "")
+        ;; if the annotation won't fit at the end of the line:
+        (lineated (if (< line-width annotate-annotation-column) "" "\n"))
         (current-pos 0))
     (while (< current-pos (string-width text))
       (setq lineated
@@ -440,7 +441,7 @@ annotation plus the newline."
       ;; put each annotation on its own line
       (dolist (ov overlays)
         (if (overlay-get ov 'annotation)
-            (dolist (l (save-match-data (split-string (annotate-lineate (overlay-get ov 'annotation)) "\n")))
+            (dolist (l (save-match-data (split-string (annotate-lineate (overlay-get ov 'annotation) (- eol bol)) "\n")))
               (setq text
                     (concat text prefix
                             (propertize l 'face 'annotate-annotation)
