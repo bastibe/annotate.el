@@ -20,6 +20,10 @@ Annotations can be exported `annotate-export-annotations` as commented unified d
 
 ![diff-example-screenshot](https://raw.githubusercontent.com/bastibe/annotate.el/master/diff-example.png)
 
+Alternatively, they can be integrated `annotate-integrate-annotations` as comments into the current buffer, like this:
+
+![integrate-example-screenshot](https://raw.githubusercontent.com/bastibe/annotate.el/master/integrate-example.png)
+
 ### Incompatibilities:
 
 - annotations in org-mode source blocks will be underlined, but the annotations don't show up. This is likely a fundamental incompatibility with the way source blocks are highlighted and the way annotations are displayed.
