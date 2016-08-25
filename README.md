@@ -77,3 +77,6 @@ This package is released under the MIT license.
 
 - **2015-10-06 V0.4.4 Bastian Bechtold**  
   Added a new export system. Let's see if it turns out to be more useful than the previous one.
+  
+- **2016-08-25 V0.4.5 Bastian Bechtold**  
+  Bugfix release for unicode annotations and multiline annotations.

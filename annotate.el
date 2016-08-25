@@ -412,14 +412,21 @@ annotation plus the newline."
         (lineated (if (< line-width annotate-annotation-column) "" "\n"))
         (current-pos 0))
     (while (< current-pos (string-width text))
-      (setq lineated
-            (concat
-             lineated
+      (let ((current-line
              (substring text current-pos
                         (min (string-width text)
-                             (+ current-pos available-width -1)))
-             "\n"))
-      (setq current-pos (+ current-pos available-width -1)))
+                             (+ current-pos available-width -1)))))
+        ;; strip partial last word if necessary, for word wrap:
+        (when (and (string-match "[^ ]$" current-line)
+                   (< (+ current-pos (length current-line)) (string-width text)))
+          (string-match "[ ][^ ]+$" current-line)
+          (setq current-line (replace-match " " nil nil current-line)))
+        ;; append white space to the end of continued lines
+        (let ((postfix (if (< (+ current-pos (length current-line)) (string-width text))
+                           (make-string (- available-width (string-width current-line) 1) ? )
+                         "")))
+          (setq lineated (concat lineated current-line postfix "\n")
+                current-pos (+ current-pos (length current-line))))))
     ;; strip trailing newline, if any
     (if (string= (substring lineated (1- (length lineated))) "\n")
         (substring lineated 0 (1- (length lineated)))
