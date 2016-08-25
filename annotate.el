@@ -420,8 +420,8 @@ annotation plus the newline."
              "\n"))
       (setq current-pos (+ current-pos available-width -1)))
     ;; strip trailing newline, if any
-    (if (string= (substring lineated -1) "\n")
-        (substring lineated 0 -1)
+    (if (string= (substring lineated (1- (length lineated))) "\n")
+        (substring lineated 0 (1- (length lineated)))
       lineated)))
 
 (defun annotate--annotation-builder ()
