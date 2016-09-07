@@ -84,3 +84,6 @@ This package is released under the MIT license.
   
 - **2016-08-25 V0.4.5 Bastian Bechtold**  
   Bugfix release for unicode annotations and multiline annotations.
+
+- **2016-09-07 V0.4.6 Bastian Bechtold**  
+  Bugfix release for annotations ending on an empty line.

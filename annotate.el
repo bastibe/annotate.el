@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.4.5
+;; Version: 0.4.6
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -442,13 +442,18 @@ annotation plus the newline."
            (text "")
            (bol (progn (beginning-of-line) (point)))
            (eol (progn (end-of-line) (point)))
-           (overlays (sort (overlays-in bol eol)
+           ;; include line break if on empty line:
+           (bol* (if (= bol eol) (1- bol) bol))
+           (overlays (sort (overlays-in bol* eol)
                            (lambda (x y)
                              (< (overlay-end x) (overlay-end y))))))
       ;; put each annotation on its own line
       (dolist (ov overlays)
         (if (overlay-get ov 'annotation)
-            (dolist (l (save-match-data (split-string (annotate-lineate (overlay-get ov 'annotation) (- eol bol)) "\n")))
+            (dolist (l (save-match-data
+                         (split-string
+                          (annotate-lineate (overlay-get ov 'annotation)
+                                            (- eol bol)) "\n")))
               (setq text
                     (concat text prefix
                             (propertize l 'face 'annotate-annotation)
