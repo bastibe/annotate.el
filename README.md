@@ -87,3 +87,6 @@ This package is released under the MIT license.
 
 - **2016-09-07 V0.4.6 Bastian Bechtold**  
   Bugfix release for annotations ending on an empty line.
+
+- **2016-10-06 V0.4.7 Bastian Bechtold**  
+  Bugfix release for buffers without a file name.

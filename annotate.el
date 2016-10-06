@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.4.6
+;; Version: 0.4.7
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -50,7 +50,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.4.5"
+  :version "0.4.7"
   :group 'text)
 
 ;;;###autoload
@@ -190,7 +190,7 @@
   (interactive)
   (let ((file-annotations (annotate-describe-annotations))
         (all-annotations (annotate-load-annotation-data))
-        (filename (substring-no-properties (buffer-file-name))))
+        (filename (substring-no-properties (or (buffer-file-name) ""))))
     (if (assoc-string filename all-annotations)
         (setcdr (assoc-string filename all-annotations)
                 file-annotations)
@@ -288,7 +288,7 @@ An example might look like this:
 This diff does not contain any changes, but highlights the
 annotation, and can be conveniently viewed in diff-mode."
   (interactive)
-  (let* ((filename (substring-no-properties (buffer-file-name)))
+  (let* ((filename (substring-no-properties (or (buffer-file-name) "")))
          (export-buffer (generate-new-buffer (concat
                                               filename
                                              ".annotations.diff")))
@@ -527,7 +527,7 @@ an overlay and it's annotation."
   "Load all annotations from disk."
   (interactive)
   (let ((annotations (cdr (assoc-string
-                           (substring-no-properties (buffer-file-name))
+                           (substring-no-properties (or (buffer-file-name) ""))
                            (annotate-load-annotation-data))))
         (modified-p (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
