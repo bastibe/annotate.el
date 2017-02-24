@@ -230,7 +230,7 @@ An example might look like this:"
                           (point))))
           (end-of-line)
           (insert "\n" comment-start
-                  (make-string (max 0 (- ov-start bol (string-width comment-start))) ? )
+                  (make-string (max 0 (- ov-start bol (length comment-start))) ? )
                   (make-string (max 0 (- eol ov-start)) ?~)))
         ;; fully underline second to second-to-last line
         (while (< (progn (forward-line)
@@ -242,14 +242,14 @@ An example might look like this:"
                             (point))))
             (end-of-line)
             (insert "\n" comment-start
-                    (make-string (max 0 (- eol bol (string-width comment-start))) ?~))))
+                    (make-string (max 0 (- eol bol (length comment-start))) ?~))))
         ;; partially underline last line
         (let ((bol (progn (beginning-of-line)
                           (point)))
               (ov-end (overlay-end ov)))
           (end-of-line)
           (insert "\n" comment-start
-                  (make-string (max 0 (- ov-end bol (string-width comment-start))) ?~)))
+                  (make-string (max 0 (- ov-end bol (length comment-start))) ?~)))
         ;; insert actual annotation text
         (insert "\n" comment-start annotate-integrate-marker (overlay-get ov 'annotation)))
        ;; overlay is within one line
@@ -260,7 +260,7 @@ An example might look like this:"
                           (point))))
           (end-of-line)
           (insert "\n" comment-start
-                  (make-string (max 0 (- ov-start bol (string-width comment-start))) ? )
+                  (make-string (max 0 (- ov-start bol (length comment-start))) ? )
                   (if (= bol ov-start)
                       (make-string (max 0 (- ov-end ov-start 1)) ?~)
                     (make-string (max 0 (- ov-end ov-start)) ?~))
@@ -411,19 +411,19 @@ annotation plus the newline."
         ;; if the annotation won't fit at the end of the line:
         (lineated (if (< line-width annotate-annotation-column) "" "\n"))
         (current-pos 0))
-    (while (< current-pos (string-width text))
+    (while (< current-pos (length text))
       (let ((current-line
              (substring text current-pos
-                        (min (string-width text)
+                        (min (length text)
                              (+ current-pos available-width -1)))))
         ;; strip partial last word if necessary, for word wrap:
         (when (and (string-match "[^ ]$" current-line)
-                   (< (+ current-pos (length current-line)) (string-width text)))
+                   (< (+ current-pos (length current-line)) (length text)))
           (string-match "[ ][^ ]+$" current-line)
           (setq current-line (replace-match " " nil nil current-line)))
         ;; append white space to the end of continued lines
-        (let ((postfix (if (< (+ current-pos (length current-line)) (string-width text))
-                           (make-string (- available-width (string-width current-line) 1) ? )
+        (let ((postfix (if (< (+ current-pos (length current-line)) (length text))
+                           (make-string (- available-width (length current-line) 1) ? )
                          "")))
           (setq lineated (concat lineated current-line postfix "\n")
                 current-pos (+ current-pos (length current-line))))))
