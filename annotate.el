@@ -416,14 +416,18 @@ annotation plus the newline."
              (substring text current-pos
                         (min (length text)
                              (+ current-pos available-width -1)))))
+        ;; discard characters until the string fits within the available width
+        ;; this can happen with unicode characters that are wider than one col
+        (while (> (string-width current-line) available-width)
+          (setq current-line (substring current-line 0 -1)))
         ;; strip partial last word if necessary, for word wrap:
         (when (and (string-match "[^ ]$" current-line)
                    (< (+ current-pos (length current-line)) (length text)))
           (string-match "[ ][^ ]+$" current-line)
           (setq current-line (replace-match " " nil nil current-line)))
         ;; append white space to the end of continued lines
-        (let ((postfix (if (< (+ current-pos (length current-line)) (length text))
-                           (make-string (- available-width (length current-line) 1) ? )
+        (let ((postfix (if (< (length current-line) (length text))
+                           (make-string (- available-width (string-width current-line) 1) ? )
                          "")))
           (setq lineated (concat lineated current-line postfix "\n")
                 current-pos (+ current-pos (length current-line))))))
