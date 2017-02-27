@@ -608,14 +608,12 @@ an overlay and it's annotation."
 (defun annotate-make-prefix ()
   "An empty string from the end of the line upto the annotation."
   (save-excursion
-    (move-end-of-line nil)
-    (let ((eol (point))
-          (prefix-length nil))
-      (move-beginning-of-line nil)
-      (setq prefix-length (- annotate-annotation-column (- eol (point))))
+    (let* ((line-text (buffer-substring
+                       (progn (beginning-of-line) (point))
+                       (progn (end-of-line) (point))))
+           (prefix-length (- annotate-annotation-column (string-width line-text))))
       (if (< prefix-length 2)
           (make-string 2 ? )
-
         (make-string prefix-length ? )))))
 
 (defun annotate-bounds ()
