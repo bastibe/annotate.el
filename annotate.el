@@ -386,7 +386,7 @@ The first match will get `annotate--change-guard` as its
 between the overlay and the annotation, the `display` property of
 the newline is properly disposed of.
 
-The second match will get `annotate-annotation-builder` as its
+The second match will get `annotate--annotation-builder` as its
 `display` property, which makes the newline look like an
 annotation plus the newline."
   (goto-char (next-overlay-change (point)))
@@ -442,15 +442,17 @@ annotation plus the newline."
   (save-excursion
     (goto-char (1- (point))) ; we start at the start of the next line
     ;; find overlays in the preceding line
-    (let* ((prefix (annotate-make-prefix)) ; white space before first annotation
-           (text "")
-           (bol (progn (beginning-of-line) (point)))
-           (eol (progn (end-of-line) (point)))
-           ;; include line break if on empty line:
-           (bol* (if (= bol eol) (1- bol) bol))
-           (overlays (sort (overlays-in bol* eol)
+    (let ((prefix (annotate-make-prefix)) ; white space before first annotation
+          (bol (progn (beginning-of-line) (point)))
+          (eol (progn (end-of-line) (point)))
+          (text "")
+          (overlays nil))
+      ;; include previous line if point is at bol:
+      (when (eq nil (overlays-in bol eol))
+        (setq bol (1- bol)))
+      (setq overlays (sort (overlays-in bol eol)
                            (lambda (x y)
-                             (< (overlay-end x) (overlay-end y))))))
+                             (< (overlay-end x) (overlay-end y)))))
       ;; put each annotation on its own line
       (dolist (ov overlays)
         (if (overlay-get ov 'annotation)
