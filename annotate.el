@@ -382,7 +382,7 @@ annotation, and can be conveniently viewed in diff-mode."
 - the newline that will display the annotation
 
 The first match will get `annotate--change-guard` as its
-`insert-behind-hook`, to make sure that if a newline is inserted
+`insert-in-front-hook`, to make sure that if a newline is inserted
 between the overlay and the annotation, the `display` property of
 the newline is properly disposed of.
 
