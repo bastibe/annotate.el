@@ -68,7 +68,7 @@
 (define-key annotate-mode-map (kbd "C-c ]") 'annotate-next-annotation)
 (define-key annotate-mode-map (kbd "C-c [") 'annotate-previous-annotation)
 
-(defcustom annotate-file "~/.annotations"
+(defcustom annotate-file (locate-user-emacs-file "annotations" ".annotations")
   "File where annotations are stored."
   :type 'file
   :group 'annotate)
