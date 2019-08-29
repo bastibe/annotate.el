@@ -5,7 +5,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.4.7
+;; Version: 0.4.8
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -391,37 +391,85 @@ annotation plus the newline."
       (re-search-forward "\\(.*\\(\n\\)\\)")
       t)))
 
+(cl-defstruct group
+  words
+  start-word)
+
+(defun group-by-width (text maximum-width)
+  "Groups text in a list formed by chunks of maximum size equal
+to 'maximum-width'."
+  (cl-labels ((next-word (words)
+                         (or (cl-first words)
+                             ""))
+              (join-until-width (words &optional (word nil))
+                                (cond
+                                 ((null words)
+                                  (make-group :words      nil
+                                              :start-word word))
+                                 (t
+                                  (let* ((next-word (next-word words))
+                                         (new-word  (if word
+                                                        (concat word " " next-word)
+                                                      next-word)))
+                                    (if (<= (string-width new-word)
+                                            maximum-width)
+                                        (join-until-width (cl-rest words) new-word)
+                                      (make-group :words      words
+                                                  :start-word (or word next-word)))))))
+              (%group (words so-far)
+                      (cond
+                       ((null words)
+                        so-far)
+                       ((<= (string-width (cl-first words))
+                            maximum-width)
+                        (let* ((potential-start (join-until-width words))
+                               (word            (group-start-word potential-start))
+                               (nonjoined-words (group-words potential-start))
+                               (next-word       (cl-first nonjoined-words))
+                               (rest-words      nonjoined-words)
+                               (potential-start word))
+                          (%group rest-words
+                                  (append (list potential-start)
+                                          so-far))))
+                       (t
+                        (let* ((word       (cl-first words))
+                               (rest-words (cl-rest words))
+                               (prefix     (cl-subseq word 0 maximum-width))
+                               (next-word  (if rest-words
+                                               (cl-first rest-words)
+                                             ""))
+                               (raw-suffix (cl-subseq word maximum-width))
+                               (suffix     (if rest-words
+                                               (concat raw-suffix " " next-word)
+                                             raw-suffix)))
+                          (%group (append (list suffix)
+                                          (cl-rest rest-words))
+                                  (append (list prefix)
+                                          so-far)))))))
+    (if (< maximum-width 1)
+        nil
+      (let* ((words   (split-string text " " t))
+             (grouped (reverse (%group words '()))))
+        grouped))))
+
 (defun annotate-lineate (text line-width)
   "Breaks `text` into lines to fit in the annotation space"
-  (let ((available-width (- (window-body-width)
-                            annotate-annotation-column))
-        ;; if the annotation won't fit at the end of the line:
-        (lineated (if (< line-width annotate-annotation-column) "" "\n"))
-        (current-pos 0))
-    (while (< current-pos (length text))
-      (let ((current-line
-             (substring text current-pos
-                        (min (length text)
-                             (+ current-pos available-width -1)))))
-        ;; discard characters until the string fits within the available width
-        ;; this can happen with unicode characters that are wider than one col
-        (while (> (string-width current-line) available-width)
-          (setq current-line (substring current-line 0 -1)))
-        ;; strip partial last word if necessary, for word wrap:
-        (when (and (string-match "[^ ]$" current-line)
-                   (< (+ current-pos (length current-line)) (length text)))
-          (string-match "[ ][^ ]+$" current-line)
-          (setq current-line (replace-match " " nil nil current-line)))
-        ;; append white space to the end of continued lines
-        (let ((postfix (if (< (length current-line) (length text))
-                           (make-string (- available-width (string-width current-line) 1) ? )
-                         "")))
-          (setq lineated (concat lineated current-line postfix "\n")
-                current-pos (+ current-pos (length current-line))))))
-    ;; strip trailing newline, if any
-    (if (string= (substring lineated (1- (length lineated))) "\n")
-        (substring lineated 0 (1- (length lineated)))
-      lineated)))
+  (let* ((theoretical-line-width (- (window-body-width)
+                                    annotate-annotation-column))
+         (available-width        (if (> theoretical-line-width 0)
+                                     theoretical-line-width
+                                   line-width))
+         (lineated-list             (group-by-width text available-width))
+         (lineated               (cl-mapcar (lambda (a)
+                                              (let* ((size       (string-width a))
+                                                     (rest-width (max (- available-width
+                                                                         size)
+                                                                      0))
+                                                     (padding    (make-string rest-width
+                                                                              ? )))
+                                                (concat a padding "\n")))
+                                            lineated-list)))
+    (apply #'concat lineated)))
 
 (defun annotate--annotation-builder ()
   "Searches the line before point for annotations, and returns a
