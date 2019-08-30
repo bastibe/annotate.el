@@ -103,6 +103,11 @@
   :type 'string
   :group 'annotate)
 
+(defcustom annotate-fallback-comment "#"
+  "When variable comment-start is nil use this string instead."
+  :type 'string
+  :group 'annotate)
+
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
@@ -197,6 +202,10 @@
     (if annotate-use-messages
         (message "Annotations saved."))))
 
+(defun actual-comment-start ()
+  (or comment-start
+      annotate-fallback-comment))
+
 (defun annotate-integrate-annotations ()
   "Write all annotations into the file as comments below the annotated line.
 An example might look like this:"
@@ -217,8 +226,9 @@ An example might look like this:"
               (eol (progn (end-of-line)
                           (point))))
           (end-of-line)
-          (insert "\n" comment-start
-                  (make-string (max 0 (- ov-start bol (length comment-start))) ? )
+          (insert "\n"
+                  (actual-comment-start)
+                  (make-string (max 0 (- ov-start bol (length (actual-comment-start)))) ? )
                   (make-string (max 0 (- eol ov-start)) ?~)))
         ;; fully underline second to second-to-last line
         (while (< (progn (forward-line)
@@ -229,30 +239,40 @@ An example might look like this:"
                 (eol (progn (end-of-line)
                             (point))))
             (end-of-line)
-            (insert "\n" comment-start
-                    (make-string (max 0 (- eol bol (length comment-start))) ?~))))
+            (insert "\n"
+                    (actual-comment-start)
+                    (make-string (max 0 (- eol bol (length (actual-comment-start)))) ?~))))
         ;; partially underline last line
         (let ((bol (progn (beginning-of-line)
                           (point)))
               (ov-end (overlay-end ov)))
           (end-of-line)
-          (insert "\n" comment-start
-                  (make-string (max 0 (- ov-end bol (length comment-start))) ?~)))
+          (insert "\n"
+                  (actual-comment-start)
+                  (make-string (max 0 (- ov-end bol (length (actual-comment-start)))) ?~)))
         ;; insert actual annotation text
-        (insert "\n" comment-start annotate-integrate-marker (overlay-get ov 'annotation)))
+        (insert "\n"
+                (actual-comment-start)
+                annotate-integrate-marker
+                (overlay-get ov 'annotation)))
        ;; overlay is within one line
        (t
-        (let ((ov-start (overlay-start ov))
-              (ov-end (overlay-end ov))
-              (bol (progn (beginning-of-line)
-                          (point))))
+        (let* ((ov-start         (overlay-start ov))
+               (ov-end           (overlay-end ov))
+               (bol              (progn (beginning-of-line)
+                                        (point)))
+               (underline-marker (if (= bol ov-start)
+                                     (make-string (max 0 (- ov-end ov-start 1)) ?~)
+                                   (make-string (max 0 (- ov-end ov-start)) ?~))))
           (end-of-line)
-          (insert "\n" comment-start
-                  (make-string (max 0 (- ov-start bol (length comment-start))) ? )
-                  (if (= bol ov-start)
-                      (make-string (max 0 (- ov-end ov-start 1)) ?~)
-                    (make-string (max 0 (- ov-end ov-start)) ?~))
-                    "\n" comment-start annotate-integrate-marker (overlay-get ov 'annotation)))))
+          (insert "\n"
+                  (actual-comment-start)
+                  (make-string (max 0 (- ov-start bol (length (actual-comment-start)))) ? )
+                  underline-marker
+                  "\n"
+                  (actual-comment-start)
+                  annotate-integrate-marker
+                  (overlay-get ov 'annotation)))))
       (remove-text-properties
          (point) (1+ (point)) '(display nil)))))
 
@@ -326,11 +346,14 @@ annotation, and can be conveniently viewed in diff-mode."
                ((= (length annotation-line-list) 1)
                 (insert (car annotation-line-list) "\n")
                 (unless (string= (car annotation-line-list) "+")
-                  (insert "#"
+                  (insert (actual-comment-start)
                           (make-string (- start bol) ? )
                           (make-string (- end start) ?~)
                           "\n"))
-                (insert "#" (make-string (- start bol) ? ) text "\n"))
+                (insert (actual-comment-start)
+                        (make-string (- start bol) ? )
+                        text
+                        "\n"))
                ;; annotation has more than one line
                (t
                 (let ((line (car annotation-line-list))) ; first line
@@ -338,7 +361,7 @@ annotation, and can be conveniently viewed in diff-mode."
                   (insert line "\n")
                   ;; underline highlight (from start to eol)
                   (unless (string= line "+") ; empty line
-                    (insert "#"
+                    (insert (actual-comment-start)
                             (make-string (- start bol) ? )
                             (make-string (- (length line) (- start bol)) ?~)
                             "\n")))
@@ -347,17 +370,19 @@ annotation, and can be conveniently viewed in diff-mode."
                   (insert line "\n")
                   ;; nth underline highlight (from bol to eol)
                   (unless (string= line "+")
-                    (insert "#" (make-string (length line) ?~) "\n")))
+                    (insert (actual-comment-start) (make-string (length line) ?~) "\n")))
                 (let ((line (car (last annotation-line-list))))
                   ;; last diff line
                   (insert line "\n")
                   ;; last underline highlight (from bol to end)
                   (unless (string= line "+")
-                    (insert "#"
+                    (insert (actual-comment-start)
                             (make-string (- (length line) (- eol end) 1) ?~)
                             "\n")))
                 ;; annotation text
-                (insert "#" text "\n"))))
+                (insert (actual-comment-start)
+                        text
+                        "\n"))))
             (insert (annotate-prefix-lines " " following-lines))))))
           (switch-to-buffer export-buffer)
           (diff-mode)
@@ -540,7 +565,7 @@ an overlay and it's annotation."
     (beginning-of-line)
     (let ((bol (point)))
       (beginning-of-line (- (1- annotate-diff-export-context)))
-      (buffer-substring-no-properties (point) (1- bol)))))
+      (buffer-substring-no-properties (point) (max 1 (1- bol))))))
 
 (defun annotate-context-after (pos)
   "Context lines after POS."
