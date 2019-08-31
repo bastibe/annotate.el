@@ -484,10 +484,12 @@ to 'maximum-width'."
          (available-width        (if (> theoretical-line-width 0)
                                      theoretical-line-width
                                    line-width))
-         (lineated-list             (group-by-width text available-width))
+         (lineated-list          (group-by-width text available-width))
+         (max-width              (apply #'max
+                                        (mapcar #'string-width lineated-list)))
          (lineated               (cl-mapcar (lambda (a)
                                               (let* ((size       (string-width a))
-                                                     (rest-width (max (- available-width
+                                                     (rest-width (max (- max-width
                                                                          size)
                                                                       0))
                                                      (padding    (make-string rest-width
