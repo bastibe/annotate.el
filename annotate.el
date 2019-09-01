@@ -103,6 +103,11 @@
   :type 'string
   :group 'annotate)
 
+(defcustom annotate-integrate-higlight ?~
+  "When variable comment-start is nil use this string instead."
+  :type 'character
+  :group 'annotate)
+
 (defcustom annotate-fallback-comment "#"
   "When variable comment-start is nil use this string instead."
   :type 'string
@@ -229,11 +234,13 @@ An example might look like this:"
           (insert "\n"
                   (actual-comment-start)
                   (make-string (max 0 (- ov-start bol (length (actual-comment-start)))) ? )
-                  (make-string (max 0 (- eol ov-start)) ?~)))
+                  (make-string (max 0 (- eol ov-start))
+                               annotate-integrate-higlight)))
         ;; fully underline second to second-to-last line
         (while (< (progn (forward-line)
                          (end-of-line)
-                         (point)) (overlay-end ov))
+                         (point))
+                  (overlay-end ov))
           (let ((bol (progn (beginning-of-line)
                             (point)))
                 (eol (progn (end-of-line)
@@ -241,7 +248,8 @@ An example might look like this:"
             (end-of-line)
             (insert "\n"
                     (actual-comment-start)
-                    (make-string (max 0 (- eol bol (length (actual-comment-start)))) ?~))))
+                    (make-string (max 0 (- eol bol (length (actual-comment-start))))
+                                 annotate-integrate-higlight))))
         ;; partially underline last line
         (let ((bol (progn (beginning-of-line)
                           (point)))
@@ -249,7 +257,8 @@ An example might look like this:"
           (end-of-line)
           (insert "\n"
                   (actual-comment-start)
-                  (make-string (max 0 (- ov-end bol (length (actual-comment-start)))) ?~)))
+                  (make-string (max 0 (- ov-end bol (length (actual-comment-start))))
+                               annotate-integrate-higlight)))
         ;; insert actual annotation text
         (insert "\n"
                 (actual-comment-start)
@@ -262,8 +271,10 @@ An example might look like this:"
                (bol              (progn (beginning-of-line)
                                         (point)))
                (underline-marker (if (= bol ov-start)
-                                     (make-string (max 0 (- ov-end ov-start 1)) ?~)
-                                   (make-string (max 0 (- ov-end ov-start)) ?~))))
+                                     (make-string (max 0 (- ov-end ov-start 1))
+                                                  annotate-integrate-higlight)
+                                   (make-string (max 0 (- ov-end ov-start))
+                                                annotate-integrate-higlight))))
           (end-of-line)
           (insert "\n"
                   (actual-comment-start)
@@ -348,7 +359,7 @@ annotation, and can be conveniently viewed in diff-mode."
                 (unless (string= (car annotation-line-list) "+")
                   (insert (actual-comment-start)
                           (make-string (- start bol) ? )
-                          (make-string (- end start) ?~)
+                          (make-string (- end start) annotate-integrate-higlight)
                           "\n"))
                 (insert (actual-comment-start)
                         (make-string (- start bol) ? )
@@ -363,21 +374,28 @@ annotation, and can be conveniently viewed in diff-mode."
                   (unless (string= line "+") ; empty line
                     (insert (actual-comment-start)
                             (make-string (- start bol) ? )
-                            (make-string (- (length line) (- start bol)) ?~)
+                            (make-string (- (length line) (- start bol))
+                                         annotate-integrate-higlight)
                             "\n")))
                 (dolist (line (cdr (butlast annotation-line-list))) ; nth line
                   ;; nth diff line
                   (insert line "\n")
                   ;; nth underline highlight (from bol to eol)
                   (unless (string= line "+")
-                    (insert (actual-comment-start) (make-string (length line) ?~) "\n")))
+                    (insert (actual-comment-start)
+                            (make-string (length line)
+                                         annotate-integrate-higlight)
+                            "\n")))
                 (let ((line (car (last annotation-line-list))))
                   ;; last diff line
                   (insert line "\n")
                   ;; last underline highlight (from bol to end)
                   (unless (string= line "+")
                     (insert (actual-comment-start)
-                            (make-string (- (length line) (- eol end) 1) ?~)
+                            (make-string (- (length line)
+                                            (- eol end)
+                                            1)
+                                         annotate-integrate-higlight)
                             "\n")))
                 ;; annotation text
                 (insert (actual-comment-start)
