@@ -211,6 +211,19 @@
   (or comment-start
       annotate-fallback-comment))
 
+(defun actual-comment-end ()
+  (or comment-end
+      ""))
+
+(defun comments-length ()
+  (+ (string-width (actual-comment-start))
+     (string-width (actual-comment-end))))
+
+(defun wrap-in-comment (&rest strings)
+  (apply #'concat (append (list (actual-comment-start))
+                          strings
+                          (list (actual-comment-end)))))
+
 (defun annotate-integrate-annotations ()
   "Write all annotations into the file as comments below the annotated line.
 An example might look like this:"
@@ -232,10 +245,11 @@ An example might look like this:"
                           (point))))
           (end-of-line)
           (insert "\n"
-                  (actual-comment-start)
-                  (make-string (max 0 (- ov-start bol (length (actual-comment-start)))) ? )
-                  (make-string (max 0 (- eol ov-start))
-                               annotate-integrate-higlight)))
+                  (wrap-in-comment (make-string (max 0
+                                                     (- ov-start bol (comments-length)))
+                                                ? )
+                                   (make-string (max 0 (- eol ov-start))
+                                                annotate-integrate-higlight))))
         ;; fully underline second to second-to-last line
         (while (< (progn (forward-line)
                          (end-of-line)
@@ -247,23 +261,22 @@ An example might look like this:"
                             (point))))
             (end-of-line)
             (insert "\n"
-                    (actual-comment-start)
-                    (make-string (max 0 (- eol bol (length (actual-comment-start))))
-                                 annotate-integrate-higlight))))
+                    (wrap-in-comment  (make-string (max 0
+                                                        (- eol bol (comments-length)))
+                                                   annotate-integrate-higlight)))))
         ;; partially underline last line
         (let ((bol (progn (beginning-of-line)
                           (point)))
               (ov-end (overlay-end ov)))
           (end-of-line)
           (insert "\n"
-                  (actual-comment-start)
-                  (make-string (max 0 (- ov-end bol (length (actual-comment-start))))
-                               annotate-integrate-higlight)))
+                  (wrap-in-comment (make-string (max 0
+                                                     (- ov-end bol (comments-length)))
+                                                annotate-integrate-higlight))))
         ;; insert actual annotation text
         (insert "\n"
-                (actual-comment-start)
-                annotate-integrate-marker
-                (overlay-get ov 'annotation)))
+                (wrap-in-comment annotate-integrate-marker
+                                 (overlay-get ov 'annotation))))
        ;; overlay is within one line
        (t
         (let* ((ov-start         (overlay-start ov))
@@ -277,13 +290,13 @@ An example might look like this:"
                                                 annotate-integrate-higlight))))
           (end-of-line)
           (insert "\n"
-                  (actual-comment-start)
-                  (make-string (max 0 (- ov-start bol (length (actual-comment-start)))) ? )
-                  underline-marker
+                  (wrap-in-comment (make-string (max 0
+                                                     (- ov-start bol (comments-length)))
+                                                ? )
+                                   underline-marker)
                   "\n"
-                  (actual-comment-start)
-                  annotate-integrate-marker
-                  (overlay-get ov 'annotation)))))
+                  (wrap-in-comment annotate-integrate-marker
+                                   (overlay-get ov 'annotation))))))
       (remove-text-properties
          (point) (1+ (point)) '(display nil)))))
 
@@ -307,12 +320,14 @@ This diff does not contain any changes, but highlights the
 annotation, and can be conveniently viewed in diff-mode."
   (interactive)
   (let* ((filename (substring-no-properties (or (buffer-file-name) "")))
-         (export-buffer (generate-new-buffer (concat
-                                              filename
-                                             ".annotations.diff")))
-        (annotations (annotate-describe-annotations)))
+         (export-buffer      (generate-new-buffer (concat
+                                                   filename
+                                                   ".annotations.diff")))
+         (annotations        (annotate-describe-annotations))
+         (parent-buffer-mode major-mode))
     ;; write the diff file description
     (with-current-buffer export-buffer
+      (funcall parent-buffer-mode)
       (let ((time-string
              (format-time-string "%F %H:%M:%S.%N %z"
                                  (nth 5 (file-attributes filename 'integer)))))
@@ -357,13 +372,12 @@ annotation, and can be conveniently viewed in diff-mode."
                ((= (length annotation-line-list) 1)
                 (insert (car annotation-line-list) "\n")
                 (unless (string= (car annotation-line-list) "+")
-                  (insert (actual-comment-start)
-                          (make-string (- start bol) ? )
-                          (make-string (- end start) annotate-integrate-higlight)
+                  (insert (wrap-in-comment (make-string (- start bol) ? )
+                                           (make-string (- end start)
+                                                        annotate-integrate-higlight))
                           "\n"))
-                (insert (actual-comment-start)
-                        (make-string (- start bol) ? )
-                        text
+                (insert (wrap-in-comment (make-string (- start bol) ? )
+                                         text)
                         "\n"))
                ;; annotation has more than one line
                (t
@@ -372,34 +386,30 @@ annotation, and can be conveniently viewed in diff-mode."
                   (insert line "\n")
                   ;; underline highlight (from start to eol)
                   (unless (string= line "+") ; empty line
-                    (insert (actual-comment-start)
-                            (make-string (- start bol) ? )
-                            (make-string (- (length line) (- start bol))
-                                         annotate-integrate-higlight)
+                    (insert (wrap-in-comment (make-string (- start bol) ? )
+                                             (make-string (- (length line) (- start bol))
+                                                          annotate-integrate-higlight))
                             "\n")))
                 (dolist (line (cdr (butlast annotation-line-list))) ; nth line
                   ;; nth diff line
                   (insert line "\n")
                   ;; nth underline highlight (from bol to eol)
                   (unless (string= line "+")
-                    (insert (actual-comment-start)
-                            (make-string (length line)
-                                         annotate-integrate-higlight)
+                    (insert (wrap-in-comment (make-string (length line)
+                                                          annotate-integrate-higlight))
                             "\n")))
                 (let ((line (car (last annotation-line-list))))
                   ;; last diff line
                   (insert line "\n")
                   ;; last underline highlight (from bol to end)
                   (unless (string= line "+")
-                    (insert (actual-comment-start)
-                            (make-string (- (length line)
-                                            (- eol end)
-                                            1)
-                                         annotate-integrate-higlight)
+                    (insert (wrap-in-comment (make-string (- (length line)
+                                                             (- eol end)
+                                                             1)
+                                                          annotate-integrate-higlight))
                             "\n")))
                 ;; annotation text
-                (insert (actual-comment-start)
-                        text
+                (insert (wrap-in-comment text)
                         "\n"))))
             (insert (annotate-prefix-lines " " following-lines))))))
           (switch-to-buffer export-buffer)
