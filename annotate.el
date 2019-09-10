@@ -104,7 +104,7 @@
   :group 'annotate)
 
 (defcustom annotate-integrate-higlight ?~
-  "When variable comment-start is nil use this character instead."
+  "Character used to underline an annotated text."
   :type 'character
   :group 'annotate)
 
