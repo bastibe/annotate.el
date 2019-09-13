@@ -513,26 +513,54 @@ to 'maximum-width'."
              (grouped (reverse (%group words '()))))
         grouped))))
 
+(cl-defun annotate-safe-subseq (seq from to &optional (value-if-limits-invalid seq))
+  "This return 'value-if-limits-invalid' sequence if 'from' or 'to' are invalids"
+  (cond
+   ((< to from)
+    value-if-limits-invalid)
+   ((or (< from 0)
+        (> from (length seq))
+        (> to   (length seq)))
+    value-if-limits-invalid)
+   (t
+    (cl-subseq seq from to))))
+
 (defun annotate-lineate (text line-width)
   "Breaks `text` into lines to fit in the annotation space"
-  (let* ((theoretical-line-width (- (window-body-width)
-                                    annotate-annotation-column))
-         (available-width        (if (> theoretical-line-width 0)
-                                     theoretical-line-width
-                                   line-width))
-         (lineated-list          (annotate-group-by-width text available-width))
-         (max-width              (apply #'max
-                                        (mapcar #'string-width lineated-list)))
-         (lineated               (cl-mapcar (lambda (a)
-                                              (let* ((size       (string-width a))
-                                                     (rest-width (max (- max-width
-                                                                         size)
-                                                                      0))
-                                                     (padding    (make-string rest-width
-                                                                              ? )))
-                                                (concat a padding "\n")))
-                                            lineated-list)))
-    (apply #'concat lineated)))
+  (cl-labels ((pad (string max-width add-newline-p)
+                   (if (null string)
+                       ""
+                     (let* ((size       (string-width string))
+                            (rest-width (max (- max-width
+                                                size)
+                                             0))
+                            (padding    (make-string rest-width
+                                                     ? )))
+                       (if add-newline-p
+                           (concat string padding "\n")
+                         (concat string padding)))))
+              (%subseq (seq from to)
+                       (if (= (length seq) 1)
+                           nil
+                         (annotate-safe-subseq seq from to nil))))
+  (let* ((theoretical-line-width      (- (window-body-width)
+                                         annotate-annotation-column))
+         (available-width             (if (> theoretical-line-width 0)
+                                          theoretical-line-width
+                                        line-width))
+         (lineated-list               (annotate-group-by-width text available-width))
+         (max-width                   (apply #'max
+                                             (mapcar #'string-width lineated-list)))
+         (all-but-last-lineated-list  (%subseq lineated-list 0 (1- (length lineated-list))))
+         (last-line                   (if all-but-last-lineated-list
+                                          (car (last lineated-list))
+                                        (cl-first lineated-list)))
+         (lineated                    (cl-mapcar (lambda (a)
+                                                   (pad a max-width t))
+                                                 all-but-last-lineated-list)))
+    (apply #'concat
+           (append lineated
+                   (list (pad last-line max-width nil)))))))
 
 (defun annotate--annotation-builder ()
   "Searches the line before point for annotations, and returns a
@@ -555,16 +583,16 @@ to 'maximum-width'."
       (dolist (ov overlays)
         (if (overlay-get ov 'annotation)
             (dolist (l (save-match-data
-                         (split-string
-                          (annotate-lineate (overlay-get ov 'annotation)
-                                            (- eol bol)) "\n")))
+                         (split-string (annotate-lineate (overlay-get ov 'annotation)
+                                                         (- eol bol))
+                                       "\n")))
               (setq text
                     (concat text prefix
                             (propertize l 'face 'annotate-annotation)
                             "\n"))
-              ;; white space before for all but the first annotation
+              ;; white space before for all but the first annotation line
               (setq prefix (make-string annotate-annotation-column ? )))))
-      ;; build facecpec with the annotation text as display property
+      ;; build facespec with the annotation text as display property
       (if (string= text "")
           ;; annotation has been removed: remove display prop
           (list 'face 'default 'display nil)
@@ -708,8 +736,8 @@ an overlay and it's annotation."
                        (progn (beginning-of-line) (point))
                        (progn (end-of-line) (point))))
            (prefix-length (- annotate-annotation-column (string-width line-text))))
-      (if (< prefix-length 2)
-          (make-string 2 ? )
+      (if (< prefix-length 1)
+          (concat "\n" (make-string annotate-annotation-column ? ))
         (make-string prefix-length ? )))))
 
 (defun annotate-bounds ()
