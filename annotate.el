@@ -1,5 +1,7 @@
 ;;; annotate.el --- annotate files without changing them
-;; Copyright (C) 2015 Bastian Bechtold
+;; Copyright (C) 2015 Bastian Bechtold and contributors:
+;; Naoya Yamashita (2018)
+;; Universita' degli Studi di Palermo (2019)
 
 ;; Author: Bastian Bechtold
 ;; Maintainer: Bastian Bechtold
