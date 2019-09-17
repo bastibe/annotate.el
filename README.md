@@ -28,8 +28,6 @@ Alternatively, they can be integrated `annotate-integrate-annotations` as commen
 
 - annotations in org-mode source blocks will be underlined, but the annotations don't show up. This is likely a fundamental incompatibility with the way source blocks are highlighted and the way annotations are displayed.
 
-Portion of the code © 2019 Universita' degli Studi di Palermo
-
 This package is released under the MIT license.
 
 ### Changelog
