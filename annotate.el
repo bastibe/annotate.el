@@ -1,11 +1,13 @@
 ;;; annotate.el --- annotate files without changing them
-;; Copyright (C) 2015 Bastian Bechtold
+;; Copyright (C) 2015 Bastian Bechtold and contributors:
+;; Naoya Yamashita (2018)
+;; Universita' degli Studi di Palermo (2019)
 
 ;; Author: Bastian Bechtold
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.4.7
+;; Version: 0.4.8
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -103,6 +105,16 @@
   :type 'string
   :group 'annotate)
 
+(defcustom annotate-integrate-higlight ?~
+  "Character used to underline an annotated text."
+  :type 'character
+  :group 'annotate)
+
+(defcustom annotate-fallback-comment "#"
+  "When variable comment-start is nil use this string instead."
+  :type 'string
+  :group 'annotate)
+
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
@@ -197,6 +209,23 @@
     (if annotate-use-messages
         (message "Annotations saved."))))
 
+(defun annotate-actual-comment-start ()
+  (or comment-start
+      annotate-fallback-comment))
+
+(defun annotate-actual-comment-end ()
+  (or comment-end
+      ""))
+
+(defun annotate-comments-length ()
+  (+ (string-width (annotate-actual-comment-start))
+     (string-width (annotate-actual-comment-end))))
+
+(defun annotate-wrap-in-comment (&rest strings)
+  (apply #'concat (append (list (annotate-actual-comment-start))
+                          strings
+                          (list (annotate-actual-comment-end)))))
+
 (defun annotate-integrate-annotations ()
   "Write all annotations into the file as comments below the annotated line.
 An example might look like this:"
@@ -217,42 +246,67 @@ An example might look like this:"
               (eol (progn (end-of-line)
                           (point))))
           (end-of-line)
-          (insert "\n" comment-start
-                  (make-string (max 0 (- ov-start bol (length comment-start))) ? )
-                  (make-string (max 0 (- eol ov-start)) ?~)))
+          (insert "\n"
+                  (annotate-wrap-in-comment (make-string (max 0
+                                                              (- ov-start
+                                                                 bol
+                                                                 (annotate-comments-length)))
+                                                ? )
+                                   (make-string (max 0 (- eol ov-start))
+                                                annotate-integrate-higlight))))
         ;; fully underline second to second-to-last line
         (while (< (progn (forward-line)
                          (end-of-line)
-                         (point)) (overlay-end ov))
+                         (point))
+                  (overlay-end ov))
           (let ((bol (progn (beginning-of-line)
                             (point)))
                 (eol (progn (end-of-line)
                             (point))))
             (end-of-line)
-            (insert "\n" comment-start
-                    (make-string (max 0 (- eol bol (length comment-start))) ?~))))
+            (insert "\n"
+                    (annotate-wrap-in-comment  (make-string (max 0
+                                                                 (- eol
+                                                                    bol
+                                                                    (annotate-comments-length)))
+                                                            annotate-integrate-higlight)))))
         ;; partially underline last line
         (let ((bol (progn (beginning-of-line)
                           (point)))
               (ov-end (overlay-end ov)))
           (end-of-line)
-          (insert "\n" comment-start
-                  (make-string (max 0 (- ov-end bol (length comment-start))) ?~)))
+          (insert "\n"
+                  (annotate-wrap-in-comment (make-string (max 0
+                                                              (- ov-end
+                                                                 bol
+                                                                 (annotate-comments-length)))
+                                                         annotate-integrate-higlight))))
         ;; insert actual annotation text
-        (insert "\n" comment-start annotate-integrate-marker (overlay-get ov 'annotation)))
+        (insert "\n"
+                (annotate-wrap-in-comment annotate-integrate-marker
+                                          (overlay-get ov 'annotation))))
        ;; overlay is within one line
        (t
-        (let ((ov-start (overlay-start ov))
-              (ov-end (overlay-end ov))
-              (bol (progn (beginning-of-line)
-                          (point))))
+        (let* ((ov-start         (overlay-start ov))
+               (ov-end           (overlay-end ov))
+               (bol              (progn (beginning-of-line)
+                                        (point)))
+               (underline-marker (if (= bol ov-start)
+                                     (make-string (max 0 (- ov-end ov-start 1))
+                                                  annotate-integrate-higlight)
+                                   (make-string (max 0 (- ov-end ov-start))
+                                                annotate-integrate-higlight))))
           (end-of-line)
-          (insert "\n" comment-start
-                  (make-string (max 0 (- ov-start bol (length comment-start))) ? )
-                  (if (= bol ov-start)
-                      (make-string (max 0 (- ov-end ov-start 1)) ?~)
-                    (make-string (max 0 (- ov-end ov-start)) ?~))
-                    "\n" comment-start annotate-integrate-marker (overlay-get ov 'annotation)))))
+          (insert "\n"
+                  (annotate-wrap-in-comment (make-string (max 0
+                                                              (- ov-start
+                                                                 bol
+                                                                 (annotate-comments-length)))
+                                                         ? )
+                                            underline-marker)
+                  "\n"
+                  (annotate-wrap-in-comment annotate-integrate-marker
+                                            (overlay-get ov 'annotation))))))
       (remove-text-properties
          (point) (1+ (point)) '(display nil)))))
 
@@ -276,12 +330,14 @@ This diff does not contain any changes, but highlights the
 annotation, and can be conveniently viewed in diff-mode."
   (interactive)
   (let* ((filename (substring-no-properties (or (buffer-file-name) "")))
-         (export-buffer (generate-new-buffer (concat
-                                              filename
-                                             ".annotations.diff")))
-        (annotations (annotate-describe-annotations)))
+         (export-buffer      (generate-new-buffer (concat
+                                                   filename
+                                                   ".annotations.diff")))
+         (annotations        (annotate-describe-annotations))
+         (parent-buffer-mode major-mode))
     ;; write the diff file description
     (with-current-buffer export-buffer
+      (funcall parent-buffer-mode)
       (let ((time-string
              (format-time-string "%F %H:%M:%S.%N %z"
                                  (nth 5 (file-attributes filename 'integer)))))
@@ -326,11 +382,13 @@ annotation, and can be conveniently viewed in diff-mode."
                ((= (length annotation-line-list) 1)
                 (insert (car annotation-line-list) "\n")
                 (unless (string= (car annotation-line-list) "+")
-                  (insert "#"
-                          (make-string (- start bol) ? )
-                          (make-string (- end start) ?~)
+                  (insert (annotate-wrap-in-comment (make-string (- start bol) ? )
+                                                    (make-string (- end start)
+                                                                 annotate-integrate-higlight))
                           "\n"))
-                (insert "#" (make-string (- start bol) ? ) text "\n"))
+                (insert (annotate-wrap-in-comment (make-string (- start bol) ? )
+                                                  text)
+                        "\n"))
                ;; annotation has more than one line
                (t
                 (let ((line (car annotation-line-list))) ; first line
@@ -338,26 +396,31 @@ annotation, and can be conveniently viewed in diff-mode."
                   (insert line "\n")
                   ;; underline highlight (from start to eol)
                   (unless (string= line "+") ; empty line
-                    (insert "#"
-                            (make-string (- start bol) ? )
-                            (make-string (- (length line) (- start bol)) ?~)
+                    (insert (annotate-wrap-in-comment (make-string (- start bol) ? )
+                                                      (make-string (- (length line) (- start bol))
+                                                                   annotate-integrate-higlight))
                             "\n")))
                 (dolist (line (cdr (butlast annotation-line-list))) ; nth line
                   ;; nth diff line
                   (insert line "\n")
                   ;; nth underline highlight (from bol to eol)
                   (unless (string= line "+")
-                    (insert "#" (make-string (length line) ?~) "\n")))
+                    (insert (annotate-wrap-in-comment (make-string (length line)
+                                                                   annotate-integrate-higlight))
+                            "\n")))
                 (let ((line (car (last annotation-line-list))))
                   ;; last diff line
                   (insert line "\n")
                   ;; last underline highlight (from bol to end)
                   (unless (string= line "+")
-                    (insert "#"
-                            (make-string (- (length line) (- eol end) 1) ?~)
+                    (insert (annotate-wrap-in-comment (make-string (- (length line)
+                                                                      (- eol end)
+                                                                      1)
+                                                                   annotate-integrate-higlight))
                             "\n")))
                 ;; annotation text
-                (insert "#" text "\n"))))
+                (insert (annotate-wrap-in-comment text)
+                        "\n"))))
             (insert (annotate-prefix-lines " " following-lines))))))
           (switch-to-buffer export-buffer)
           (diff-mode)
@@ -391,37 +454,115 @@ annotation plus the newline."
       (re-search-forward "\\(.*\\(\n\\)\\)")
       t)))
 
+(cl-defstruct annotate-group
+  words
+  start-word)
+
+(defun annotate-group-by-width (text maximum-width)
+  "Groups text in a list formed by chunks of maximum size equal
+to 'maximum-width'."
+  (cl-labels ((next-word (words)
+                         (or (cl-first words)
+                             ""))
+              (join-until-width (words &optional (word nil))
+                                (cond
+                                 ((null words)
+                                  (make-annotate-group :words      nil
+                                                       :start-word word))
+                                 (t
+                                  (let* ((next-word (next-word words))
+                                         (new-word  (if word
+                                                        (concat word " " next-word)
+                                                      next-word)))
+                                    (if (<= (string-width new-word)
+                                            maximum-width)
+                                        (join-until-width (cl-rest words) new-word)
+                                      (make-annotate-group :words      words
+                                                           :start-word (or word next-word)))))))
+              (%group (words so-far)
+                      (cond
+                       ((null words)
+                        so-far)
+                       ((<= (string-width (cl-first words))
+                            maximum-width)
+                        (let* ((potential-start (join-until-width words))
+                               (word            (annotate-group-start-word potential-start))
+                               (nonjoined-words (annotate-group-words potential-start))
+                               (next-word       (cl-first nonjoined-words))
+                               (rest-words      nonjoined-words)
+                               (potential-start word))
+                          (%group rest-words
+                                  (append (list potential-start)
+                                          so-far))))
+                       (t
+                        (let* ((word       (cl-first words))
+                               (rest-words (cl-rest words))
+                               (prefix     (cl-subseq word 0 maximum-width))
+                               (next-word  (if rest-words
+                                               (cl-first rest-words)
+                                             ""))
+                               (raw-suffix (cl-subseq word maximum-width))
+                               (suffix     (if rest-words
+                                               (concat raw-suffix " " next-word)
+                                             raw-suffix)))
+                          (%group (append (list suffix)
+                                          (cl-rest rest-words))
+                                  (append (list prefix)
+                                          so-far)))))))
+    (if (< maximum-width 1)
+        nil
+      (let* ((words   (split-string text " " t))
+             (grouped (reverse (%group words '()))))
+        grouped))))
+
+(cl-defun annotate-safe-subseq (seq from to &optional (value-if-limits-invalid seq))
+  "This return 'value-if-limits-invalid' sequence if 'from' or 'to' are invalids"
+  (cond
+   ((< to from)
+    value-if-limits-invalid)
+   ((or (< from 0)
+        (> from (length seq))
+        (> to   (length seq)))
+    value-if-limits-invalid)
+   (t
+    (cl-subseq seq from to))))
+
 (defun annotate-lineate (text line-width)
   "Breaks `text` into lines to fit in the annotation space"
-  (let ((available-width (- (window-body-width)
-                            annotate-annotation-column))
-        ;; if the annotation won't fit at the end of the line:
-        (lineated (if (< line-width annotate-annotation-column) "" "\n"))
-        (current-pos 0))
-    (while (< current-pos (length text))
-      (let ((current-line
-             (substring text current-pos
-                        (min (length text)
-                             (+ current-pos available-width -1)))))
-        ;; discard characters until the string fits within the available width
-        ;; this can happen with unicode characters that are wider than one col
-        (while (> (string-width current-line) available-width)
-          (setq current-line (substring current-line 0 -1)))
-        ;; strip partial last word if necessary, for word wrap:
-        (when (and (string-match "[^ ]$" current-line)
-                   (< (+ current-pos (length current-line)) (length text)))
-          (string-match "[ ][^ ]+$" current-line)
-          (setq current-line (replace-match " " nil nil current-line)))
-        ;; append white space to the end of continued lines
-        (let ((postfix (if (< (length current-line) (length text))
-                           (make-string (- available-width (string-width current-line) 1) ? )
-                         "")))
-          (setq lineated (concat lineated current-line postfix "\n")
-                current-pos (+ current-pos (length current-line))))))
-    ;; strip trailing newline, if any
-    (if (string= (substring lineated (1- (length lineated))) "\n")
-        (substring lineated 0 (1- (length lineated)))
-      lineated)))
+  (cl-labels ((pad (string max-width add-newline-p)
+                   (if (null string)
+                       ""
+                     (let* ((size       (string-width string))
+                            (rest-width (max (- max-width
+                                                size)
+                                             0))
+                            (padding    (make-string rest-width
+                                                     ? )))
+                       (if add-newline-p
+                           (concat string padding "\n")
+                         (concat string padding)))))
+              (%subseq (seq from to)
+                       (if (= (length seq) 1)
+                           nil
+                         (annotate-safe-subseq seq from to nil))))
+  (let* ((theoretical-line-width      (- (window-body-width)
+                                         annotate-annotation-column))
+         (available-width             (if (> theoretical-line-width 0)
+                                          theoretical-line-width
+                                        line-width))
+         (lineated-list               (annotate-group-by-width text available-width))
+         (max-width                   (apply #'max
+                                             (mapcar #'string-width lineated-list)))
+         (all-but-last-lineated-list  (%subseq lineated-list 0 (1- (length lineated-list))))
+         (last-line                   (if all-but-last-lineated-list
+                                          (car (last lineated-list))
+                                        (cl-first lineated-list)))
+         (lineated                    (cl-mapcar (lambda (a)
+                                                   (pad a max-width t))
+                                                 all-but-last-lineated-list)))
+    (apply #'concat
+           (append lineated
+                   (list (pad last-line max-width nil)))))))
 
 (defun annotate--annotation-builder ()
   "Searches the line before point for annotations, and returns a
@@ -444,16 +585,16 @@ annotation plus the newline."
       (dolist (ov overlays)
         (if (overlay-get ov 'annotation)
             (dolist (l (save-match-data
-                         (split-string
-                          (annotate-lineate (overlay-get ov 'annotation)
-                                            (- eol bol)) "\n")))
+                         (split-string (annotate-lineate (overlay-get ov 'annotation)
+                                                         (- eol bol))
+                                       "\n")))
               (setq text
                     (concat text prefix
                             (propertize l 'face 'annotate-annotation)
                             "\n"))
-              ;; white space before for all but the first annotation
+              ;; white space before for all but the first annotation line
               (setq prefix (make-string annotate-annotation-column ? )))))
-      ;; build facecpec with the annotation text as display property
+      ;; build facespec with the annotation text as display property
       (if (string= text "")
           ;; annotation has been removed: remove display prop
           (list 'face 'default 'display nil)
@@ -492,7 +633,7 @@ an overlay and it's annotation."
     (beginning-of-line)
     (let ((bol (point)))
       (beginning-of-line (- (1- annotate-diff-export-context)))
-      (buffer-substring-no-properties (point) (1- bol)))))
+      (buffer-substring-no-properties (point) (max 1 (1- bol))))))
 
 (defun annotate-context-after (pos)
   "Context lines after POS."
@@ -597,8 +738,8 @@ an overlay and it's annotation."
                        (progn (beginning-of-line) (point))
                        (progn (end-of-line) (point))))
            (prefix-length (- annotate-annotation-column (string-width line-text))))
-      (if (< prefix-length 2)
-          (make-string 2 ? )
+      (if (< prefix-length 1)
+          (concat "\n" (make-string annotate-annotation-column ? ))
         (make-string prefix-length ? )))))
 
 (defun annotate-bounds ()
