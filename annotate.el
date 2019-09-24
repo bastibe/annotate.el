@@ -710,7 +710,8 @@ an overlay and it's annotation."
   (format "-%i,%i +%i,%i" start-line diff-size start-line diff-size)))
 
 (defun annotate-checksum-from-dump (record)
-  (nth 2 record))
+  (and (> (length record) 2)
+       (nth 2 record)))
 
 (defun annotate-annotations-from-dump (record)
   (nth 1 record))
