@@ -62,7 +62,7 @@
   :lighter " Ann"
   :keymap (make-sparse-keymap)
   :group 'annotate
-  :after-hook (annotate-after-hook))
+  :after-hook (annotate-initialize-maybe))
 
 (define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
 
@@ -134,7 +134,7 @@ major mode is a member of this list (space separated entries)."
   :type  '(repeat symbol)
   :group 'annotate)
 
-(defun annotate-after-hook ()
+(defun annotate-initialize-maybe ()
   (let ((annotate-allowed-p (with-current-buffer (current-buffer)
                               (not (cl-member major-mode annotate-blacklist-major-mode)))))
     (cond
