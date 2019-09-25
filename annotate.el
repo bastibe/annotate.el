@@ -123,7 +123,7 @@ less than this size (in characters)"
 
 (defconst annotate-warn-file-changed-control-string
   (concat "The file '%s' has changed on disk "
-          "from the last time the annotations was saved. "
+          "from the last time the annotations was saved.\n"
           "Chances are that they will not be displayed correctly")
   "The  message to  warn user  that  file has  been modified  and
   annototatnions position could be outdated")
@@ -152,28 +152,40 @@ major mode is a member of this list (space separated entries)."
       (md5 object)
     nil))
 
+(cl-defmacro annotate-with-inhibit-modification-hooks (&rest body)
+  `(unwind-protect
+       (progn
+         (setf inhibit-modification-hooks t)
+         ,@body)
+     (setf inhibit-modification-hooks t)))
+
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
   (add-hook 'after-save-hook 'annotate-save-annotations t t)
-  (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer t t)
+  (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t t)
   (font-lock-add-keywords
-   nil '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
-                                      (1 (annotate--change-guard))))))
+   nil
+   '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                  (1 (annotate--change-guard))))))
 
 (defun annotate-shutdown ()
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
-  (remove-hook 'after-save-hook 'annotate-save-annotations t)
-  (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer t)
+  (remove-hook 'after-save-hook                  'annotate-save-annotations t)
+  (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t)
   (font-lock-remove-keywords
-   nil '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
-                                      (1 (annotate--change-guard))))))
+   nil
+   '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                  (1 (annotate--change-guard))))))
 
 (defun annotate-overlay-filled-p (overlay)
   (and overlay
        (overlayp overlay)
        (overlay-get overlay 'annotation)))
+
+(defun annotationp (overlay)
+  (annotate-overlay-filled-p overlay))
 
 (defun annotate-annotate ()
   "Create, modify, or delete annotation."
@@ -247,10 +259,9 @@ major mode is a member of this list (space separated entries)."
     (dolist (entry all-annotations)
       (delete-dups entry))
     ;; skip files with no annotations
-    (annotate-dump-annotation-data (cl-remove-if
-                                    (lambda (entry)
-                                      (eq nil (cdr entry)))
-                                    all-annotations))
+    (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
+                                                   (eq nil (cdr entry)))
+                                                 all-annotations))
     (if annotate-use-messages
         (message "Annotations saved."))))
 
@@ -676,8 +687,10 @@ to 'maximum-width'."
 that strips dangling `display` properties of text insertions if
 text is inserted. This cleans up after newline insertions between
 an overlay and it's annotation."
-  (list 'face nil
-        'insert-in-front-hooks '(annotate--remove-annotation-property)))
+  (list 'face
+        nil
+        'insert-in-front-hooks
+        '(annotate--remove-annotation-property)))
 
 (defun annotate-context-before (pos)
   "Context lines before POS."
@@ -716,25 +729,15 @@ an overlay and it's annotation."
 (defun annotate-annotations-from-dump (record)
   (nth 1 record))
 
-(defun annotate-load-annotations ()
-  "Load all annotations from disk."
+(defun annotate-load-annotation-old-format ()
+  "Load all annotations from disk in old format."
   (interactive)
-  (let* ((filename             (substring-no-properties (or (buffer-file-name) "")))
-         (all-annotations-data (annotate-load-annotation-data))
-         (annotation-dump      (assoc-string filename all-annotations-data))
-         (annotations          (annotate-annotations-from-dump annotation-dump))
-         (old-checksum         (annotate-checksum-from-dump annotation-dump))
-         (new-checksum         (annotate-buffer-checksum))
-         (modified-p           (buffer-modified-p)))
-    (when (and old-checksum
-               new-checksum
-               (not (string= old-checksum new-checksum)))
-      (lwarn "annotate-mode"
-             :warning
-             annotate-warn-file-changed-control-string
-             filename))
+  (let ((annotations (cdr (assoc-string
+                           (substring-no-properties (or (buffer-file-name) ""))
+                           (annotate-load-annotation-data))))
+        (modified-p (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
-    (setq annotations (cl-remove-if (lambda (ann) (null (nth 2 ann)))
+    (setq annotations (cl-remove-if (lambda (ann) (eq (nth 2 ann) nil))
                                     annotations))
     (when (and (eq nil annotations) annotate-use-messages)
       (message "No annotations found."))
@@ -749,6 +752,43 @@ an overlay and it's annotation."
     (font-lock-fontify-buffer)
     (if annotate-use-messages
         (message "Annotations loaded."))))
+
+(defun annotate-load-annotations ()
+  "Load all annotations from disk."
+  (cl-labels ((old-format-p (annotation)
+                            (not (stringp (cl-first (last annotation))))))
+    (interactive)
+    (let* ((filename             (substring-no-properties (or (buffer-file-name) "")))
+           (all-annotations-data (annotate-load-annotation-data))
+           (annotation-dump      (assoc-string filename all-annotations-data))
+           (annotations          (annotate-annotations-from-dump annotation-dump))
+           (old-checksum         (annotate-checksum-from-dump annotation-dump))
+           (new-checksum         (annotate-buffer-checksum))
+           (modified-p           (buffer-modified-p)))
+      (if (old-format-p annotation-dump)
+          (annotate-load-annotation-old-format)
+        (when (and (not (old-format-p annotations))
+                   old-checksum
+                   new-checksum
+                   (not (string= old-checksum new-checksum)))
+          (lwarn "annotate-mode"
+                 :warning
+                 annotate-warn-file-changed-control-string
+                 filename))
+        (when (and (eq nil annotations)
+                   annotate-use-messages)
+          (message "No annotations found."))
+        (when (not (eq nil annotations))
+          (save-excursion
+            (dolist (annotation annotations)
+              (let ((start (nth 0 annotation))
+                    (end   (nth 1 annotation))
+                    (text  (nth 2 annotation)))
+                (annotate-create-annotation start end text)))))
+        (set-buffer-modified-p modified-p)
+        (font-lock-fontify-buffer)
+        (when annotate-use-messages
+          (message "Annotations loaded."))))))
 
 (defun annotate-clear-annotations ()
   "Clear all current annotations."
