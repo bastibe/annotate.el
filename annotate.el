@@ -129,7 +129,7 @@ less than this size (in characters)"
   annototatnions position could be outdated")
 
 (defcustom annotate-blacklist-major-mode '(org-mode)
-  "Prevent  loading of  annotated-mode  When  the visited  file's
+  "Prevent  loading of  annotate-mode  When  the visited  file's
 major mode is a member of this list (space separated entries)."
   :type  '(repeat symbol)
   :group 'annotate)
