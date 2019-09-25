@@ -126,7 +126,7 @@ less than this size (in characters)"
           "from the last time the annotations were saved.\n"
           "Chances are that they will not be displayed correctly")
   "The message to  warn the user that file has  been modified and
-  annototatnions position could be outdated")
+  annotations positions could be outdated")
 
 (defcustom annotate-blacklist-major-mode '(org-mode)
   "Prevent  loading of  annotate-mode  When  the visited  file's
@@ -135,6 +135,8 @@ major mode is a member of this list (space separated entries)."
   :group 'annotate)
 
 (defun annotate-initialize-maybe ()
+  "Initialize annotate mode only if buffer's major mode is not in the blacklist (see:
+'annotate-blacklist-major-mode'"
   (let ((annotate-allowed-p (with-current-buffer (current-buffer)
                               (not (cl-member major-mode annotate-blacklist-major-mode)))))
     (cond
@@ -147,12 +149,16 @@ major mode is a member of this list (space separated entries)."
      (annotate-shutdown)))))
 
 (cl-defun annotate-buffer-checksum (&optional (object (current-buffer)))
+  "Calculate  an   hash  for   the  buffer  'object',   skip  the
+  calculation     if     the     buffer    is     bigger     than
+  'annotate-maximum-size-checksum' (units are character)."
   (if (< (buffer-size)
          annotate-maximum-size-checksum)
       (md5 object)
     nil))
 
 (cl-defmacro annotate-with-inhibit-modification-hooks (&rest body)
+  "Wrap 'body' in a block with modification-hooks inhibited."
   `(unwind-protect
        (progn
          (setf inhibit-modification-hooks t)
@@ -180,11 +186,13 @@ major mode is a member of this list (space separated entries)."
                                   (1 (annotate--change-guard))))))
 
 (defun annotate-overlay-filled-p (overlay)
+  "Does this overlay contains an 'annotation' property?"
   (and overlay
        (overlayp overlay)
        (overlay-get overlay 'annotation)))
 
 (defun annotationp (overlay)
+  "Is 'overlay' an annotation?"
   (annotate-overlay-filled-p overlay))
 
 (defun annotate-annotate ()
