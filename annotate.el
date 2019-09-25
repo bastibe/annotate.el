@@ -116,20 +116,20 @@
   :group 'annotate)
 
 (defcustom annotate-maximum-size-checksum 5000000
-  "Calculate checksum of  the current buffer only if  the size is
+  "Calculate checksum of the current buffer only if the size is
 less than this size (in characters)"
-  :type  'integer
+  :type 'integer
   :group 'annotate)
 
 (defconst annotate-warn-file-changed-control-string
   (concat "The file '%s' has changed on disk "
           "from the last time the annotations were saved.\n"
           "Chances are that they will not be displayed correctly")
-  "The message to  warn the user that file has  been modified and
+  "The message to warn the user that file has been modified and
   annotations positions could be outdated")
 
 (defcustom annotate-blacklist-major-mode '(org-mode)
-  "Prevent  loading of  annotate-mode  When  the visited  file's
+  "Prevent loading of annotate-mode When the visited file's
 major mode is a member of this list (space separated entries)."
   :type  '(repeat symbol)
   :group 'annotate)
@@ -149,8 +149,8 @@ major mode is a member of this list (space separated entries)."
      (annotate-shutdown)))))
 
 (cl-defun annotate-buffer-checksum (&optional (object (current-buffer)))
-  "Calculate  an   hash  for   the  buffer  'object',   skip  the
-  calculation     if     the     buffer    is     bigger     than
+  "Calculate an hash for the buffer  'object', skip the
+  calculation if the buffer is bigger than
   'annotate-maximum-size-checksum' (units are character)."
   (if (< (buffer-size)
          annotate-maximum-size-checksum)
@@ -274,13 +274,13 @@ major mode is a member of this list (space separated entries)."
         (message "Annotations saved."))))
 
 (defun annotate-actual-comment-start ()
-  "String for  comment start  related to current  buffer's major
+  "String for comment start related to current buffer's major
 mode."
   (or comment-start
       annotate-fallback-comment))
 
 (defun annotate-actual-comment-end ()
-  "String for comment  ends, if any, related  to current buffer's
+  "String for comment ends, if any, related to current buffer's
 major mode."
   (or comment-end
       ""))
@@ -291,8 +291,8 @@ major mode."
      (string-width (annotate-actual-comment-end))))
 
 (defun annotate-wrap-in-comment (&rest strings)
-  "Put comment  markers at  the start and  (if it  makes sense)
-end  of   a  string.   See:   annotate-actual-comment-start  and
+  "Put comment markers at the start and  (if it makes sense)
+end of a string. See: annotate-actual-comment-start and
 annotate-actual-comment-end"
   (apply #'concat (append (list (annotate-actual-comment-start))
                           strings
@@ -731,13 +731,13 @@ an overlay and it's annotation."
   (format "-%i,%i +%i,%i" start-line diff-size start-line diff-size)))
 
 (defun annotate-checksum-from-dump (record)
-  "Get the checksum field from  an annotation list loaded from a
+  "Get the checksum field from an annotation list loaded from a
 file."
   (and (> (length record) 2)
        (nth 2 record)))
 
 (defun annotate-annotations-from-dump (record)
-  "Get the annotations field from  an annotation list loaded from a
+  "Get the annotations field from an annotation list loaded from a
 file."
   (nth 1 record))
 
