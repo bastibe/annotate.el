@@ -291,8 +291,8 @@ major mode."
      (string-width (annotate-actual-comment-end))))
 
 (defun annotate-wrap-in-comment (&rest strings)
-  "Put comment  markers at  the start and  (if does  makes sense)
-ends  of   a  string.   See:   annotate-actual-comment-start  and
+  "Put comment  markers at  the start and  (if it  makes sense)
+end  of   a  string.   See:   annotate-actual-comment-start  and
 annotate-actual-comment-end"
   (apply #'concat (append (list (annotate-actual-comment-start))
                           strings
@@ -731,10 +731,14 @@ an overlay and it's annotation."
   (format "-%i,%i +%i,%i" start-line diff-size start-line diff-size)))
 
 (defun annotate-checksum-from-dump (record)
+  "Get the checksum field from  an annotation list loaded from a
+file."
   (and (> (length record) 2)
        (nth 2 record)))
 
 (defun annotate-annotations-from-dump (record)
+  "Get the annotations field from  an annotation list loaded from a
+file."
   (nth 1 record))
 
 (defun annotate-load-annotation-old-format ()
