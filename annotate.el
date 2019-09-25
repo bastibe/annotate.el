@@ -123,9 +123,9 @@ less than this size (in characters)"
 
 (defconst annotate-warn-file-changed-control-string
   (concat "The file '%s' has changed on disk "
-          "from the last time the annotations was saved.\n"
+          "from the last time the annotations were saved.\n"
           "Chances are that they will not be displayed correctly")
-  "The  message to  warn user  that  file has  been modified  and
+  "The message to  warn the user that file has  been modified and
   annototatnions position could be outdated")
 
 (defcustom annotate-blacklist-major-mode '(org-mode)
