@@ -62,12 +62,12 @@
   :lighter " Ann"
   :keymap (make-sparse-keymap)
   :group 'annotate
-  :after-hook (if annotate-mode
-                  (annotate-initialize)
-                (annotate-shutdown)))
+  :after-hook (annotate-initialize-maybe))
 
 (define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
+
 (define-key annotate-mode-map (kbd "C-c ]") 'annotate-next-annotation)
+
 (define-key annotate-mode-map (kbd "C-c [") 'annotate-previous-annotation)
 
 (defcustom annotate-file (locate-user-emacs-file "annotations" ".annotations")
@@ -115,23 +115,74 @@
   :type 'string
   :group 'annotate)
 
+(defconst annotate-warn-file-changed-control-string
+  (concat "The file '%s' has changed on disk "
+          "from the last time the annotations were saved.\n"
+          "Chances are that they will not be displayed correctly")
+  "The message to warn the user that file has been modified and
+  annotations positions could be outdated")
+
+(defcustom annotate-blacklist-major-mode '(org-mode)
+  "Prevent loading of annotate-mode When the visited file's
+major mode is a member of this list (space separated entries)."
+  :type  '(repeat symbol)
+  :group 'annotate)
+
+(defun annotate-initialize-maybe ()
+  "Initialize annotate mode only if buffer's major mode is not in the blacklist (see:
+'annotate-blacklist-major-mode'"
+  (let ((annotate-allowed-p (with-current-buffer (current-buffer)
+                              (not (cl-member major-mode annotate-blacklist-major-mode)))))
+    (cond
+     ((not annotate-allowed-p)
+      (annotate-shutdown)
+      (setq annotate-mode nil))
+    (annotate-mode
+     (annotate-initialize))
+    (t
+     (annotate-shutdown)))))
+
+(cl-defun annotate-buffer-checksum (&optional (object (current-buffer)))
+  "Calculate an hash for the argument 'object'."
+  (secure-hash 'md5 object))
+
+(cl-defmacro annotate-with-inhibit-modification-hooks (&rest body)
+  "Wrap 'body' in a block with modification-hooks inhibited."
+  `(unwind-protect
+       (progn
+         (setf inhibit-modification-hooks t)
+         ,@body)
+     (setf inhibit-modification-hooks t)))
+
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
   (add-hook 'after-save-hook 'annotate-save-annotations t t)
-  (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer t t)
+  (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t t)
   (font-lock-add-keywords
-   nil '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
-                                      (1 (annotate--change-guard))))))
+   nil
+   '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                  (1 (annotate--change-guard))))))
 
 (defun annotate-shutdown ()
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
-  (remove-hook 'after-save-hook 'annotate-save-annotations t)
-  (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer t)
+  (remove-hook 'after-save-hook                  'annotate-save-annotations t)
+  (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t)
   (font-lock-remove-keywords
-   nil '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
-                                      (1 (annotate--change-guard))))))
+   nil
+   '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                  (1 (annotate--change-guard))))))
+
+(defun annotate-overlay-filled-p (overlay)
+  "Does this overlay contains an 'annotation' property?"
+  (and overlay
+       (overlayp overlay)
+       (overlay-get overlay 'annotation)))
+
+(defun annotationp (overlay)
+  "Is 'overlay' an annotation?"
+  (annotate-overlay-filled-p overlay))
 
 (defun annotate-annotate ()
   "Create, modify, or delete annotation."
@@ -191,37 +242,47 @@
   (interactive)
   (let ((file-annotations (annotate-describe-annotations))
         (all-annotations (annotate-load-annotation-data))
-        (filename (substring-no-properties (or (buffer-file-name) ""))))
+        (filename        (substring-no-properties (or (buffer-file-name) ""))))
     (if (assoc-string filename all-annotations)
         (setcdr (assoc-string filename all-annotations)
-                file-annotations)
+                (list file-annotations
+                        (annotate-buffer-checksum)))
       (setq all-annotations
-            (push (cons filename file-annotations)
+            (push (list filename
+                        file-annotations
+                        (annotate-buffer-checksum))
                   all-annotations)))
     ;; remove duplicate entries (a user reported seeing them)
     (dolist (entry all-annotations)
       (delete-dups entry))
     ;; skip files with no annotations
-    (annotate-dump-annotation-data (cl-remove-if
-                                    (lambda (entry)
-                                      (eq nil (cdr entry)))
-                                    all-annotations))
+    (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
+                                                   (eq nil (cdr entry)))
+                                                 all-annotations))
     (if annotate-use-messages
         (message "Annotations saved."))))
 
 (defun annotate-actual-comment-start ()
+  "String for comment start related to current buffer's major
+mode."
   (or comment-start
       annotate-fallback-comment))
 
 (defun annotate-actual-comment-end ()
+  "String for comment ends, if any, related to current buffer's
+major mode."
   (or comment-end
       ""))
 
 (defun annotate-comments-length ()
+  "Total length of the comment markers (start and end) strings."
   (+ (string-width (annotate-actual-comment-start))
      (string-width (annotate-actual-comment-end))))
 
 (defun annotate-wrap-in-comment (&rest strings)
+  "Put comment markers at the start and  (if it makes sense)
+end of a string. See: annotate-actual-comment-start and
+annotate-actual-comment-end"
   (apply #'concat (append (list (annotate-actual-comment-start))
                           strings
                           (list (annotate-actual-comment-end)))))
@@ -251,9 +312,9 @@ An example might look like this:"
                                                               (- ov-start
                                                                  bol
                                                                  (annotate-comments-length)))
-                                                ? )
-                                   (make-string (max 0 (- eol ov-start))
-                                                annotate-integrate-higlight))))
+                                                         ? )
+                                            (make-string (max 0 (- eol ov-start))
+                                                         annotate-integrate-higlight))))
         ;; fully underline second to second-to-last line
         (while (< (progn (forward-line)
                          (end-of-line)
@@ -265,11 +326,11 @@ An example might look like this:"
                             (point))))
             (end-of-line)
             (insert "\n"
-                    (annotate-wrap-in-comment  (make-string (max 0
-                                                                 (- eol
-                                                                    bol
-                                                                    (annotate-comments-length)))
-                                                            annotate-integrate-higlight)))))
+                    (annotate-wrap-in-comment (make-string (max 0
+                                                                (- eol
+                                                                   bol
+                                                                   (annotate-comments-length)))
+                                                           annotate-integrate-higlight)))))
         ;; partially underline last line
         (let ((bol (progn (beginning-of-line)
                           (point)))
@@ -623,8 +684,10 @@ to 'maximum-width'."
 that strips dangling `display` properties of text insertions if
 text is inserted. This cleans up after newline insertions between
 an overlay and it's annotation."
-  (list 'face nil
-        'insert-in-front-hooks '(annotate--remove-annotation-property)))
+  (list 'face
+        nil
+        'insert-in-front-hooks
+        '(annotate--remove-annotation-property)))
 
 (defun annotate-context-before (pos)
   "Context lines before POS."
@@ -656,8 +719,19 @@ an overlay and it's annotation."
                       (1+ (- (line-number-at-pos end) (line-number-at-pos start))))))
   (format "-%i,%i +%i,%i" start-line diff-size start-line diff-size)))
 
-(defun annotate-load-annotations ()
-  "Load all annotations from disk."
+(defun annotate-checksum-from-dump (record)
+  "Get the checksum field from an annotation list loaded from a
+file."
+  (and (> (length record) 2)
+       (nth 2 record)))
+
+(defun annotate-annotations-from-dump (record)
+  "Get the annotations field from an annotation list loaded from a
+file."
+  (nth 1 record))
+
+(defun annotate-load-annotation-old-format ()
+  "Load all annotations from disk in old format."
   (interactive)
   (let ((annotations (cdr (assoc-string
                            (substring-no-properties (or (buffer-file-name) ""))
@@ -679,6 +753,43 @@ an overlay and it's annotation."
     (font-lock-fontify-buffer)
     (if annotate-use-messages
         (message "Annotations loaded."))))
+
+(defun annotate-load-annotations ()
+  "Load all annotations from disk."
+  (cl-labels ((old-format-p (annotation)
+                            (not (stringp (cl-first (last annotation))))))
+    (interactive)
+    (let* ((filename             (substring-no-properties (or (buffer-file-name) "")))
+           (all-annotations-data (annotate-load-annotation-data))
+           (annotation-dump      (assoc-string filename all-annotations-data))
+           (annotations          (annotate-annotations-from-dump annotation-dump))
+           (old-checksum         (annotate-checksum-from-dump annotation-dump))
+           (new-checksum         (annotate-buffer-checksum))
+           (modified-p           (buffer-modified-p)))
+      (if (old-format-p annotation-dump)
+          (annotate-load-annotation-old-format)
+        (when (and (not (old-format-p annotations))
+                   old-checksum
+                   new-checksum
+                   (not (string= old-checksum new-checksum)))
+          (lwarn "annotate-mode"
+                 :warning
+                 annotate-warn-file-changed-control-string
+                 filename))
+        (when (and (eq nil annotations)
+                   annotate-use-messages)
+          (message "No annotations found."))
+        (when (not (eq nil annotations))
+          (save-excursion
+            (dolist (annotation annotations)
+              (let ((start (nth 0 annotation))
+                    (end   (nth 1 annotation))
+                    (text  (nth 2 annotation)))
+                (annotate-create-annotation start end text)))))
+        (set-buffer-modified-p modified-p)
+        (font-lock-fontify-buffer)
+        (when annotate-use-messages
+          (message "Annotations loaded."))))))
 
 (defun annotate-clear-annotations ()
   "Clear all current annotations."
@@ -774,9 +885,11 @@ an overlay and it's annotation."
     (when (file-exists-p annotate-file)
       (insert-file-contents annotate-file))
     (goto-char (point-max))
-    (cond ((= (point) 1) nil)
-          (t (goto-char (point-min))
-             (read (current-buffer))))))
+    (cond ((= (point) 1)
+           nil)
+          (t
+           (goto-char (point-min))
+           (read (current-buffer))))))
 
 (defun annotate-dump-annotation-data (data)
   "Save `data` into annotation file."
