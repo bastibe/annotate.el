@@ -115,12 +115,6 @@
   :type 'string
   :group 'annotate)
 
-(defcustom annotate-maximum-size-checksum 5000000
-  "Calculate checksum of the current buffer only if the size is
-less than this size (in characters)"
-  :type 'integer
-  :group 'annotate)
-
 (defconst annotate-warn-file-changed-control-string
   (concat "The file '%s' has changed on disk "
           "from the last time the annotations were saved.\n"
@@ -149,13 +143,8 @@ major mode is a member of this list (space separated entries)."
      (annotate-shutdown)))))
 
 (cl-defun annotate-buffer-checksum (&optional (object (current-buffer)))
-  "Calculate an hash for the buffer  'object', skip the
-  calculation if the buffer is bigger than
-  'annotate-maximum-size-checksum' (units are character)."
-  (if (< (buffer-size)
-         annotate-maximum-size-checksum)
-      (md5 object)
-    nil))
+  "Calculate an hash for the argument 'object'."
+  (secure-hash 'md5 object))
 
 (cl-defmacro annotate-with-inhibit-modification-hooks (&rest body)
   "Wrap 'body' in a block with modification-hooks inhibited."
