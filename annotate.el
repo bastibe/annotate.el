@@ -66,6 +66,8 @@
 
 (define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
 
+(define-key annotate-mode-map (kbd "C-c C-s") 'annotate-show-annotation-summary)
+
 (define-key annotate-mode-map (kbd "C-c ]") 'annotate-next-annotation)
 
 (define-key annotate-mode-map (kbd "C-c [") 'annotate-previous-annotation)
@@ -126,6 +128,11 @@
   "Prevent loading of annotate-mode When the visited file's
 major mode is a member of this list (space separated entries)."
   :type  '(repeat symbol)
+  :group 'annotate)
+
+(defcustom annotate-summary-link-max-width  64
+  "Cut the link text in a summary windows to this maximum size (in character)"
+  :type  'number
   :group 'annotate)
 
 (defun annotate-initialize-maybe ()
@@ -730,6 +737,25 @@ file."
 file."
   (nth 1 record))
 
+(defun annotate-filename-from-dump (record)
+  "Get the filename field from an annotation list loaded from a
+file."
+  (cl-first record))
+
+(defun annotate-start-annotation-dump (annotation)
+  "Get the starting point of an annotation. The arg 'annotation' must be a single
+annotation field got from a file dump of all annotated buffers,
+essentially what you get from:
+(annotate-annotations-from-dump (annotate-load-annotations))). "
+  (cl-first annotation))
+
+(defun annotate-text-annotation-dump (annotation)
+  "Get the text of an annotation. The arg 'annotation' must be a single
+annotation field got from a file dump of all annotated buffers,
+essentially what you get from:
+(annotate-annotations-from-dump (annotate-load-annotations))). "
+  (nth 2 annotation))
+
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
   (interactive)
@@ -895,6 +921,49 @@ file."
   "Save `data` into annotation file."
   (with-temp-file annotate-file
     (prin1 data (current-buffer))))
+
+(define-button-type 'annotate-summary-button
+  'follow-link t
+  'help-echo "Click to show")
+
+(defun annotate-summary-button-pressed (button)
+  "Callback called when a sunmmary button is activated"
+  (let ((buffer (find-file-other-window (button-get button 'file))))
+    (with-current-buffer buffer
+      (goto-char (button-get button 'go-to)))))
+
+(defun annotate-show-annotation-summary ()
+  "Show a summary of all the annotations in a temp buffer"
+  (interactive)
+  (cl-labels ((ellipsize (text)
+                         (if (> (string-width text)
+                                annotate-summary-link-max-width)
+                             (concat (subseq text 0 (- annotate-summary-link-max-width 3))
+                                     "...")
+                           text)))
+    (with-temp-buffer-window
+     "*annotations*" nil nil
+     (with-current-buffer "*annotations*"
+       (use-local-map nil)
+       (local-set-key "q" (lambda ()
+                            (interactive)
+                            (kill-buffer "*annotations*")))
+       (let ((dump (annotate-load-annotation-data)))
+         (dolist (annotation dump)
+           (let ((all-annotations (annotate-annotations-from-dump annotation))
+                 (filename        (annotate-filename-from-dump annotation)))
+             (when (not (null all-annotations))
+               (insert (format "%s\n\n" filename))
+               (dolist (annotation-field all-annotations)
+                 (let ((button-text (format "%s"
+                                            (annotate-text-annotation-dump annotation-field))))
+                   (insert "- ")
+                   (insert-button (propertize (ellipsize button-text) 'face 'bold)
+                                  'file   filename
+                                  'go-to  (annotate-start-annotation-dump annotation-field)
+                                  'action 'annotate-summary-button-pressed
+                                  'type   'annotate-summary-button)
+                   (insert "\n\n")))))))))))
 
 (provide 'annotate)
 ;;; annotate.el ends here
