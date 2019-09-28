@@ -927,7 +927,7 @@ essentially what you get from:
   'help-echo "Click to show")
 
 (defun annotate-summary-button-pressed (button)
-  "Callback called when a sunmmary button is activated"
+  "Callback called when an annotate-summary-button is activated"
   (let ((buffer (find-file-other-window (button-get button 'file))))
     (with-current-buffer buffer
       (goto-char (button-get button 'go-to)))))
