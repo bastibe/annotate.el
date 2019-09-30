@@ -749,7 +749,7 @@ essentially what you get from:
 (annotate-annotations-from-dump (annotate-load-annotations))). "
   (cl-first annotation))
 
-(defun annotate-text-annotation-dump (annotation)
+(defun annotate-text-of-annotation (annotation)
   "Get the text of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
@@ -956,7 +956,7 @@ essentially what you get from:
                (insert (format "%s\n\n" filename))
                (dolist (annotation-field all-annotations)
                  (let ((button-text (format "%s"
-                                            (annotate-text-annotation-dump annotation-field))))
+                                            (annotate-text-of-annotation annotation-field))))
                    (insert "- ")
                    (insert-button (propertize (ellipsize button-text) 'face 'bold)
                                   'file   filename
