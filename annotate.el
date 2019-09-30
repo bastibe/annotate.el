@@ -130,10 +130,11 @@ major mode is a member of this list (space separated entries)."
   :type  '(repeat symbol)
   :group 'annotate)
 
-(defcustom annotate-summary-link-max-width  64
-  "Cut the link text in a summary windows to this maximum size (in character)"
-  :type  'number
-  :group 'annotate)
+(defconst annotate-summary-list-prefix "- "
+  "The string used as prefix for each text annotation item in summary window")
+
+(defconst annotate-ellipse-text-marker "..."
+  "The string used when a string is truncated with an ellipse")
 
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist (see:
@@ -936,11 +937,18 @@ essentially what you get from:
   "Show a summary of all the annotations in a temp buffer"
   (interactive)
   (cl-labels ((ellipsize (text)
+                         (let ((prefix-length  (string-width annotate-summary-list-prefix))
+                               (ellipse-length (string-width annotate-ellipse-text-marker)))
                          (if (> (string-width text)
-                                annotate-summary-link-max-width)
-                             (concat (subseq text 0 (- annotate-summary-link-max-width 3))
-                                     "...")
-                           text)))
+                                (+ (window-body-width)
+                                   prefix-length
+                                   ellipse-length))
+                             (concat (subseq text 0
+                                             (- (window-body-width)
+                                                prefix-length
+                                                ellipse-length))
+                                     annotate-ellipse-text-marker)
+                             text))))
     (with-temp-buffer-window
      "*annotations*" nil nil
      (with-current-buffer "*annotations*"
