@@ -742,7 +742,7 @@ file."
 file."
   (cl-first record))
 
-(defun annotate-start-annotation-dump (annotation)
+(defun annotate-beginning-of-annotation (annotation)
   "Get the starting point of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
@@ -960,7 +960,7 @@ essentially what you get from:
                    (insert "- ")
                    (insert-button (propertize (ellipsize button-text) 'face 'bold)
                                   'file   filename
-                                  'go-to  (annotate-start-annotation-dump annotation-field)
+                                  'go-to  (annotate-beginning-of-annotation annotation-field)
                                   'action 'annotate-summary-button-pressed
                                   'type   'annotate-summary-button)
                    (insert "\n\n")))))))))))
