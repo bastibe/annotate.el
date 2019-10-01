@@ -991,11 +991,11 @@ essentially what you get from:
      "*annotations*" nil nil
      (display-buffer "*annotations*")
      (select-window (get-buffer-window "*annotations*" t))
+     (outline-mode)
      (use-local-map nil)
      (local-set-key "q" (lambda ()
                           (interactive)
                           (kill-buffer "*annotations*")))
-     (outline-mode)
      (let ((dump (annotate-load-annotation-data)))
        (dolist (annotation dump)
          (let ((all-annotations (annotate-annotations-from-dump annotation))
