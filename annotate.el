@@ -117,6 +117,12 @@
   :type 'string
   :group 'annotate)
 
+(defcustom annotate-blacklist-major-mode '(org-mode)
+  "Prevent loading of annotate-mode When the visited file's
+major mode is a member of this list (space separated entries)."
+  :type  '(repeat symbol)
+  :group 'annotate)
+
 (defconst annotate-warn-file-changed-control-string
   (concat "The file '%s' has changed on disk "
           "from the last time the annotations were saved.\n"
@@ -124,14 +130,14 @@
   "The message to warn the user that file has been modified and
   annotations positions could be outdated")
 
-(defcustom annotate-blacklist-major-mode '(org-mode)
-  "Prevent loading of annotate-mode When the visited file's
-major mode is a member of this list (space separated entries)."
-  :type  '(repeat symbol)
-  :group 'annotate)
-
-(defconst annotate-summary-list-prefix "- "
+(defconst annotate-summary-list-prefix "  - "
   "The string used as prefix for each text annotation item in summary window")
+
+(defconst annotate-summary-list-prefix-file "* File: "
+  "The string used as prefix for each annotated file item in summary window")
+
+(defconst annotate-summary-list-prefix-snippet "** Annotated text: "
+  "The string used as prefix for each annotation snippet item in summary window")
 
 (defconst annotate-ellipse-text-marker "..."
   "The string used when a string is truncated with an ellipse")
@@ -750,6 +756,13 @@ essentially what you get from:
 (annotate-annotations-from-dump (annotate-load-annotations))). "
   (cl-first annotation))
 
+(defun annotate-ending-of-annotation (annotation)
+  "Get the ending point of an annotation. The arg 'annotation' must be a single
+annotation field got from a file dump of all annotated buffers,
+essentially what you get from:
+(annotate-annotations-from-dump (annotate-load-annotations))). "
+  (cl-second annotation))
+
 (defun annotate-text-of-annotation (annotation)
   "Get the text of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
@@ -936,42 +949,67 @@ essentially what you get from:
 (defun annotate-show-annotation-summary ()
   "Show a summary of all the annotations in a temp buffer"
   (interactive)
-  (cl-labels ((ellipsize (text)
-                         (let ((prefix-length  (string-width annotate-summary-list-prefix))
+  (cl-labels ((ellipsize (text prefix-string)
+                         (let ((prefix-length  (string-width prefix-string))
                                (ellipse-length (string-width annotate-ellipse-text-marker)))
-                         (if (> (string-width text)
-                                (+ (window-body-width)
-                                   prefix-length
-                                   ellipse-length))
-                             (concat (subseq text 0
-                                             (- (window-body-width)
-                                                prefix-length
-                                                ellipse-length))
-                                     annotate-ellipse-text-marker)
-                             text))))
-    (with-temp-buffer-window
+                           (if (> (string-width text)
+                                  (+ (window-body-width)
+                                     prefix-length
+                                     ellipse-length))
+                               (concat (substring text
+                                                  0
+                                                  (- (window-body-width)
+                                                     prefix-length
+                                                     ellipse-length))
+                                       annotate-ellipse-text-marker)
+                             text)))
+              (wrap      (text)
+                         (concat "\"" text "\""))
+              (insert-item-summary (snippet-text button-text)
+                                   (insert annotate-summary-list-prefix-snippet)
+                                   (insert (ellipsize (wrap snippet-text)
+                                                      annotate-summary-list-prefix-snippet))
+                                   (insert "\n")
+                                   (insert annotate-summary-list-prefix)
+                                   (insert-button (propertize (ellipsize button-text
+                                                                         annotate-summary-list-prefix)
+                                                              'face
+                                                              'bold)
+                                                  'file   filename
+                                                  'go-to  annotation-begin
+                                                  'action 'annotate-summary-button-pressed
+                                                  'type   'annotate-summary-button)
+                                   (insert "\n\n"))
+              (build-snippet ()
+                             (with-temp-buffer
+                               (insert-file-contents filename
+                                                     nil
+                                                     (1- annotation-begin)
+                                                     (1- annotation-end))
+                               (buffer-string))))
+    (with-current-buffer-window
      "*annotations*" nil nil
-     (with-current-buffer "*annotations*"
-       (use-local-map nil)
-       (local-set-key "q" (lambda ()
-                            (interactive)
-                            (kill-buffer "*annotations*")))
-       (let ((dump (annotate-load-annotation-data)))
-         (dolist (annotation dump)
-           (let ((all-annotations (annotate-annotations-from-dump annotation))
-                 (filename        (annotate-filename-from-dump annotation)))
-             (when (not (null all-annotations))
-               (insert (format "%s\n\n" filename))
-               (dolist (annotation-field all-annotations)
-                 (let ((button-text (format "%s"
-                                            (annotate-text-of-annotation annotation-field))))
-                   (insert "- ")
-                   (insert-button (propertize (ellipsize button-text) 'face 'bold)
-                                  'file   filename
-                                  'go-to  (annotate-beginning-of-annotation annotation-field)
-                                  'action 'annotate-summary-button-pressed
-                                  'type   'annotate-summary-button)
-                   (insert "\n\n")))))))))))
+     (display-buffer "*annotations*")
+     (select-window (get-buffer-window "*annotations*" t))
+     (use-local-map nil)
+     (local-set-key "q" (lambda ()
+                          (interactive)
+                          (kill-buffer "*annotations*")))
+     (outline-mode)
+     (let ((dump (annotate-load-annotation-data)))
+       (dolist (annotation dump)
+         (let ((all-annotations (annotate-annotations-from-dump annotation))
+               (filename        (annotate-filename-from-dump annotation)))
+           (when (not (null all-annotations))
+             (insert (format (concat annotate-summary-list-prefix-file "%s\n\n")
+                             filename))
+             (dolist (annotation-field all-annotations)
+               (let* ((button-text      (format "%s"
+                                                (annotate-text-of-annotation annotation-field)))
+                      (annotation-begin (annotate-beginning-of-annotation annotation-field))
+                      (annotation-end   (annotate-ending-of-annotation    annotation-field))
+                      (snippet-text     (build-snippet)))
+                 (insert-item-summary snippet-text button-text))))))))))
 
 (provide 'annotate)
 ;;; annotate.el ends here
