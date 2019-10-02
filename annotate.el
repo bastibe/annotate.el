@@ -130,7 +130,7 @@ major mode is a member of this list (space separated entries)."
   "The message to warn the user that file has been modified and
   annotations positions could be outdated")
 
-(defconst annotate-summary-list-prefix "  - "
+(defconst annotate-summary-list-prefix "    "
   "The string used as prefix for each text annotation item in summary window")
 
 (defconst annotate-summary-list-prefix-file "* File: "
