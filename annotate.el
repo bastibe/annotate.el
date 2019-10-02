@@ -980,7 +980,7 @@ essentially what you get from:
                                                   'action 'annotate-summary-button-pressed
                                                   'type   'annotate-summary-button)
                                    (insert "\n\n"))
-              (build-snippet ()
+              (build-snippet (filename annotation-begin annotation-end)
                              (with-temp-buffer
                                (insert-file-contents filename
                                                      nil
@@ -1008,7 +1008,9 @@ essentially what you get from:
                                                 (annotate-text-of-annotation annotation-field)))
                       (annotation-begin (annotate-beginning-of-annotation annotation-field))
                       (annotation-end   (annotate-ending-of-annotation    annotation-field))
-                      (snippet-text     (build-snippet)))
+                      (snippet-text     (build-snippet filename
+                                                       annotation-begin
+                                                       annotation-end)))
                  (insert-item-summary snippet-text button-text))))))))))
 
 (provide 'annotate)
