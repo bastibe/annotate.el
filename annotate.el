@@ -808,7 +808,7 @@ essentially what you get from:
            (modified-p           (buffer-modified-p)))
       (if (old-format-p annotation-dump)
           (annotate-load-annotation-old-format)
-        (when (and (not (old-format-p annotations))
+        (when (and (not (old-format-p annotation-dump))
                    old-checksum
                    new-checksum
                    (not (string= old-checksum new-checksum)))
