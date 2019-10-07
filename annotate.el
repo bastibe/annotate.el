@@ -554,6 +554,20 @@ to 'maximum-width'."
                                         (join-until-width (cl-rest words) new-word)
                                       (make-annotate-group :words      words
                                                            :start-word (or word next-word)))))))
+              (split-position (text column-max-width)
+                              (let ((character-width (length       text))
+                                    (column-width    (string-width text)))
+                                (if (= character-width column-width)
+                                    column-max-width
+                                  (let* ((res    0)
+                                         (so-far ""))
+                                    (cl-loop for i from 0 below column-max-width
+                                             until (>= (string-width so-far)
+                                                       column-max-width)
+                                             do
+                                             (setf so-far (concat so-far (string (elt text i))))
+                                             (setf res i))
+                                    res))))
               (%group (words so-far)
                       (cond
                        ((null words)
@@ -570,16 +584,17 @@ to 'maximum-width'."
                                   (append (list potential-start)
                                           so-far))))
                        (t
-                        (let* ((word       (cl-first words))
-                               (rest-words (cl-rest words))
-                               (prefix     (cl-subseq word 0 maximum-width))
-                               (next-word  (if rest-words
-                                               (cl-first rest-words)
-                                             ""))
-                               (raw-suffix (cl-subseq word maximum-width))
-                               (suffix     (if rest-words
-                                               (concat raw-suffix " " next-word)
-                                             raw-suffix)))
+                        (let* ((word           (cl-first words))
+                               (rest-words     (cl-rest words))
+                               (split-position (split-position word maximum-width))
+                               (prefix         (cl-subseq word 0 split-position))
+                               (next-word      (if rest-words
+                                                   (cl-first rest-words)
+                                                 ""))
+                               (raw-suffix     (cl-subseq word split-position))
+                               (suffix         (if rest-words
+                                                   (concat raw-suffix " " next-word)
+                                                 raw-suffix)))
                           (%group (append (list suffix)
                                           (cl-rest rest-words))
                                   (append (list prefix)
