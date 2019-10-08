@@ -965,25 +965,27 @@ essentially what you get from:
   "Show a summary of all the annotations in a temp buffer"
   (interactive)
   (cl-labels ((ellipsize (text prefix-string)
-                         (let ((prefix-length  (string-width prefix-string))
-                               (ellipse-length (string-width annotate-ellipse-text-marker)))
+                         (let* ((prefix-length   (string-width prefix-string))
+                                (ellipse-length  (string-width annotate-ellipse-text-marker))
+                                (substring-limit (max 0
+                                                      (- (window-body-width)
+                                                         prefix-length
+                                                         ellipse-length
+                                                         2)))) ; this is for quotation marks
                            (if (> (string-width text)
                                   (+ (window-body-width)
                                      prefix-length
-                                     ellipse-length))
-                               (concat (substring text
-                                                  0
-                                                  (- (window-body-width)
-                                                     prefix-length
-                                                     ellipse-length))
+                                     ellipse-length
+                                     2)) ; this is for quotation marks
+                               (concat (substring text 0 substring-limit)
                                        annotate-ellipse-text-marker)
                              text)))
               (wrap      (text)
                          (concat "\"" text "\""))
               (insert-item-summary (snippet-text button-text)
                                    (insert annotate-summary-list-prefix-snippet)
-                                   (insert (ellipsize (wrap snippet-text)
-                                                      annotate-summary-list-prefix-snippet))
+                                   (insert (wrap (ellipsize snippet-text
+                                                            annotate-summary-list-prefix-snippet)))
                                    (insert "\n")
                                    (insert annotate-summary-list-prefix)
                                    (insert-button (propertize (ellipsize button-text
@@ -1001,7 +1003,11 @@ essentially what you get from:
                                                      nil
                                                      (1- annotation-begin)
                                                      (1- annotation-end))
-                               (buffer-string))))
+                               (save-match-data
+                                 (replace-regexp-in-string "[\r\n]"
+                                                           " "
+                                                           (buffer-string))))))
+
     (with-current-buffer-window
      "*annotations*" nil nil
      (display-buffer "*annotations*")
