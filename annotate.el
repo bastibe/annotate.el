@@ -142,6 +142,10 @@ major mode is a member of this list (space separated entries)."
 (defconst annotate-ellipse-text-marker "..."
   "The string used when a string is truncated with an ellipse")
 
+(defun annotate-annotations-exist-p ()
+  (find-if 'annotationp
+           (overlays-in 0 (buffer-size))))
+
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist (see:
 'annotate-blacklist-major-mode'"
@@ -151,10 +155,11 @@ major mode is a member of this list (space separated entries)."
      ((not annotate-allowed-p)
       (annotate-shutdown)
       (setq annotate-mode nil))
-    (annotate-mode
-     (annotate-initialize))
-    (t
-     (annotate-shutdown)))))
+     (annotate-mode
+      (when (not (annotate-annotations-exist-p))
+        (annotate-initialize)))
+     (t
+      (annotate-shutdown)))))
 
 (cl-defun annotate-buffer-checksum (&optional (object (current-buffer)))
   "Calculate an hash for the argument 'object'."
