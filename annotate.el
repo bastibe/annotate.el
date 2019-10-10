@@ -66,6 +66,8 @@
 
 (define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
 
+(define-key annotate-mode-map (kbd "C-c C-s") 'annotate-show-annotation-summary)
+
 (define-key annotate-mode-map (kbd "C-c ]") 'annotate-next-annotation)
 
 (define-key annotate-mode-map (kbd "C-c [") 'annotate-previous-annotation)
@@ -115,6 +117,12 @@
   :type 'string
   :group 'annotate)
 
+(defcustom annotate-blacklist-major-mode '(org-mode)
+  "Prevent loading of annotate-mode When the visited file's
+major mode is a member of this list (space separated entries)."
+  :type  '(repeat symbol)
+  :group 'annotate)
+
 (defconst annotate-warn-file-changed-control-string
   (concat "The file '%s' has changed on disk "
           "from the last time the annotations were saved.\n"
@@ -122,11 +130,21 @@
   "The message to warn the user that file has been modified and
   annotations positions could be outdated")
 
-(defcustom annotate-blacklist-major-mode '(org-mode)
-  "Prevent loading of annotate-mode When the visited file's
-major mode is a member of this list (space separated entries)."
-  :type  '(repeat symbol)
-  :group 'annotate)
+(defconst annotate-summary-list-prefix "    "
+  "The string used as prefix for each text annotation item in summary window")
+
+(defconst annotate-summary-list-prefix-file "* File: "
+  "The string used as prefix for each annotated file item in summary window")
+
+(defconst annotate-summary-list-prefix-snippet "** Annotated text: "
+  "The string used as prefix for each annotation snippet item in summary window")
+
+(defconst annotate-ellipse-text-marker "..."
+  "The string used when a string is truncated with an ellipse")
+
+(defun annotate-annotations-exist-p ()
+  (find-if 'annotationp
+           (overlays-in 0 (buffer-size))))
 
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist (see:
@@ -137,10 +155,11 @@ major mode is a member of this list (space separated entries)."
      ((not annotate-allowed-p)
       (annotate-shutdown)
       (setq annotate-mode nil))
-    (annotate-mode
-     (annotate-initialize))
-    (t
-     (annotate-shutdown)))))
+     (annotate-mode
+      (when (not (annotate-annotations-exist-p))
+        (annotate-initialize)))
+     (t
+      (annotate-shutdown)))))
 
 (cl-defun annotate-buffer-checksum (&optional (object (current-buffer)))
   "Calculate an hash for the argument 'object'."
@@ -540,6 +559,20 @@ to 'maximum-width'."
                                         (join-until-width (cl-rest words) new-word)
                                       (make-annotate-group :words      words
                                                            :start-word (or word next-word)))))))
+              (split-position (text column-max-width)
+                              (let ((character-width (length       text))
+                                    (column-width    (string-width text)))
+                                (if (= character-width column-width)
+                                    column-max-width
+                                  (let* ((res    0)
+                                         (so-far ""))
+                                    (cl-loop for i from 0 below column-max-width
+                                             until (>= (string-width so-far)
+                                                       column-max-width)
+                                             do
+                                             (setf so-far (concat so-far (string (elt text i))))
+                                             (setf res i))
+                                    res))))
               (%group (words so-far)
                       (cond
                        ((null words)
@@ -556,16 +589,17 @@ to 'maximum-width'."
                                   (append (list potential-start)
                                           so-far))))
                        (t
-                        (let* ((word       (cl-first words))
-                               (rest-words (cl-rest words))
-                               (prefix     (cl-subseq word 0 maximum-width))
-                               (next-word  (if rest-words
-                                               (cl-first rest-words)
-                                             ""))
-                               (raw-suffix (cl-subseq word maximum-width))
-                               (suffix     (if rest-words
-                                               (concat raw-suffix " " next-word)
-                                             raw-suffix)))
+                        (let* ((word           (cl-first words))
+                               (rest-words     (cl-rest words))
+                               (split-position (split-position word maximum-width))
+                               (prefix         (cl-subseq word 0 split-position))
+                               (next-word      (if rest-words
+                                                   (cl-first rest-words)
+                                                 ""))
+                               (raw-suffix     (cl-subseq word split-position))
+                               (suffix         (if rest-words
+                                                   (concat raw-suffix " " next-word)
+                                                 raw-suffix)))
                           (%group (append (list suffix)
                                           (cl-rest rest-words))
                                   (append (list prefix)
@@ -730,6 +764,32 @@ file."
 file."
   (nth 1 record))
 
+(defun annotate-filename-from-dump (record)
+  "Get the filename field from an annotation list loaded from a
+file."
+  (cl-first record))
+
+(defun annotate-beginning-of-annotation (annotation)
+  "Get the starting point of an annotation. The arg 'annotation' must be a single
+annotation field got from a file dump of all annotated buffers,
+essentially what you get from:
+(annotate-annotations-from-dump (annotate-load-annotations))). "
+  (cl-first annotation))
+
+(defun annotate-ending-of-annotation (annotation)
+  "Get the ending point of an annotation. The arg 'annotation' must be a single
+annotation field got from a file dump of all annotated buffers,
+essentially what you get from:
+(annotate-annotations-from-dump (annotate-load-annotations))). "
+  (cl-second annotation))
+
+(defun annotate-text-of-annotation (annotation)
+  "Get the text of an annotation. The arg 'annotation' must be a single
+annotation field got from a file dump of all annotated buffers,
+essentially what you get from:
+(annotate-annotations-from-dump (annotate-load-annotations))). "
+  (nth 2 annotation))
+
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
   (interactive)
@@ -768,7 +828,7 @@ file."
            (modified-p           (buffer-modified-p)))
       (if (old-format-p annotation-dump)
           (annotate-load-annotation-old-format)
-        (when (and (not (old-format-p annotations))
+        (when (and (not (old-format-p annotation-dump))
                    old-checksum
                    new-checksum
                    (not (string= old-checksum new-checksum)))
@@ -895,6 +955,89 @@ file."
   "Save `data` into annotation file."
   (with-temp-file annotate-file
     (prin1 data (current-buffer))))
+
+(define-button-type 'annotate-summary-button
+  'follow-link t
+  'help-echo "Click to show")
+
+(defun annotate-summary-button-pressed (button)
+  "Callback called when an annotate-summary-button is activated"
+  (let ((buffer (find-file-other-window (button-get button 'file))))
+    (with-current-buffer buffer
+      (goto-char (button-get button 'go-to)))))
+
+(defun annotate-show-annotation-summary ()
+  "Show a summary of all the annotations in a temp buffer"
+  (interactive)
+  (cl-labels ((ellipsize (text prefix-string)
+                         (let* ((prefix-length   (string-width prefix-string))
+                                (ellipse-length  (string-width annotate-ellipse-text-marker))
+                                (substring-limit (max 0
+                                                      (- (window-body-width)
+                                                         prefix-length
+                                                         ellipse-length
+                                                         2)))) ; this is for quotation marks
+                           (if (> (string-width text)
+                                  (+ (window-body-width)
+                                     prefix-length
+                                     ellipse-length
+                                     2)) ; this is for quotation marks
+                               (concat (substring text 0 substring-limit)
+                                       annotate-ellipse-text-marker)
+                             text)))
+              (wrap      (text)
+                         (concat "\"" text "\""))
+              (insert-item-summary (snippet-text button-text)
+                                   (insert annotate-summary-list-prefix-snippet)
+                                   (insert (wrap (ellipsize snippet-text
+                                                            annotate-summary-list-prefix-snippet)))
+                                   (insert "\n")
+                                   (insert annotate-summary-list-prefix)
+                                   (insert-button (propertize (ellipsize button-text
+                                                                         annotate-summary-list-prefix)
+                                                              'face
+                                                              'bold)
+                                                  'file   filename
+                                                  'go-to  annotation-begin
+                                                  'action 'annotate-summary-button-pressed
+                                                  'type   'annotate-summary-button)
+                                   (insert "\n\n"))
+              (build-snippet (filename annotation-begin annotation-end)
+                             (with-temp-buffer
+                               (insert-file-contents filename
+                                                     nil
+                                                     (1- annotation-begin)
+                                                     (1- annotation-end))
+                               (save-match-data
+                                 (replace-regexp-in-string "[\r\n]"
+                                                           " "
+                                                           (buffer-string))))))
+
+    (with-current-buffer-window
+     "*annotations*" nil nil
+     (display-buffer "*annotations*")
+     (select-window (get-buffer-window "*annotations*" t))
+     (outline-mode)
+     (use-local-map nil)
+     (local-set-key "q" (lambda ()
+                          (interactive)
+                          (kill-buffer "*annotations*")))
+     (let ((dump (annotate-load-annotation-data)))
+       (dolist (annotation dump)
+         (let ((all-annotations (annotate-annotations-from-dump annotation))
+               (filename        (annotate-filename-from-dump annotation)))
+           (when (not (null all-annotations))
+             (insert (format (concat annotate-summary-list-prefix-file "%s\n\n")
+                             filename))
+             (dolist (annotation-field all-annotations)
+               (let* ((button-text      (format "%s"
+                                                (annotate-text-of-annotation annotation-field)))
+                      (annotation-begin (annotate-beginning-of-annotation annotation-field))
+                      (annotation-end   (annotate-ending-of-annotation    annotation-field))
+                      (snippet-text     (build-snippet filename
+                                                       annotation-begin
+                                                       annotation-end)))
+                 (insert-item-summary snippet-text button-text))))))))))
 
 (provide 'annotate)
 ;;; annotate.el ends here
