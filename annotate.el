@@ -143,8 +143,8 @@ major mode is a member of this list (space separated entries)."
   "The string used when a string is truncated with an ellipse")
 
 (defun annotate-annotations-exist-p ()
-  (find-if 'annotationp
-           (overlays-in 0 (buffer-size))))
+  (cl-find-if 'annotationp
+              (overlays-in 0 (buffer-size))))
 
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist (see:
@@ -836,7 +836,7 @@ essentially what you get from:
                    old-checksum
                    new-checksum
                    (not (string= old-checksum new-checksum)))
-          (lwarn "annotate-mode"
+          (lwarn '(annotate-mode)
                  :warning
                  annotate-warn-file-changed-control-string
                  filename))
