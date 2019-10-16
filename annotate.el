@@ -82,9 +82,19 @@
   "Face for annotation highlights."
   :group 'annotate)
 
+(defface annotate-highlight-secondary
+  '((t (:underline "turquoise")))
+  "Face for secondary annotation highlights."
+  :group 'annotate)
+
 (defface annotate-annotation
   '((t (:background "coral" :foreground "black")))
   "Face for annotations."
+  :group 'annotate)
+
+(defface annotate-annotation-secondary
+  '((t (:background "turquoise" :foreground "black")))
+  "Face for secondary annotations."
   :group 'annotate)
 
 (defcustom annotate-annotation-column 85
@@ -173,11 +183,38 @@ major mode is a member of this list (space separated entries)."
          ,@body)
      (setf inhibit-modification-hooks t)))
 
+(defun annotate-calc-end-of-line ()
+  (save-excursion
+    (end-of-line)
+    (point)))
+
+(defun annotate-calc-beginning-of-line ()
+  (save-excursion
+    (beginning-of-line)
+    (point)))
+
+(defun annotate-before-change-fn (a b)
+  (annotate-with-inhibit-modification-hooks
+   (save-excursion
+     (let* ((bol      (annotate-calc-beginning-of-line))
+            (eol      (annotate-calc-end-of-line))
+            (ov       (cl-remove-if-not 'annotationp
+                                        (overlays-in bol eol))))
+       (dolist (overlay ov)
+         (annotate--remove-annotation-property (overlay-start overlay)
+                                               (overlay-end   overlay))
+         ;; move the overlay if we are breaking it
+         (when  (<= (overlay-start overlay)
+                    a
+                    (overlay-end overlay))
+           (move-overlay overlay (overlay-start overlay) a)))))))
+
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
   (add-hook 'after-save-hook 'annotate-save-annotations t t)
   (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t t)
+  (add-hook 'before-change-functions          'annotate-before-change-fn t t)
   (font-lock-add-keywords
    nil
    '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
@@ -188,6 +225,7 @@ major mode is a member of this list (space separated entries)."
   (annotate-clear-annotations)
   (remove-hook 'after-save-hook                  'annotate-save-annotations t)
   (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t)
+  (remove-hook 'before-change-functions          'annotate-before-change-fn t)
   (font-lock-remove-keywords
    nil
    '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
@@ -665,30 +703,40 @@ to 'maximum-width'."
   (save-excursion
     (goto-char (1- (point))) ; we start at the start of the next line
     ;; find overlays in the preceding line
-    (let ((prefix (annotate-make-prefix)) ; white space before first annotation
-          (bol (progn (beginning-of-line) (point)))
-          (eol (progn (end-of-line) (point)))
-          (text "")
-          (overlays nil))
+    (let ((prefix          (annotate-make-prefix)) ; white space before first annotation
+          (bol             (progn (beginning-of-line) (point)))
+          (eol             (progn (end-of-line) (point)))
+          (text            "")
+          (overlays        nil)
+          (face-type-count 1))
       ;; include previous line if point is at bol:
       (when (eq nil (overlays-in bol eol))
         (setq bol (1- bol)))
-      (setq overlays (sort (overlays-in bol eol)
-                           (lambda (x y)
-                             (< (overlay-end x) (overlay-end y)))))
+      (setq overlays
+            (sort (cl-remove-if-not 'annotationp (overlays-in bol eol))
+                  (lambda (x y)
+                    (< (overlay-end x) (overlay-end y)))))
       ;; put each annotation on its own line
       (dolist (ov overlays)
-        (if (overlay-get ov 'annotation)
-            (dolist (l (save-match-data
-                         (split-string (annotate-lineate (overlay-get ov 'annotation)
-                                                         (- eol bol))
-                                       "\n")))
-              (setq text
-                    (concat text prefix
-                            (propertize l 'face 'annotate-annotation)
-                            "\n"))
-              ;; white space before for all but the first annotation line
-              (setq prefix (make-string annotate-annotation-column ? )))))
+        (cl-incf face-type-count)
+        (let ((face           (if (= (cl-rem face-type-count 2) 0)
+                                  'annotate-annotation
+                                'annotate-annotation-secondary))
+              (face-highlight (if (= (cl-rem face-type-count 2) 0)
+                                  'annotate-highlight
+                                'annotate-highlight-secondary)))
+          (overlay-put ov 'face face-highlight)
+          (dolist (l (save-match-data
+                       (split-string (annotate-lineate (overlay-get ov 'annotation)
+                                                       (- eol bol))
+                                     "\n")))
+            (setq text
+                  (concat text
+                          prefix
+                          (propertize l 'face face)
+                          "\n"))
+            ;; white space before for all but the first annotation line
+            (setq prefix (make-string annotate-annotation-column ? )))))
       ;; build facespec with the annotation text as display property
       (if (string= text "")
           ;; annotation has been removed: remove display prop
@@ -880,7 +928,8 @@ essentially what you get from:
       (let ((highlight (make-overlay start end)))
         (overlay-put highlight 'face 'annotate-highlight)
         (overlay-put highlight 'annotation annotation))
-      (if (use-region-p) (deactivate-mark))))
+      (when (use-region-p)
+        (deactivate-mark))))
   (save-excursion
     (goto-char end)
     (font-lock-fontify-block 1)))
@@ -914,19 +963,29 @@ essentially what you get from:
                        (progn (end-of-line) (point))))
            (prefix-length (- annotate-annotation-column (string-width line-text))))
       (if (< prefix-length 1)
-          (concat "\n" (make-string annotate-annotation-column ? ))
+          (concat " \n" (make-string annotate-annotation-column ? ))
         (make-string prefix-length ? )))))
 
 (defun annotate-bounds ()
   "The bounds of the region or whatever is at point."
   (list (cond
-         ((use-region-p) (region-beginning))
-         ((thing-at-point 'symbol) (car (bounds-of-thing-at-point 'symbol)))
-         (t (point)))
+         ((use-region-p)
+          (region-beginning))
+         ((thing-at-point 'symbol)
+          (car (bounds-of-thing-at-point 'symbol)))
+         (t
+          (point)))
         (cond
-         ((use-region-p) (region-end))
-         ((thing-at-point 'symbol) (cdr (bounds-of-thing-at-point 'symbol)))
-         (t (1+ (point))))))
+         ((use-region-p)
+          (if (and (char-before (region-end))
+                   (char-equal (char-before (region-end))
+                               ?\n))
+              (1- (region-end))
+            (region-end)))
+         ((thing-at-point 'symbol)
+          (cdr (bounds-of-thing-at-point 'symbol)))
+         (t
+          (1+ (point))))))
 
 (defun annotate-describe-annotations ()
   "Return a list of all annotations in the current buffer."
