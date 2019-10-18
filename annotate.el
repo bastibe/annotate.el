@@ -184,22 +184,31 @@ major mode is a member of this list (space separated entries)."
      (setf inhibit-modification-hooks t)))
 
 (defun annotate-end-of-line-pos ()
+ "Get the position of the end of line and rewind the point's
+postion (so that it is unchanged after this function is called)."
   (save-excursion
     (end-of-line)
     (point)))
 
 (defun annotate-beginning-of-line-pos ()
+  "Get the position of the beginning of line and rewind the point's
+postion (so that it is unchanged after this function is called)."
   (save-excursion
     (beginning-of-line)
     (point)))
 
 (defun annotate-before-change-fn (a b)
+ "This function is added to 'before-change-functions' hook and
+it is called any time the buffer content is changed (so, for
+example, text is added or deleted). In particular, it will
+rearrange the overlays bounds when an annotated text is
+modified (for example a newline is inserted)."
   (annotate-with-inhibit-modification-hooks
    (save-excursion
-     (let* ((bol      (annotate-beginning-of-line-pos))
-            (eol      (annotate-end-of-line-pos))
-            (ov       (cl-remove-if-not 'annotationp
-                                        (overlays-in bol eol))))
+     (let* ((bol (annotate-beginning-of-line-pos))
+            (eol (annotate-end-of-line-pos))
+            (ov  (cl-remove-if-not 'annotationp
+                                   (overlays-in bol eol))))
        (dolist (overlay ov)
          (annotate--remove-annotation-property (overlay-start overlay)
                                                (overlay-end   overlay))
