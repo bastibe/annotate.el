@@ -83,7 +83,7 @@
   :group 'annotate)
 
 (defface annotate-highlight-secondary
-  '((t (:underline "turquoise")))
+  '((t (:underline "khaki")))
   "Face for secondary annotation highlights."
   :group 'annotate)
 
@@ -93,7 +93,7 @@
   :group 'annotate)
 
 (defface annotate-annotation-secondary
-  '((t (:background "turquoise" :foreground "black")))
+  '((t (:background "khaki" :foreground "black")))
   "Face for secondary annotations."
   :group 'annotate)
 
