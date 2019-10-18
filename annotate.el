@@ -183,12 +183,12 @@ major mode is a member of this list (space separated entries)."
          ,@body)
      (setf inhibit-modification-hooks t)))
 
-(defun annotate-calc-end-of-line ()
+(defun annotate-end-of-line-pos ()
   (save-excursion
     (end-of-line)
     (point)))
 
-(defun annotate-calc-beginning-of-line ()
+(defun annotate-beginning-of-line-pos ()
   (save-excursion
     (beginning-of-line)
     (point)))
@@ -196,8 +196,8 @@ major mode is a member of this list (space separated entries)."
 (defun annotate-before-change-fn (a b)
   (annotate-with-inhibit-modification-hooks
    (save-excursion
-     (let* ((bol      (annotate-calc-beginning-of-line))
-            (eol      (annotate-calc-end-of-line))
+     (let* ((bol      (annotate-beginning-of-line-pos))
+            (eol      (annotate-end-of-line-pos))
             (ov       (cl-remove-if-not 'annotationp
                                         (overlays-in bol eol))))
        (dolist (overlay ov)
