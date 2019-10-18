@@ -701,14 +701,14 @@ to 'maximum-width'."
   "Searches the line before point for annotations, and returns a
 `facespec` with the annotation in its `display` property."
   (save-excursion
-    (goto-char (1- (point))) ; we start at the start of the next line
+    (goto-char (1- (point)))  ; we start at the start of the next line
     ;; find overlays in the preceding line
-    (let ((prefix          (annotate-make-prefix)) ; white space before first annotation
-          (bol             (progn (beginning-of-line) (point)))
-          (eol             (progn (end-of-line) (point)))
-          (text            "")
-          (overlays        nil)
-          (face-type-count 1))
+    (let ((prefix             (annotate-make-prefix)) ; white spaces before first annotation
+          (bol                (progn (beginning-of-line) (point)))
+          (eol                (progn (end-of-line) (point)))
+          (text               "")
+          (overlays           nil)
+          (annotation-counter 1))
       ;; include previous line if point is at bol:
       (when (eq nil (overlays-in bol eol))
         (setq bol (1- bol)))
@@ -718,11 +718,11 @@ to 'maximum-width'."
                     (< (overlay-end x) (overlay-end y)))))
       ;; put each annotation on its own line
       (dolist (ov overlays)
-        (cl-incf face-type-count)
-        (let ((face           (if (= (cl-rem face-type-count 2) 0)
+        (cl-incf annotation-counter)
+        (let ((face           (if (= (cl-rem annotation-counter 2) 0)
                                   'annotate-annotation
                                 'annotate-annotation-secondary))
-              (face-highlight (if (= (cl-rem face-type-count 2) 0)
+              (face-highlight (if (= (cl-rem annotation-counter 2) 0)
                                   'annotate-highlight
                                 'annotate-highlight-secondary)))
           (overlay-put ov 'face face-highlight)
