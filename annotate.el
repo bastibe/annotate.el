@@ -185,14 +185,14 @@ major mode is a member of this list (space separated entries)."
 
 (defun annotate-end-of-line-pos ()
  "Get the position of the end of line and rewind the point's
-postion (so that it is unchanged after this function is called)."
+position (so that it is unchanged after this function is called)."
   (save-excursion
     (end-of-line)
     (point)))
 
 (defun annotate-beginning-of-line-pos ()
   "Get the position of the beginning of line and rewind the point's
-postion (so that it is unchanged after this function is called)."
+position (so that it is unchanged after this function is called)."
   (save-excursion
     (beginning-of-line)
     (point)))
