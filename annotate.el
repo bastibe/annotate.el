@@ -254,13 +254,16 @@ modified (for example a newline is inserted)."
   "Create, modify, or delete annotation."
   (interactive)
   (let ((overlay (car (overlays-at (point)))))
-    (cond ((and (overlayp overlay) (overlay-get overlay 'annotation))
-           (annotate-change-annotation (point)))
-          (t
-           (cl-destructuring-bind (start end) (annotate-bounds)
-             (annotate-create-annotation start end)))))
-  (font-lock-fontify-block 1)
-  (set-buffer-modified-p t))
+    (cond
+     ((and (overlayp overlay)
+           (overlay-get overlay 'annotation))
+      (annotate-change-annotation (point))
+      (font-lock-fontify-buffer nil))
+     (t
+      (cl-destructuring-bind (start end) (annotate-bounds)
+        (annotate-create-annotation start end)
+        (font-lock-fontify-block 1))))
+    (set-buffer-modified-p t)))
 
 (defun annotate-next-annotation ()
   "Move point to the next annotation."
@@ -710,48 +713,65 @@ to 'maximum-width'."
   "Searches the line before point for annotations, and returns a
 `facespec` with the annotation in its `display` property."
   (save-excursion
-    (goto-char (1- (point)))  ; we start at the start of the next line
-    ;; find overlays in the preceding line
-    (let ((prefix             (annotate-make-prefix)) ; white spaces before first annotation
-          (bol                (progn (beginning-of-line) (point)))
-          (eol                (progn (end-of-line) (point)))
-          (text               "")
-          (overlays           nil)
-          (annotation-counter 1))
-      ;; include previous line if point is at bol:
-      (when (eq nil (overlays-in bol eol))
-        (setq bol (1- bol)))
-      (setq overlays
-            (sort (cl-remove-if-not 'annotationp (overlays-in bol eol))
-                  (lambda (x y)
-                    (< (overlay-end x) (overlay-end y)))))
-      ;; put each annotation on its own line
-      (dolist (ov overlays)
-        (cl-incf annotation-counter)
-        (let ((face           (if (= (cl-rem annotation-counter 2) 0)
-                                  'annotate-annotation
-                                'annotate-annotation-secondary))
-              (face-highlight (if (= (cl-rem annotation-counter 2) 0)
-                                  'annotate-highlight
-                                'annotate-highlight-secondary)))
-          (overlay-put ov 'face face-highlight)
-          (dolist (l (save-match-data
-                       (split-string (annotate-lineate (overlay-get ov 'annotation)
-                                                       (- eol bol))
-                                     "\n")))
-            (setq text
-                  (concat text
-                          prefix
-                          (propertize l 'face face)
-                          "\n"))
-            ;; white space before for all but the first annotation line
-            (setq prefix (make-string annotate-annotation-column ? )))))
-      ;; build facespec with the annotation text as display property
-      (if (string= text "")
-          ;; annotation has been removed: remove display prop
-          (list 'face 'default 'display nil)
-        ;; annotation has been changed/added: change/add display prop
-        (list 'face 'default 'display text)))))
+    (let ((newline-position (point)))
+      (goto-char (1- (point))) ; we start at the start of the previous line
+      ;; find overlays in the preceding line
+      (let ((prefix             (annotate-make-prefix)) ; white spaces before first annotation
+            (bol                (progn (beginning-of-line) (point)))
+            (eol                (progn (end-of-line) (point)))
+            (text               "")
+            (overlays           nil)
+            (annotation-counter 1))
+        ;; include previous line if point is at bol:
+        (when (eq nil (overlays-in bol eol))
+          (setq bol (1- bol)))
+        (setq overlays
+              (sort (cl-remove-if (lambda (a) (or (not (annotationp a))
+                                                  ;; if  an  annotated
+                                                  ;; text  contains  a
+                                                  ;; newline   (is   a
+                                                  ;; multiline one) do
+                                                  ;; not           add
+                                                  ;; annotation for it
+                                                  ;; here (i.e. remove
+                                                  ;; from  that list),
+                                                  ;; this   annotation
+                                                  ;; will be  shown on
+                                                  ;; the  next newline
+                                                  ;; instead
+                                                  (<= (overlay-start a)
+                                                      newline-position
+                                                      (overlay-end a))))
+                                      (overlays-in bol eol))
+                    (lambda (x y)
+                      (< (overlay-end x) (overlay-end y)))))
+        ;; put each annotation on its own line
+        (dolist (ov overlays)
+          (cl-incf annotation-counter)
+          (let ((face           (if (= (cl-rem annotation-counter 2) 0)
+                                    'annotate-annotation
+                                  'annotate-annotation-secondary))
+                (face-highlight (if (= (cl-rem annotation-counter 2) 0)
+                                    'annotate-highlight
+                                  'annotate-highlight-secondary)))
+            (overlay-put ov 'face face-highlight)
+            (dolist (l (save-match-data
+                         (split-string (annotate-lineate (overlay-get ov 'annotation)
+                                                         (- eol bol))
+                                       "\n")))
+              (setq text
+                    (concat text
+                            prefix
+                            (propertize l 'face face)
+                            "\n"))
+              ;; white space before for all but the first annotation line
+              (setq prefix (make-string annotate-annotation-column ? )))))
+        ;; build facespec with the annotation text as display property
+        (if (string= text "")
+            ;; annotation has been removed: remove display prop
+            (list 'face 'default 'display nil)
+          ;; annotation has been changed/added: change/add display prop
+          (list 'face 'default 'display text))))))
 
 (defun annotate--remove-annotation-property (begin end)
   "Cleans up annotation properties associated with a region."
