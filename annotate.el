@@ -153,6 +153,7 @@ major mode is a member of this list (space separated entries)."
   "The string used when a string is truncated with an ellipse")
 
 (defun annotate-annotations-exist-p ()
+  "Does this buffer contains at least one or more annotations?"
   (cl-find-if 'annotationp
               (overlays-in 0 (buffer-size))))
 
@@ -197,6 +198,11 @@ position (so that it is unchanged after this function is called)."
     (beginning-of-line)
     (point)))
 
+(defun annotate-annotated-text-empty-p (annotation)
+  "Does this annotation contains annotated text?"
+  (= (overlay-start annotation)
+     (overlay-end   annotation)))
+
 (defun annotate-before-change-fn (a b)
  "This function is added to 'before-change-functions' hook and
 it is called any time the buffer content is changed (so, for
@@ -213,10 +219,13 @@ modified (for example a newline is inserted)."
          (annotate--remove-annotation-property (overlay-start overlay)
                                                (overlay-end   overlay))
          ;; move the overlay if we are breaking it
-         (when  (<= (overlay-start overlay)
-                    a
-                    (overlay-end overlay))
-           (move-overlay overlay (overlay-start overlay) a)))))))
+         (when (< (overlay-start overlay)
+                   a
+                   (overlay-end overlay))
+           (move-overlay overlay (overlay-start overlay) a)
+           ;; delete overlay if there is no more annotated text
+           (when (annotate-annotated-text-empty-p overlay)
+             (delete-overlay overlay))))))))
 
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
@@ -272,9 +281,7 @@ modified (for example a newline is inserted)."
   (let ((overlays
          (overlays-in (point) (buffer-size))))
     ;; skip overlays not created by annotate.el
-    (setq overlays (cl-remove-if
-                    (lambda (ov)
-                      (eq nil (overlay-get ov 'annotation)))
+    (setq overlays (cl-remove-if (lambda (ov) (not (annotationp ov)))
                     overlays))
     ;; skip properties under point
     (dolist (current (overlays-at (point)))
@@ -282,7 +289,7 @@ modified (for example a newline is inserted)."
     ;; sort overlays ascending
     (setq overlays (sort overlays (lambda (x y)
                                     (< (overlay-start x) (overlay-start y)))))
-    (if (eq nil overlays)
+    (if (null overlays)
         (message "No further annotations.")
       ;; jump to first overlay list
       (goto-char (overlay-start (nth 0 overlays))))))
@@ -294,14 +301,12 @@ modified (for example a newline is inserted)."
   (let ((overlays
          (overlays-in 0 (point))))
     ;; skip overlays not created by annotate.el
-    (setq overlays (cl-remove-if
-                    (lambda (ov)
-                      (eq nil (overlay-get ov 'annotation)))
-                    overlays))
+    (setq overlays (cl-remove-if (lambda (ov) (not (annotationp ov)))
+                                 overlays))
     ;; sort overlays descending
     (setq overlays (sort overlays (lambda (x y)
                                     (> (overlay-start x) (overlay-start y)))))
-    (if (eq nil overlays)
+    (if (null overlays)
         (message "No previous annotations.")
       ;; jump to first overlay in list
       (goto-char (overlay-start (nth 0 overlays))))))
@@ -309,9 +314,12 @@ modified (for example a newline is inserted)."
 (defun annotate-save-annotations ()
   "Save all annotations to disk."
   (interactive)
-  (let ((file-annotations (annotate-describe-annotations))
-        (all-annotations (annotate-load-annotation-data))
-        (filename        (substring-no-properties (or (buffer-file-name) ""))))
+  (let ((file-annotations (cl-remove-if (lambda (a)
+                                          (= (annotate-beginning-of-annotation a)
+                                             (annotate-ending-of-annotation    a)))
+                                        (annotate-describe-annotations)))
+        (all-annotations  (annotate-load-annotation-data))
+        (filename         (substring-no-properties (or (buffer-file-name) ""))))
     (if (assoc-string filename all-annotations)
         (setcdr (assoc-string filename all-annotations)
                 (list file-annotations
@@ -326,7 +334,7 @@ modified (for example a newline is inserted)."
       (delete-dups entry))
     ;; skip files with no annotations
     (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
-                                                   (eq nil (cdr entry)))
+                                                   (null (cdr entry)))
                                                  all-annotations))
     (if annotate-use-messages
         (message "Annotations saved."))))
@@ -723,7 +731,7 @@ to 'maximum-width'."
             (overlays           nil)
             (annotation-counter 1))
         ;; include previous line if point is at bol:
-        (when (eq nil (overlays-in bol eol))
+        (when (null (overlays-in bol eol))
           (setq bol (1- bol)))
         (setq overlays
               (sort (cl-remove-if (lambda (a) (or (not (annotationp a))
@@ -871,6 +879,14 @@ essentially what you get from:
 (annotate-annotations-from-dump (annotate-load-annotations))). "
   (nth 2 annotation))
 
+(defun annotate-sample-text-of-annotation (annotation)
+  "Get the annotated text of an annotation. The arg 'annotation' must be a single
+annotation field got from a file dump of all annotated buffers,
+essentially what you get from:
+(annotate-annotations-from-dump (annotate-load-annotations))). "
+  (and (> (length annotation) 3)
+       (nth 3 annotation)))
+
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
   (interactive)
@@ -879,16 +895,17 @@ essentially what you get from:
                            (annotate-load-annotation-data))))
         (modified-p (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
-    (setq annotations (cl-remove-if (lambda (ann) (eq (nth 2 ann) nil))
+    (setq annotations (cl-remove-if (lambda (ann) (null (nth 2 ann)))
                                     annotations))
-    (when (and (eq nil annotations) annotate-use-messages)
+    (when (and (null annotations)
+               annotate-use-messages)
       (message "No annotations found."))
-    (when (not (eq nil annotations))
+    (when (not (null annotations))
       (save-excursion
         (dolist (annotation annotations)
-          (let ((start (nth 0 annotation))
-                (end (nth 1 annotation))
-                (text (nth 2 annotation)))
+          (let ((start (annotate-beginning-of-annotation annotation))
+                (end   (annotate-ending-of-annotation    annotation))
+                (text  (annotate-text-of-annotation      annotation)))
             (annotate-create-annotation start end text)))))
     (set-buffer-modified-p modified-p)
     (font-lock-fontify-buffer)
@@ -917,16 +934,18 @@ essentially what you get from:
                  :warning
                  annotate-warn-file-changed-control-string
                  filename))
-        (when (and (eq nil annotations)
-                   annotate-use-messages)
+        (cond
+         ((and (null annotations)
+               annotate-use-messages)
           (message "No annotations found."))
-        (when (not (eq nil annotations))
-          (save-excursion
-            (dolist (annotation annotations)
-              (let ((start (nth 0 annotation))
-                    (end   (nth 1 annotation))
-                    (text  (nth 2 annotation)))
-                (annotate-create-annotation start end text)))))
+        (annotations
+         (save-excursion
+           (dolist (annotation annotations)
+             (let ((start  (annotate-beginning-of-annotation   annotation))
+                   (end    (annotate-ending-of-annotation      annotation))
+                   (text   (annotate-text-of-annotation        annotation))
+                   (sample (annotate-sample-text-of-annotation annotation)))
+               (annotate-create-annotation start end text sample))))))
         (set-buffer-modified-p modified-p)
         (font-lock-fontify-buffer)
         (when annotate-use-messages
@@ -940,8 +959,7 @@ essentially what you get from:
         (modified-p (buffer-modified-p)))
     ;; only remove annotations, not all overlays
     (setq overlays (cl-remove-if
-                    (lambda (ov)
-                      (eq nil (overlay-get ov 'annotation)))
+                    (lambda (ov) (not (annotationp ov)))
                     overlays))
     (dolist (ov overlays)
       (annotate--remove-annotation-property
@@ -950,18 +968,65 @@ essentially what you get from:
       (delete-overlay ov))
     (set-buffer-modified-p modified-p)))
 
-(defun annotate-create-annotation (start end &optional text)
+(defun annotate-string-empty-p (a)
+  "Is the arg an empty string or null?"
+  (or (null a)
+      (string= "" a)))
+
+(defun annotate-create-annotation (start end &optional text sample)
   "Create a new annotation for selected region."
-  (let ((annotation (or text (read-from-minibuffer "Annotation: "))))
-    (when (not (or (eq nil annotation) (string= "" annotation)))
-      (let ((highlight (make-overlay start end)))
-        (overlay-put highlight 'face 'annotate-highlight)
-        (overlay-put highlight 'annotation annotation))
-      (when (use-region-p)
-        (deactivate-mark))))
-  (save-excursion
-    (goto-char end)
-    (font-lock-fontify-block 1)))
+  (cl-labels ((create-annotation (start end annotation-text)
+                                 (let ((highlight (make-overlay start end)))
+                                   (overlay-put highlight 'face 'annotate-highlight)
+                                   (overlay-put highlight 'annotation annotation)))
+              (move-lines        (start line-count)
+                                 (save-excursion
+                                   (goto-char start)
+                                   (forward-line line-count)
+                                   (beginning-of-line)
+                                   (point)))
+              (go-backward       (start)
+                                 (move-lines start -2))
+              (go-forward        (start)
+                                 (move-lines start 2))
+              (guess-match-and-add (start end sample max)
+                                   (cl-block surrounding
+                                     (while (< start max)
+                                       (let ((to-match (ignore-errors
+                                                         (buffer-substring-no-properties start end))))
+                                         (if (and to-match
+                                                  (string= to-match sample))
+                                             (cl-return-from surrounding start))
+                                         (progn
+                                           (setf start (1+ start)
+                                                 end   (1+ end)))))
+                                     nil)))
+    (let ((annotation (or text
+                          (read-from-minibuffer "Annotation: "))))
+      (when (not (or (null annotation)
+                     (string= "" annotation)))
+        (if (not (annotate-string-empty-p sample))
+            (let ((text-to-match (ignore-errors
+                                   (buffer-substring-no-properties start end))))
+              (if (and text-to-match
+                       (string= text-to-match sample))
+                  (create-annotation start end annotation)
+                (let* ((starting-point-matching (go-backward start))
+                       (ending-point-match      (go-forward  start))
+                       (length-match            (- end start))
+                       (new-match               (guess-match-and-add starting-point-matching
+                                                                     (+ starting-point-matching
+                                                                        length-match)
+                                                                     sample
+                                                                     ending-point-match)))
+                  (and new-match
+                       (create-annotation new-match (+ new-match length-match) annotation)))))
+          (create-annotation start end annotation))
+        (when (use-region-p)
+          (deactivate-mark))))
+    (save-excursion
+      (goto-char end)
+      (font-lock-fontify-block 1))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
@@ -974,7 +1039,7 @@ essentially what you get from:
       (move-end-of-line nil)
       (cond
        ;; annotation was cancelled:
-       ((eq nil annotation))
+       ((null annotation))
        ;; annotation was erased:
        ((string= "" annotation)
         (annotate--remove-annotation-property
@@ -1021,14 +1086,15 @@ essentially what you get from:
   (let ((overlays (overlays-in 0 (buffer-size))))
     ;; skip non-annotation overlays
     (setq overlays
-          (cl-remove-if
-           (lambda (ov)
-             (eq nil (overlay-get ov 'annotation)))
-           overlays))
+          (cl-remove-if (lambda (ov) (not (annotationp ov)))
+                        overlays))
     (mapcar (lambda (ov)
-              (list (overlay-start ov)
-                    (overlay-end ov)
-                    (overlay-get ov 'annotation)))
+              (let ((from (overlay-start ov))
+                    (to   (overlay-end ov)))
+                (list from
+                      to
+                      (overlay-get ov 'annotation)
+                      (buffer-substring-no-properties from to))))
             overlays)))
 
 (defun annotate-load-annotation-data ()
