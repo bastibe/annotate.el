@@ -975,32 +975,33 @@ essentially what you get from:
 
 (defun annotate-create-annotation (start end &optional text sample)
   "Create a new annotation for selected region."
-  (cl-labels ((create-annotation (start end annotation-text)
-                                 (let ((highlight (make-overlay start end)))
-                                   (overlay-put highlight 'face 'annotate-highlight)
-                                   (overlay-put highlight 'annotation annotation)))
-              (move-lines        (start line-count)
-                                 (save-excursion
-                                   (goto-char start)
-                                   (forward-line line-count)
-                                   (beginning-of-line)
-                                   (point)))
-              (go-backward       (start)
-                                 (move-lines start -2))
-              (go-forward        (start)
-                                 (move-lines start 2))
-              (guess-match-and-add (start end sample max)
-                                   (cl-block surrounding
-                                     (while (< start max)
-                                       (let ((to-match (ignore-errors
-                                                         (buffer-substring-no-properties start end))))
-                                         (if (and to-match
-                                                  (string= to-match sample))
-                                             (cl-return-from surrounding start))
-                                         (progn
-                                           (setf start (1+ start)
-                                                 end   (1+ end)))))
-                                     nil)))
+  (cl-labels ((create-annotation     (start end annotation-text)
+                                     (let ((highlight (make-overlay start end)))
+                                       (overlay-put highlight 'face 'annotate-highlight)
+                                       (overlay-put highlight 'annotation annotation)))
+              (beginning-of-nth-line (start line-count)
+                                     (save-excursion
+                                       (goto-char start)
+                                       (forward-line line-count)
+                                       (beginning-of-line)
+                                       (point)))
+              (go-backward           (start)
+                                     (beginning-of-nth-line start -2))
+              (go-forward            (start)
+                                     (beginning-of-nth-line start 2))
+              (guess-match-and-add   (start end sample max)
+                                     (cl-block surrounding
+                                       (while (< start max)
+                                         (let ((to-match (ignore-errors
+                                                           (buffer-substring-no-properties start
+                                                                                           end))))
+                                           (if (and to-match
+                                                    (string= to-match sample))
+                                               (cl-return-from surrounding start))
+                                           (progn
+                                             (setf start (1+ start)
+                                                   end   (1+ end)))))
+                                       nil)))
     (let ((annotation (or text
                           (read-from-minibuffer "Annotation: "))))
       (when (not (or (null annotation)
