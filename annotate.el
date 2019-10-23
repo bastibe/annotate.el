@@ -983,7 +983,11 @@ essentially what you get from:
       (string= "" a)))
 
 (defun annotate-create-annotation (start end &optional text sample)
-  "Create a new annotation for selected region."
+ "Create a new annotation for selected region.
+ If the annotated text can not be found in the interval as
+ defined in the metadata database try to find a matching text
+ in a region surrounding the interval and, if found, annotate
+ that text."
   (cl-labels ((create-annotation     (start end annotation-text)
                                      (let ((highlight (make-overlay start end)))
                                        (overlay-put highlight 'face 'annotate-highlight)
