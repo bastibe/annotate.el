@@ -983,11 +983,18 @@ essentially what you get from:
       (string= "" a)))
 
 (defun annotate-create-annotation (start end &optional text sample)
- "Create a new annotation for selected region.
- If the annotated text can not be found in the interval as
- defined in the metadata database try to find a matching text
- in a region surrounding the interval and, if found, annotate
- that text."
+ "Create a new annotation for selected region. If this function
+ is called from procedure 'annotate-load-annotations' the
+ argument 'sample' should be not null. In this case we know that
+ an annotation existed in a text interval defined in the database
+ metadata (the database located in the file specified by the
+ variable 'annotate-file') and should just be restored. Sometimes
+ the annotated text can not be found in said interval because the
+ annotated file's content changed and annotate-mode could not
+ track the changes (e.g. save the file when annotate-mode was not
+ active/loaded) in this case the matching text is searched in a
+ region surrounding the interval and, if found, the buffer is
+ annotated right there."
   (cl-labels ((create-annotation     (start end annotation-text)
                                      (let ((highlight (make-overlay start end)))
                                        (overlay-put highlight 'face 'annotate-highlight)
