@@ -140,6 +140,15 @@ major mode is a member of this list (space separated entries)."
   "The message to warn the user that file has been modified and
   annotations positions could be outdated")
 
+(defcustom annotate-search-region-lines-delta 2
+ "When the annotated file is out of sync with its annotation
+database the software looks for annotated text in the region with
+delta equals to the value of this variable. Units are in number
+of lines. The center of the region is the position of the
+annotation as defined in the database."
+  :type 'number
+  :group 'annotate)
+
 (defconst annotate-summary-list-prefix "    "
   "The string used as prefix for each text annotation item in summary window")
 
@@ -986,9 +995,12 @@ essentially what you get from:
                                        (beginning-of-line)
                                        (point)))
               (go-backward           (start)
-                                     (beginning-of-nth-line start -2))
+                                     (beginning-of-nth-line
+                                      start
+                                      (- annotate-search-region-lines-delta)))
               (go-forward            (start)
-                                     (beginning-of-nth-line start 2))
+                                     (beginning-of-nth-line start
+                                                            annotate-search-region-lines-delta))
               (guess-match-and-add   (start end sample max)
                                      (cl-block surrounding
                                        (while (< start max)
