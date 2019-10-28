@@ -213,7 +213,7 @@ position (so that it is unchanged after this function is called)."
      (overlay-end   annotation)))
 
 (defun annotate-before-change-fn (a b)
- "This function is added to 'before-change-functions' hook and
+  "This function is added to 'before-change-functions' hook and
 it is called any time the buffer content is changed (so, for
 example, text is added or deleted). In particular, it will
 rearrange the overlays bounds when an annotated text is
@@ -228,7 +228,7 @@ modified (for example a newline is inserted)."
          (annotate--remove-annotation-property (overlay-start overlay)
                                                (overlay-end   overlay))
          ;; move the overlay if we are breaking it
-         (when (< (overlay-start overlay)
+         (when (<= (overlay-start overlay)
                    a
                    (overlay-end overlay))
            (move-overlay overlay (overlay-start overlay) a)
@@ -1136,7 +1136,8 @@ essentially what you get from:
 (defun annotate-dump-annotation-data (data)
   "Save `data` into annotation file."
   (with-temp-file annotate-file
-    (prin1 data (current-buffer))))
+    (let ((print-length nil))
+      (prin1 data (current-buffer)))))
 
 (define-button-type 'annotate-summary-button
   'follow-link t
@@ -1160,10 +1161,7 @@ essentially what you get from:
                                                          ellipse-length
                                                          2)))) ; this is for quotation marks
                            (if (> (string-width text)
-                                  (+ (window-body-width)
-                                     prefix-length
-                                     ellipse-length
-                                     2)) ; this is for quotation marks
+                                  substring-limit)
                                (concat (substring text 0 substring-limit)
                                        annotate-ellipse-text-marker)
                              text)))
