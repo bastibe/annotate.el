@@ -881,14 +881,14 @@ essentially what you get from:
 (annotate-annotations-from-dump (annotate-load-annotations))). "
   (cl-second annotation))
 
-(defun annotate-text-of-annotation (annotation)
+(defun annotate-annotation-string (annotation)
   "Get the text of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
 (annotate-annotations-from-dump (annotate-load-annotations))). "
   (nth 2 annotation))
 
-(defun annotate-sample-text-of-annotation (annotation)
+(defun annotate-annotated-text (annotation)
   "Get the annotated text of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
@@ -912,9 +912,9 @@ essentially what you get from:
     (when (not (null annotations))
       (save-excursion
         (dolist (annotation annotations)
-          (let ((start (annotate-beginning-of-annotation annotation))
-                (end   (annotate-ending-of-annotation    annotation))
-                (text  (annotate-text-of-annotation      annotation)))
+          (let ((start              (annotate-beginning-of-annotation annotation))
+                (end                (annotate-ending-of-annotation    annotation))
+                (annotation-string  (annotate-annotation-string       annotation)))
             (annotate-create-annotation start end text)))))
     (set-buffer-modified-p modified-p)
     (font-lock-fontify-buffer)
@@ -950,11 +950,11 @@ essentially what you get from:
         (annotations
          (save-excursion
            (dolist (annotation annotations)
-             (let ((start  (annotate-beginning-of-annotation   annotation))
-                   (end    (annotate-ending-of-annotation      annotation))
-                   (text   (annotate-text-of-annotation        annotation))
-                   (sample (annotate-sample-text-of-annotation annotation)))
-               (annotate-create-annotation start end text sample))))))
+             (let ((start  (annotate-beginning-of-annotation annotation))
+                   (end    (annotate-ending-of-annotation    annotation))
+                   (text   (annotate-annotation-string       annotation))
+                   (note   (annotate-annotated-text          annotation)))
+               (annotate-create-annotation start end text note))))))
         (set-buffer-modified-p modified-p)
         (font-lock-fontify-buffer)
         (when annotate-use-messages
@@ -982,19 +982,25 @@ essentially what you get from:
   (or (null a)
       (string= "" a)))
 
-(defun annotate-create-annotation (start end &optional text sample)
- "Create a new annotation for selected region. If this function
- is called from procedure 'annotate-load-annotations' the
- argument 'sample' should be not null. In this case we know that
- an annotation existed in a text interval defined in the database
- metadata (the database located in the file specified by the
- variable 'annotate-file') and should just be restored. Sometimes
- the annotated text can not be found in said interval because the
- annotated file's content changed and annotate-mode could not
- track the changes (e.g. save the file when annotate-mode was not
- active/loaded) in this case the matching text is searched in a
- region surrounding the interval and, if found, the buffer is
- annotated right there."
+(defun annotate-create-annotation (start end &optional annotation-text annotated-text)
+  "Create a new annotation for selected region.
+
+  Here the argument 'annotation-text' is the string that appears in the margin of the window
+  and 'annotated-text' is the string that is underlined.
+
+  If this function is called from procedure
+  'annotate-load-annotations' the argument 'annotated-text'
+  should be not null. In this case we know that an annotation
+  existed in a text interval defined in the database
+  metadata (the database located in the file specified by the
+  variable 'annotate-file') and should just be
+  restored. Sometimes the annotated text (see above) can not be
+  found in said interval because the annotated file's content
+  changed and annotate-mode could not track the
+  changes (e.g. save the file when annotate-mode was not
+  active/loaded) in this case the matching
+  text ('annotated-text') is searched in a region surrounding the
+  interval and, if found, the buffer is annotated right there."
   (cl-labels ((create-annotation     (start end annotation-text)
                                      (let ((highlight (make-overlay start end)))
                                        (overlay-put highlight 'face 'annotate-highlight)
@@ -1012,28 +1018,28 @@ essentially what you get from:
               (go-forward            (start)
                                      (beginning-of-nth-line start
                                                             annotate-search-region-lines-delta))
-              (guess-match-and-add   (start end sample max)
+              (guess-match-and-add   (start end annotated-text max)
                                      (cl-block surrounding
                                        (while (< start max)
                                          (let ((to-match (ignore-errors
                                                            (buffer-substring-no-properties start
                                                                                            end))))
                                            (if (and to-match
-                                                    (string= to-match sample))
+                                                    (string= to-match annotated-text))
                                                (cl-return-from surrounding start))
                                            (progn
                                              (setf start (1+ start)
                                                    end   (1+ end)))))
                                        nil)))
-    (let ((annotation (or text
+    (let ((annotation (or annotation-text
                           (read-from-minibuffer "Annotation: "))))
       (when (not (or (null annotation)
                      (string= "" annotation)))
-        (if (not (annotate-string-empty-p sample))
+        (if (not (annotate-string-empty-p annotated-text))
             (let ((text-to-match (ignore-errors
                                    (buffer-substring-no-properties start end))))
               (if (and text-to-match
-                       (string= text-to-match sample))
+                       (string= text-to-match annotated-text))
                   (create-annotation start end annotation)
                 (let* ((starting-point-matching (go-backward start))
                        (ending-point-match      (go-forward  start))
@@ -1041,7 +1047,7 @@ essentially what you get from:
                        (new-match               (guess-match-and-add starting-point-matching
                                                                      (+ starting-point-matching
                                                                         length-match)
-                                                                     sample
+                                                                     annotated-text
                                                                      ending-point-match)))
                   (and new-match
                        (create-annotation new-match (+ new-match length-match) annotation)))))
@@ -1211,7 +1217,7 @@ essentially what you get from:
                              filename))
              (dolist (annotation-field all-annotations)
                (let* ((button-text      (format "%s"
-                                                (annotate-text-of-annotation annotation-field)))
+                                                (annotate-annotation-string annotation-field)))
                       (annotation-begin (annotate-beginning-of-annotation annotation-field))
                       (annotation-end   (annotate-ending-of-annotation    annotation-field))
                       (snippet-text     (build-snippet filename
