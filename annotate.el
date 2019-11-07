@@ -279,7 +279,7 @@ modified (for example a newline is inserted)."
       (font-lock-fontify-buffer nil))
      (t
       (cl-destructuring-bind (start end) (annotate-bounds)
-        (annotate-create-annotation start end)
+        (annotate-create-annotation start end nil nil)
         (font-lock-fontify-block 1))))
     (set-buffer-modified-p t)))
 
@@ -982,25 +982,26 @@ essentially what you get from:
   (or (null a)
       (string= "" a)))
 
-(defun annotate-create-annotation (start end &optional annotation-text annotated-text)
+(defun annotate-create-annotation (start end annotation-text annotated-text)
   "Create a new annotation for selected region.
 
-  Here the argument 'annotation-text' is the string that appears in the margin of the window
-  and 'annotated-text' is the string that is underlined.
+Here the argument 'annotation-text' is the string that appears
+in the margin of the window and 'annotated-text' is the string
+that is underlined.
 
-  If this function is called from procedure
-  'annotate-load-annotations' the argument 'annotated-text'
-  should be not null. In this case we know that an annotation
-  existed in a text interval defined in the database
-  metadata (the database located in the file specified by the
-  variable 'annotate-file') and should just be
-  restored. Sometimes the annotated text (see above) can not be
-  found in said interval because the annotated file's content
-  changed and annotate-mode could not track the
-  changes (e.g. save the file when annotate-mode was not
-  active/loaded) in this case the matching
-  text ('annotated-text') is searched in a region surrounding the
-  interval and, if found, the buffer is annotated right there."
+If this function is called from procedure
+'annotate-load-annotations' the argument 'annotated-text'
+should be not null. In this case we know that an annotation
+existed in a text interval defined in the database
+metadata (the database located in the file specified by the
+variable 'annotate-file') and should just be
+restored. Sometimes the annotated text (see above) can not be
+found in said interval because the annotated file's content
+changed and annotate-mode could not track the
+changes (e.g. save the file when annotate-mode was not
+active/loaded) in this case the matching
+text ('annotated-text') is searched in a region surrounding the
+interval and, if found, the buffer is annotated right there."
   (cl-labels ((create-annotation     (start end annotation-text)
                                      (let ((highlight (make-overlay start end)))
                                        (overlay-put highlight 'face 'annotate-highlight)
