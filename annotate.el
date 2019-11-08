@@ -917,7 +917,7 @@ essentially what you get from:
           (let ((start              (annotate-beginning-of-annotation annotation))
                 (end                (annotate-ending-of-annotation    annotation))
                 (annotation-string  (annotate-annotation-string       annotation)))
-            (annotate-create-annotation start end text)))))
+            (annotate-create-annotation start end annotation-string)))))
     (set-buffer-modified-p modified-p)
     (font-lock-fontify-buffer)
     (if annotate-use-messages
@@ -952,11 +952,14 @@ essentially what you get from:
         (annotations
          (save-excursion
            (dolist (annotation annotations)
-             (let ((start  (annotate-beginning-of-annotation annotation))
-                   (end    (annotate-ending-of-annotation    annotation))
-                   (text   (annotate-annotation-string       annotation))
-                   (note   (annotate-annotated-text          annotation)))
-               (annotate-create-annotation start end text note))))))
+             (let ((start             (annotate-beginning-of-annotation annotation))
+                   (end               (annotate-ending-of-annotation    annotation))
+                   (annotation-string (annotate-annotation-string       annotation))
+                   (annotated-text    (annotate-annotated-text          annotation)))
+               (annotate-create-annotation start
+                                           end
+                                           annotion-string
+                                           annotated-text))))))
         (set-buffer-modified-p modified-p)
         (font-lock-fontify-buffer)
         (when annotate-use-messages
