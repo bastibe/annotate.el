@@ -278,9 +278,11 @@ modified (for example a newline is inserted)."
       (annotate-change-annotation (point))
       (font-lock-fontify-buffer nil))
      (t
-      (cl-destructuring-bind (start end) (annotate-bounds)
-        (annotate-create-annotation start end nil nil)
-        (font-lock-fontify-block 1))))
+      (cl-destructuring-bind (start end)
+          (annotate-bounds)
+        (let ((annotation-text (read-from-minibuffer "Annotation: ")))
+          (annotate-create-annotation start end annotation-text nil)
+          (font-lock-fontify-block 1)))))
     (set-buffer-modified-p t)))
 
 (defun annotate-next-annotation ()
@@ -986,7 +988,7 @@ essentially what you get from:
   "Create a new annotation for selected region.
 
 Here the argument 'annotation-text' is the string that appears
-in the margin of the window and 'annotated-text' is the string
+on the margin of the window and 'annotated-text' is the string
 that is underlined.
 
 If this function is called from procedure
@@ -1001,11 +1003,15 @@ changed and annotate-mode could not track the
 changes (e.g. save the file when annotate-mode was not
 active/loaded) in this case the matching
 text ('annotated-text') is searched in a region surrounding the
-interval and, if found, the buffer is annotated right there."
+interval and, if found, the buffer is annotated right there.
+
+The searched interval can be customized setting the variable:
+'annotate-search-region-lines-delta'.
+"
   (cl-labels ((create-annotation     (start end annotation-text)
                                      (let ((highlight (make-overlay start end)))
                                        (overlay-put highlight 'face 'annotate-highlight)
-                                       (overlay-put highlight 'annotation annotation)))
+                                       (overlay-put highlight 'annotation annotation-text)))
               (beginning-of-nth-line (start line-count)
                                      (save-excursion
                                        (goto-char start)
@@ -1032,32 +1038,30 @@ interval and, if found, the buffer is annotated right there."
                                              (setf start (1+ start)
                                                    end   (1+ end)))))
                                        nil)))
-    (let ((annotation (or annotation-text
-                          (read-from-minibuffer "Annotation: "))))
-      (when (not (or (null annotation)
-                     (string= "" annotation)))
-        (if (not (annotate-string-empty-p annotated-text))
-            (let ((text-to-match (ignore-errors
-                                   (buffer-substring-no-properties start end))))
-              (if (and text-to-match
-                       (string= text-to-match annotated-text))
-                  (create-annotation start end annotation)
-                (let* ((starting-point-matching (go-backward start))
-                       (ending-point-match      (go-forward  start))
-                       (length-match            (- end start))
-                       (new-match               (guess-match-and-add starting-point-matching
-                                                                     (+ starting-point-matching
-                                                                        length-match)
-                                                                     annotated-text
-                                                                     ending-point-match)))
-                  (and new-match
-                       (create-annotation new-match (+ new-match length-match) annotation)))))
-          (create-annotation start end annotation))
-        (when (use-region-p)
-          (deactivate-mark))))
+      (if (not (annotate-string-empty-p annotated-text))
+          (let ((text-to-match (ignore-errors
+                                 (buffer-substring-no-properties start end))))
+            (if (and text-to-match
+                     (string= text-to-match annotated-text))
+                (create-annotation start end annotation-text)
+              (let* ((starting-point-matching (go-backward start))
+                     (ending-point-match      (go-forward  start))
+                     (length-match            (- end start))
+                     (new-match               (guess-match-and-add starting-point-matching
+                                                                   (+ starting-point-matching
+                                                                      length-match)
+                                                                   annotated-text
+                                                                   ending-point-match)))
+                (and new-match
+                     (create-annotation new-match
+                                        (+ new-match length-match)
+                                        annotation-text)))))
+        (create-annotation start end annotation-text))
+      (when (use-region-p)
+        (deactivate-mark)))
     (save-excursion
       (goto-char end)
-      (font-lock-fontify-block 1))))
+      (font-lock-fontify-block 1)))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
