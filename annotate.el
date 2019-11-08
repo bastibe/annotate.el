@@ -146,7 +146,7 @@ major mode is a member of this list (space separated entries)."
           "Unfortunately was not possible to show annotation \"%S\" "
           "because i failed looking for test \"%S\".")
   "The message to warn the user that file has been modified and
-  annotations positions could be outdated")
+  an annotations could not be restored")
 
 (defcustom annotate-search-region-lines-delta 2
  "When the annotated file is out of sync with its annotation
