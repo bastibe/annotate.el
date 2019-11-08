@@ -143,8 +143,8 @@ major mode is a member of this list (space separated entries)."
 (defconst annotate-warn-file-searching-annotation-failed-control-string
   (concat "The file '%s' has changed on disk "
           "from the last time the annotations were saved and "
-          "Unfortunately was not possible to show annotation \"%S\" "
-          "because i failed looking for test \"%S\".")
+          "Unfortunately was not possible to show annotation %S "
+          "because i failed looking for test %S.")
   "The message to warn the user that file has been modified and
   an annotations could not be restored")
 
