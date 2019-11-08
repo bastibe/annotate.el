@@ -1222,33 +1222,41 @@ The searched interval can be customized setting the variable:
                                (save-match-data
                                  (replace-regexp-in-string "[\r\n]"
                                                            " "
-                                                           (buffer-string))))))
+                                                           (buffer-string)))))
+              (db-empty-p    (dump)
+                             (cl-every (lambda (a)
+                                         (cl-every 'null
+                                                   (annotate-annotations-from-dump a)))
+                                       dump)))
+    (let ((dump (annotate-load-annotation-data)))
+      (if (db-empty-p dump)
+          (when annotate-use-messages
+            (message "The annotation database is empty"))
+        (with-current-buffer-window
+         "*annotations*" nil nil
+         (display-buffer "*annotations*")
+         (select-window (get-buffer-window "*annotations*" t))
+         (outline-mode)
+         (use-local-map nil)
+         (local-set-key "q" (lambda ()
+                              (interactive)
+                              (kill-buffer "*annotations*")))
 
-    (with-current-buffer-window
-     "*annotations*" nil nil
-     (display-buffer "*annotations*")
-     (select-window (get-buffer-window "*annotations*" t))
-     (outline-mode)
-     (use-local-map nil)
-     (local-set-key "q" (lambda ()
-                          (interactive)
-                          (kill-buffer "*annotations*")))
-     (let ((dump (annotate-load-annotation-data)))
-       (dolist (annotation dump)
-         (let ((all-annotations (annotate-annotations-from-dump annotation))
-               (filename        (annotate-filename-from-dump annotation)))
-           (when (not (null all-annotations))
-             (insert (format (concat annotate-summary-list-prefix-file "%s\n\n")
-                             filename))
-             (dolist (annotation-field all-annotations)
-               (let* ((button-text      (format "%s"
-                                                (annotate-annotation-string annotation-field)))
-                      (annotation-begin (annotate-beginning-of-annotation annotation-field))
-                      (annotation-end   (annotate-ending-of-annotation    annotation-field))
-                      (snippet-text     (build-snippet filename
-                                                       annotation-begin
-                                                       annotation-end)))
-                 (insert-item-summary snippet-text button-text))))))))))
+         (dolist (annotation dump)
+           (let ((all-annotations (annotate-annotations-from-dump annotation))
+                 (filename        (annotate-filename-from-dump annotation)))
+             (when (not (null all-annotations))
+               (insert (format (concat annotate-summary-list-prefix-file "%s\n\n")
+                               filename))
+               (dolist (annotation-field all-annotations)
+                 (let* ((button-text      (format "%s"
+                                                  (annotate-annotation-string annotation-field)))
+                        (annotation-begin (annotate-beginning-of-annotation annotation-field))
+                        (annotation-end   (annotate-ending-of-annotation    annotation-field))
+                        (snippet-text     (build-snippet filename
+                                                         annotation-begin
+                                                         annotation-end)))
+                   (insert-item-summary snippet-text button-text)))))))))))
 
 (provide 'annotate)
 ;;; annotate.el ends here
