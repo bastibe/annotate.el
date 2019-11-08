@@ -136,7 +136,15 @@ major mode is a member of this list (space separated entries)."
 (defconst annotate-warn-file-changed-control-string
   (concat "The file '%s' has changed on disk "
           "from the last time the annotations were saved.\n"
-          "Chances are that they will not be displayed correctly")
+          "Chances are that they will not be displayed correctly.")
+  "The message to warn the user that file has been modified and
+  annotations positions could be outdated")
+
+(defconst annotate-warn-file-searching-annotation-failed-control-string
+  (concat "The file '%s' has changed on disk "
+          "from the last time the annotations were saved and "
+          "Unfortunately was not possible to show annotation \"%S\" "
+          "because i failed looking for test \"%S\".")
   "The message to warn the user that file has been modified and
   annotations positions could be outdated")
 
@@ -898,6 +906,9 @@ essentially what you get from:
   (and (> (length annotation) 3)
        (nth 3 annotation)))
 
+(defun annotate-actual-file-name ()
+  (or (buffer-file-name) ""))
+
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
   (interactive)
@@ -928,7 +939,7 @@ essentially what you get from:
   (cl-labels ((old-format-p (annotation)
                             (not (stringp (cl-first (last annotation))))))
     (interactive)
-    (let* ((filename             (substring-no-properties (or (buffer-file-name) "")))
+    (let* ((filename             (substring-no-properties (annotate-actual-file-name)))
            (all-annotations-data (annotate-load-annotation-data))
            (annotation-dump      (assoc-string filename all-annotations-data))
            (annotations          (annotate-annotations-from-dump annotation-dump))
@@ -958,7 +969,7 @@ essentially what you get from:
                    (annotated-text    (annotate-annotated-text          annotation)))
                (annotate-create-annotation start
                                            end
-                                           annotion-string
+                                           annotation-string
                                            annotated-text))))))
         (set-buffer-modified-p modified-p)
         (font-lock-fontify-buffer)
@@ -1058,13 +1069,19 @@ The searched interval can be customized setting the variable:
                 (and new-match
                      (create-annotation new-match
                                         (+ new-match length-match)
-                                        annotation-text)))))
+                                        annotation-text)))
+              (lwarn '(annotate-mode)
+                     :warning
+                     annotate-warn-file-searching-annotation-failed-control-string
+                     (annotate-actual-file-name)
+                     annotation-text
+                     text-to-match)))
         (create-annotation start end annotation-text))
       (when (use-region-p)
-        (deactivate-mark)))
-    (save-excursion
-      (goto-char end)
-      (font-lock-fontify-block 1)))
+        (deactivate-mark))
+      (save-excursion
+        (goto-char end)
+        (font-lock-fontify-block 1))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
