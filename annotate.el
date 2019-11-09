@@ -330,6 +330,10 @@ modified (for example a newline is inserted)."
       ;; jump to first overlay in list
       (goto-char (overlay-start (nth 0 overlays))))))
 
+(defun annotate-actual-file-name ()
+  (substring-no-properties (or (buffer-file-name)
+                               "")))
+
 (defun annotate-save-annotations ()
   "Save all annotations to disk."
   (interactive)
@@ -338,7 +342,7 @@ modified (for example a newline is inserted)."
                                              (annotate-ending-of-annotation    a)))
                                         (annotate-describe-annotations)))
         (all-annotations  (annotate-load-annotation-data))
-        (filename         (substring-no-properties (or (buffer-file-name) ""))))
+        (filename         (annotate-actual-file-name)))
     (if (assoc-string filename all-annotations)
         (setcdr (assoc-string filename all-annotations)
                 (list file-annotations
@@ -486,11 +490,10 @@ An example might look like this:
 This diff does not contain any changes, but highlights the
 annotation, and can be conveniently viewed in diff-mode."
   (interactive)
-  (let* ((filename (substring-no-properties (or (buffer-file-name) "")))
-         (export-buffer      (generate-new-buffer (concat
-                                                   filename
-                                                   ".annotations.diff")))
-         (annotations        (annotate-describe-annotations))
+  (let* ((filename      (annotate-actual-file-name))
+         (export-buffer (generate-new-buffer (concat filename
+                                                     ".annotations.diff")))
+         (annotations   (annotate-describe-annotations))
          (parent-buffer-mode major-mode))
     ;; write the diff file description
     (with-current-buffer export-buffer
@@ -906,16 +909,12 @@ essentially what you get from:
   (and (> (length annotation) 3)
        (nth 3 annotation)))
 
-(defun annotate-actual-file-name ()
-  (or (buffer-file-name) ""))
-
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
   (interactive)
-  (let ((annotations (cdr (assoc-string
-                           (substring-no-properties (or (buffer-file-name) ""))
-                           (annotate-load-annotation-data))))
-        (modified-p (buffer-modified-p)))
+  (let ((annotations (cdr (assoc-string (annotate-actual-file-name)
+                                        (annotate-load-annotation-data))))
+        (modified-p  (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
     (setq annotations (cl-remove-if (lambda (ann) (null (nth 2 ann)))
                                     annotations))
@@ -939,7 +938,7 @@ essentially what you get from:
   (cl-labels ((old-format-p (annotation)
                             (not (stringp (cl-first (last annotation))))))
     (interactive)
-    (let* ((filename             (substring-no-properties (annotate-actual-file-name)))
+    (let* ((filename             (annotate-actual-file-name))
            (all-annotations-data (annotate-load-annotation-data))
            (annotation-dump      (assoc-string filename all-annotations-data))
            (annotations          (annotate-annotations-from-dump annotation-dump))
