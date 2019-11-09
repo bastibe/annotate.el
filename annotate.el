@@ -195,11 +195,13 @@ annotation as defined in the database."
 
 (cl-defmacro annotate-with-inhibit-modification-hooks (&rest body)
   "Wrap 'body' in a block with modification-hooks inhibited."
-  `(unwind-protect
-       (progn
-         (setf inhibit-modification-hooks t)
-         ,@body)
-     (setf inhibit-modification-hooks t)))
+  (let ((old-mode (gensym)))
+    `(let ((,old-mode inhibit-modification-hooks))
+       (unwind-protect
+           (progn
+             (setf inhibit-modification-hooks t)
+             ,@body)
+         (setf inhibit-modification-hooks ,old-mode)))))
 
 (defun annotate-end-of-line-pos ()
  "Get the position of the end of line and rewind the point's
@@ -247,7 +249,7 @@ modified (for example a newline is inserted)."
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
-  (add-hook 'after-save-hook 'annotate-save-annotations t t)
+  (add-hook 'after-save-hook                  'annotate-save-annotations t t)
   (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t t)
   (add-hook 'before-change-functions          'annotate-before-change-fn t t)
   (font-lock-add-keywords
