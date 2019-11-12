@@ -228,23 +228,29 @@ it is called any time the buffer content is changed (so, for
 example, text is added or deleted). In particular, it will
 rearrange the overlays bounds when an annotated text is
 modified (for example a newline is inserted)."
-  (annotate-with-inhibit-modification-hooks
-   (save-excursion
-     (let* ((bol (annotate-beginning-of-line-pos))
-            (eol (annotate-end-of-line-pos))
-            (ov  (cl-remove-if-not 'annotationp
-                                   (overlays-in bol eol))))
-       (dolist (overlay ov)
-         (annotate--remove-annotation-property (overlay-start overlay)
-                                               (overlay-end   overlay))
-         ;; move the overlay if we are breaking it
-         (when (<= (overlay-start overlay)
-                   a
-                   (overlay-end overlay))
-           (move-overlay overlay (overlay-start overlay) a)
-           ;; delete overlay if there is no more annotated text
-           (when (annotate-annotated-text-empty-p overlay)
-             (delete-overlay overlay))))))))
+  (when (buffer-file-name)
+    (annotate-with-inhibit-modification-hooks
+     (save-excursion
+       (let* ((bol (annotate-beginning-of-line-pos))
+              (eol (annotate-end-of-line-pos))
+              (ov  (cl-remove-if-not 'annotationp
+                                     (overlays-in bol eol))))
+         (dolist (overlay ov)
+           (annotate--remove-annotation-property (overlay-start overlay)
+                                                 (overlay-end   overlay))
+           ;; move the overlay if we are breaking it
+           (when (<= (overlay-start overlay)
+                     a
+                     (overlay-end overlay))
+             (move-overlay overlay (overlay-start overlay) a)
+             ;; delete overlay if there is no more annotated text
+             (when (annotate-annotated-text-empty-p overlay)
+               (delete-overlay overlay)))))))))
+
+(defun annotate-info-select-fn ()
+  (annotate-clear-annotations)
+  (annotate-load-annotations)
+  (font-lock-fontify-buffer nil))
 
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
@@ -252,6 +258,7 @@ modified (for example a newline is inserted)."
   (add-hook 'after-save-hook                  'annotate-save-annotations t t)
   (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t t)
   (add-hook 'before-change-functions          'annotate-before-change-fn t t)
+  (add-hook 'Info-selection-hook              'annotate-info-select-fn   t t)
   (font-lock-add-keywords
    nil
    '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
@@ -263,6 +270,7 @@ modified (for example a newline is inserted)."
   (remove-hook 'after-save-hook                  'annotate-save-annotations t)
   (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t)
   (remove-hook 'before-change-functions          'annotate-before-change-fn t)
+  (remove-hook 'Info-selection-hook              'annotate-info-select-fn   t)
   (font-lock-remove-keywords
    nil
    '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
@@ -333,7 +341,8 @@ modified (for example a newline is inserted)."
       (goto-char (overlay-start (nth 0 overlays))))))
 
 (defun annotate-actual-file-name ()
-  (substring-no-properties (or (buffer-file-name)
+  (substring-no-properties (or Info-current-file
+                               (buffer-file-name)
                                "")))
 
 (defun annotate-save-annotations ()
