@@ -148,6 +148,16 @@ major mode is a member of this list (space separated entries)."
   "The message to warn the user that file has been modified and
   an annotations could not be restored")
 
+(defconst annotate-error-summary-win-filename-invalid
+  "Error: File not found or in an unsupported format"
+ "The message to warn the user that file can not be show in
+ summary window because does not exist or is in an unsupported
+ format.")
+
+(defconst annotate-valid-info-extensions
+  '(".info.gz" ".gz")
+ "The valid extension for files that contains info document")
+
 (defcustom annotate-search-region-lines-delta 2
  "When the annotated file is out of sync with its annotation
 database the software looks for annotated text in the region with
@@ -1224,16 +1234,28 @@ The searched interval can be customized setting the variable:
                                                   'action 'annotate-summary-button-pressed
                                                   'type   'annotate-summary-button)
                                    (insert "\n\n"))
+              (guess-filename (filename)
+                              (if (file-exists-p filename)
+                                  filename
+                                (let ((found nil))
+                                  (dolist (extension annotate-valid-info-extensions)
+                                    (let ((filename-maybe (concat filename extension)))
+                                      (when (file-exists-p filename-maybe)
+                                        (setf found filename-maybe))))
+                                  found)))
               (build-snippet (filename annotation-begin annotation-end)
-                             (with-temp-buffer
-                               (insert-file-contents filename
-                                                     nil
-                                                     (1- annotation-begin)
-                                                     (1- annotation-end))
-                               (save-match-data
-                                 (replace-regexp-in-string "[\r\n]"
-                                                           " "
-                                                           (buffer-string)))))
+                             (let ((guessed-filename (guess-filename filename)))
+                               (if guessed-filename
+                                   (with-temp-buffer
+                                     (insert-file-contents guessed-filename
+                                                           nil
+                                                           (1- annotation-begin)
+                                                           (1- annotation-end))
+                                     (save-match-data
+                                       (replace-regexp-in-string "[\r\n]"
+                                                                 " "
+                                                                 (buffer-string))))
+                                 annotate-error-summary-win-filename-invalid)))
               (db-empty-p    (dump)
                              (cl-every (lambda (a)
                                          (cl-every 'null
