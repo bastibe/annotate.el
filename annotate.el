@@ -228,24 +228,23 @@ it is called any time the buffer content is changed (so, for
 example, text is added or deleted). In particular, it will
 rearrange the overlays bounds when an annotated text is
 modified (for example a newline is inserted)."
-  (when (buffer-file-name)
-    (annotate-with-inhibit-modification-hooks
-     (save-excursion
-       (let* ((bol (annotate-beginning-of-line-pos))
-              (eol (annotate-end-of-line-pos))
-              (ov  (cl-remove-if-not 'annotationp
-                                     (overlays-in bol eol))))
-         (dolist (overlay ov)
-           (annotate--remove-annotation-property (overlay-start overlay)
-                                                 (overlay-end   overlay))
-           ;; move the overlay if we are breaking it
-           (when (<= (overlay-start overlay)
-                     a
-                     (overlay-end overlay))
-             (move-overlay overlay (overlay-start overlay) a)
-             ;; delete overlay if there is no more annotated text
-             (when (annotate-annotated-text-empty-p overlay)
-               (delete-overlay overlay)))))))))
+  (annotate-with-inhibit-modification-hooks
+   (save-excursion
+     (let* ((bol (annotate-beginning-of-line-pos))
+            (eol (annotate-end-of-line-pos))
+            (ov  (cl-remove-if-not 'annotationp
+                                   (overlays-in bol eol))))
+       (dolist (overlay ov)
+         (annotate--remove-annotation-property (overlay-start overlay)
+                                               (overlay-end   overlay))
+         ;; move the overlay if we are breaking it
+         (when (<= (overlay-start overlay)
+                   a
+                   (overlay-end overlay))
+           (move-overlay overlay (overlay-start overlay) a)
+           ;; delete overlay if there is no more annotated text
+           (when (annotate-annotated-text-empty-p overlay)
+             (delete-overlay overlay))))))))
 
 (defun annotate-info-select-fn ()
   (annotate-clear-annotations)
@@ -816,24 +815,26 @@ to 'maximum-width'."
 
 (defun annotate--remove-annotation-property (begin end)
   "Cleans up annotation properties associated with a region."
-  ;; inhibit infinite loop
-  (setq inhibit-modification-hooks t)
-  ;; copy undo list
-  (let ((saved-undo-list (copy-tree buffer-undo-list t)))
-    ;; inhibit property removal to the undo list (and empty it too)
-    (buffer-disable-undo)
-    (save-excursion
-      (goto-char end)
-      ;; go to the EOL where the
-      ;; annotated newline used to be
-      (end-of-line)
-      ;; strip dangling display property
-      (remove-text-properties
-       (point) (1+ (point)) '(display nil)))
-    ;; restore undo list
-    (setf buffer-undo-list saved-undo-list)
-    (buffer-enable-undo)
-    (setq inhibit-modification-hooks nil)))
+  (when (> (buffer-size)
+           0)
+    ;; inhibit infinite loop
+    (setq inhibit-modification-hooks t)
+    ;; copy undo list
+    (let ((saved-undo-list (copy-tree buffer-undo-list t)))
+      ;; inhibit property removal to the undo list (and empty it too)
+      (buffer-disable-undo)
+      (save-excursion
+        (goto-char end)
+        ;; go to the EOL where the
+        ;; annotated newline used to be
+        (end-of-line)
+        ;; strip dangling display property
+        (remove-text-properties
+         (point) (1+ (point)) '(display nil)))
+      ;; restore undo list
+      (setf buffer-undo-list saved-undo-list)
+      (buffer-enable-undo)
+      (setq inhibit-modification-hooks nil))))
 
 (defun annotate--change-guard ()
   "Returns a `facespec` with an `insert-behind-hooks` property
