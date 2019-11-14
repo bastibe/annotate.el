@@ -155,7 +155,7 @@ major mode is a member of this list (space separated entries)."
  format.")
 
 (defconst annotate-valid-info-extensions
-  '(".info.gz" ".gz")
+  '(".info" ".info.gz" ".gz")
  "The valid extension for files that contains info document")
 
 (defcustom annotate-search-region-lines-delta 2
@@ -178,6 +178,9 @@ annotation as defined in the database."
 
 (defconst annotate-ellipse-text-marker "..."
   "The string used when a string is truncated with an ellipse")
+
+(defconst annotate-info-root-name "dir"
+  "The pseudofilename of info root")
 
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
@@ -257,6 +260,7 @@ modified (for example a newline is inserted)."
              (delete-overlay overlay))))))))
 
 (defun annotate-info-select-fn ()
+  "The function to be called when an info buffer is updated"
   (annotate-clear-annotations)
   (annotate-load-annotations)
   (font-lock-fontify-buffer nil))
@@ -350,9 +354,30 @@ modified (for example a newline is inserted)."
       (goto-char (overlay-start (nth 0 overlays))))))
 
 (defun annotate-actual-file-name ()
-  (substring-no-properties (or Info-current-file
+  "Get the actual file name of the current buffer"
+  (substring-no-properties (or (annotate-guess-filename-for-dump Info-current-file nil)
                                (buffer-file-name)
                                "")))
+
+(cl-defun annotate-guess-filename-for-dump (filename
+                                            &optional (return-filename-if-not-found-p t))
+  "Prepare an acceptable filename suitable for metadata database."
+  (cond
+   ((annotate-string-empty-p filename)
+    nil)
+   ((file-exists-p filename)
+    filename)
+   (t
+    (let ((found (if return-filename-if-not-found-p
+                     filename
+                   nil)))
+      (cl-block surrounding
+        (dolist (extension annotate-valid-info-extensions)
+          (let ((filename-maybe (concat filename extension)))
+            (when (file-exists-p filename-maybe)
+              (setf found filename-maybe)
+              (cl-return-from surrounding found)))))
+      found))))
 
 (defun annotate-save-annotations ()
   "Save all annotations to disk."
@@ -362,7 +387,7 @@ modified (for example a newline is inserted)."
                                              (annotate-ending-of-annotation    a)))
                                         (annotate-describe-annotations)))
         (all-annotations  (annotate-load-annotation-data))
-        (filename         (annotate-actual-file-name)))
+        (filename         (annotate-guess-filename-for-dump (annotate-actual-file-name))))
     (if (assoc-string filename all-annotations)
         (setcdr (assoc-string filename all-annotations)
                 (list file-annotations
@@ -1195,11 +1220,46 @@ The searched interval can be customized setting the variable:
   'follow-link t
   'help-echo "Click to show")
 
+(defun annotate-info-root-dir-p (filename)
+  "Is the name of this file equals to the info root node?"
+  (string= filename
+           annotate-info-root-name))
+
+(defun annotate-guess-file-format (filename)
+  "Try to guess the file format."
+  (cl-labels ((file-contents ()
+                             (with-temp-buffer
+                               (insert-file-contents filename)
+                               (buffer-string)))
+              (info-format-p ()
+                             (cond
+                              ((annotate-info-root-dir-p filename)
+                               :info)
+                              (t
+                               (let* ((file-contents     (file-contents))
+                                      (has-info-p        (string-match "info" filename))
+                                      (has-separator-p   (string-match "" file-contents))
+                                      (has-node-p        (string-match "Node:" file-contents)))
+                                 (if (or (annotate-info-root-dir-p filename)
+                                         (and has-separator-p
+                                              has-node-p)
+                                         (and has-separator-p
+                                              has-info-p))
+                                     :info
+                                   nil))))))
+    (info-format-p)))
+
 (defun annotate-summary-button-pressed (button)
   "Callback called when an annotate-summary-button is activated"
-  (let ((buffer (find-file-other-window (button-get button 'file))))
-    (with-current-buffer buffer
-      (goto-char (button-get button 'go-to)))))
+  (let* ((file      (button-get button 'file))
+         (file-type (annotate-guess-file-format file)))
+    (cond
+     ((eq file-type :info)
+      (info file))
+     (t
+      (let* ((buffer (find-file-other-window file)))
+        (with-current-buffer buffer
+          (goto-char (button-get button 'go-to))))))))
 
 (defun annotate-show-annotation-summary ()
   "Show a summary of all the annotations in a temp buffer"
@@ -1219,7 +1279,7 @@ The searched interval can be customized setting the variable:
                              text)))
               (wrap      (text)
                          (concat "\"" text "\""))
-              (insert-item-summary (snippet-text button-text)
+              (insert-item-summary (filename snippet-text button-text)
                                    (insert annotate-summary-list-prefix-snippet)
                                    (insert (wrap (ellipsize snippet-text
                                                             annotate-summary-list-prefix-snippet)))
@@ -1234,28 +1294,18 @@ The searched interval can be customized setting the variable:
                                                   'action 'annotate-summary-button-pressed
                                                   'type   'annotate-summary-button)
                                    (insert "\n\n"))
-              (guess-filename (filename)
-                              (if (file-exists-p filename)
-                                  filename
-                                (let ((found nil))
-                                  (dolist (extension annotate-valid-info-extensions)
-                                    (let ((filename-maybe (concat filename extension)))
-                                      (when (file-exists-p filename-maybe)
-                                        (setf found filename-maybe))))
-                                  found)))
               (build-snippet (filename annotation-begin annotation-end)
-                             (let ((guessed-filename (guess-filename filename)))
-                               (if guessed-filename
-                                   (with-temp-buffer
-                                     (insert-file-contents guessed-filename
-                                                           nil
-                                                           (1- annotation-begin)
-                                                           (1- annotation-end))
-                                     (save-match-data
-                                       (replace-regexp-in-string "[\r\n]"
-                                                                 " "
-                                                                 (buffer-string))))
-                                 annotate-error-summary-win-filename-invalid)))
+                             (if (file-exists-p filename)
+                                 (with-temp-buffer
+                                   (insert-file-contents filename
+                                                         nil
+                                                         (1- annotation-begin)
+                                                         (1- annotation-end))
+                                   (save-match-data
+                                     (replace-regexp-in-string "[\r\n]"
+                                                               " "
+                                                               (buffer-string))))
+                               annotate-error-summary-win-filename-invalid))
               (db-empty-p    (dump)
                              (cl-every (lambda (a)
                                          (cl-every 'null
@@ -1274,22 +1324,23 @@ The searched interval can be customized setting the variable:
          (local-set-key "q" (lambda ()
                               (interactive)
                               (kill-buffer "*annotations*")))
-
          (dolist (annotation dump)
-           (let ((all-annotations (annotate-annotations-from-dump annotation))
-                 (filename        (annotate-filename-from-dump annotation)))
+           (let* ((all-annotations (annotate-annotations-from-dump annotation))
+                  (db-filename     (annotate-filename-from-dump annotation)))
              (when (not (null all-annotations))
                (insert (format (concat annotate-summary-list-prefix-file "%s\n\n")
-                               filename))
+                               db-filename))
                (dolist (annotation-field all-annotations)
                  (let* ((button-text      (format "%s"
                                                   (annotate-annotation-string annotation-field)))
                         (annotation-begin (annotate-beginning-of-annotation annotation-field))
                         (annotation-end   (annotate-ending-of-annotation    annotation-field))
-                        (snippet-text     (build-snippet filename
+                        (snippet-text     (build-snippet db-filename
                                                          annotation-begin
                                                          annotation-end)))
-                   (insert-item-summary snippet-text button-text)))))))))))
+                   (insert-item-summary db-filename
+                                        snippet-text button-text))))))
+         (read-only-mode))))))
 
 (provide 'annotate)
 ;;; annotate.el ends here
