@@ -154,7 +154,7 @@ major mode is a member of this list (space separated entries)."
  summary window because does not exist or is in an unsupported
  format.")
 
-(defconst annotate-valid-info-extensions
+(defconst annotate-info-valid-file-extensions
   '(".info" ".info.gz" ".gz")
  "The valid extension for files that contains info document")
 
@@ -372,7 +372,7 @@ modified (for example a newline is inserted)."
                      filename
                    nil)))
       (cl-block surrounding
-        (dolist (extension annotate-valid-info-extensions)
+        (dolist (extension annotate-info-valid-file-extensions)
           (let ((filename-maybe (concat filename extension)))
             (when (file-exists-p filename-maybe)
               (setf found filename-maybe)
