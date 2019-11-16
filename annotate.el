@@ -1262,7 +1262,12 @@ sophisticated way than plain text"
          (file-type (annotate-guess-file-format file)))
     (cond
      ((eq file-type :info)
-      (info file))
+      (with-current-buffer-window
+       "*info*" nil nil
+       (info-setup file (current-buffer))
+       (switch-to-buffer "*info*"))
+      (with-current-buffer "*info*"
+        (goto-char (button-get button 'go-to))))
      (t
       (let* ((buffer (find-file-other-window file)))
         (with-current-buffer buffer
