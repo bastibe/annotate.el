@@ -180,7 +180,7 @@ annotation as defined in the database."
   "The string used when a string is truncated with an ellipse")
 
 (defconst annotate-info-root-name "dir"
-  "The pseudofilename of info root")
+  "The pseudo-filename of info root")
 
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
@@ -1231,12 +1231,14 @@ The searched interval can be customized setting the variable:
            annotate-info-root-name))
 
 (defun annotate-guess-file-format (filename)
-  "Try to guess the file format."
+  "Try to guess the file format.
+Non nil if the file format is supported from 'annotate' in a more
+sophisticated way than plain text"
   (cl-labels ((file-contents ()
                              (with-temp-buffer
                                (insert-file-contents filename)
                                (buffer-string)))
-              (info-format-p ()
+              (info-format-p () ;; lot of guesswork here :(
                              (cond
                               ((annotate-info-root-dir-p filename)
                                :info)
