@@ -1301,18 +1301,36 @@ sophisticated way than plain text"
                                                   'action 'annotate-summary-button-pressed
                                                   'type   'annotate-summary-button)
                                    (insert "\n\n"))
+              (clean-snippet (snippet)
+                             (save-match-data
+                               (replace-regexp-in-string "[\r\n]"
+                                                         " "
+                                                         snippet)))
+              (build-snippet-info (filename annotation-begin annotation-end)
+                                  (with-temp-buffer
+                                    (info-setup filename (current-buffer))
+                                    (buffer-substring-no-properties annotation-begin
+                                                                    annotation-end)))
               (build-snippet (filename annotation-begin annotation-end)
                              (if (file-exists-p filename)
-                                 (with-temp-buffer
-                                   (insert-file-contents filename
-                                                         nil
-                                                         (1- annotation-begin)
-                                                         (1- annotation-end))
-                                   (save-match-data
-                                     (replace-regexp-in-string "[\r\n]"
-                                                               " "
-                                                               (buffer-string))))
-                               annotate-error-summary-win-filename-invalid))
+                                 (cond
+                                  ((eq (annotate-guess-file-format filename)
+                                        :info)
+                                   (clean-snippet (build-snippet-info filename
+                                                                      annotation-begin
+                                                                      annotation-end)))
+                                  (t
+                                   (with-temp-buffer
+                                     (insert-file-contents filename
+                                                           nil
+                                                           (1- annotation-begin)
+                                                           (1- annotation-end))
+                                     (clean-snippet (buffer-string)))))
+                               (if (annotate-info-root-dir-p filename)
+                                   (clean-snippet (build-snippet-info filename
+                                                                      annotation-begin
+                                                                      annotation-end))
+                                 annotate-error-summary-win-filename-invalid)))
               (db-empty-p    (dump)
                              (cl-every (lambda (a)
                                          (cl-every 'null
