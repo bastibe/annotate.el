@@ -353,9 +353,14 @@ modified (for example a newline is inserted)."
       ;; jump to first overlay in list
       (goto-char (overlay-start (nth 0 overlays))))))
 
+(defun annotate-info-actual-filename ()
+  "The info  filename that feed  this buffer  or nil if  not this
+buffer is not on info-mode"
+  (annotate-guess-filename-for-dump Info-current-file nil))
+
 (defun annotate-actual-file-name ()
   "Get the actual file name of the current buffer"
-  (substring-no-properties (or (annotate-guess-filename-for-dump Info-current-file nil)
+  (substring-no-properties (or (annotate-info-actual-filename)
                                (buffer-file-name)
                                "")))
 
