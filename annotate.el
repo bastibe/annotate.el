@@ -857,24 +857,22 @@ to 'maximum-width'."
   "Cleans up annotation properties associated with a region."
   (when (> (buffer-size)
            0)
-    ;; inhibit infinite loop
-    (setq inhibit-modification-hooks t)
-    ;; copy undo list
-    (let ((saved-undo-list (copy-tree buffer-undo-list t)))
-      ;; inhibit property removal to the undo list (and empty it too)
-      (buffer-disable-undo)
-      (save-excursion
-        (goto-char end)
-        ;; go to the EOL where the
-        ;; annotated newline used to be
-        (end-of-line)
-        ;; strip dangling display property
-        (remove-text-properties
-         (point) (1+ (point)) '(display nil)))
-      ;; restore undo list
-      (setf buffer-undo-list saved-undo-list)
-      (buffer-enable-undo)
-      (setq inhibit-modification-hooks nil))))
+    (annotate-with-inhibit-modification-hooks
+     ;; copy undo list
+     (let ((saved-undo-list (copy-tree buffer-undo-list t)))
+       ;; inhibit property removal to the undo list (and empty it too)
+       (buffer-disable-undo)
+       (save-excursion
+         (goto-char end)
+         ;; go to the EOL where the
+         ;; annotated newline used to be
+         (end-of-line)
+         ;; strip dangling display property
+         (remove-text-properties
+          (point) (1+ (point)) '(display nil)))
+       ;; restore undo list
+       (setf buffer-undo-list saved-undo-list)
+       (buffer-enable-undo)))))
 
 (defun annotate--change-guard ()
   "Returns a `facespec` with an `insert-behind-hooks` property
