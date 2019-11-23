@@ -1243,7 +1243,8 @@ sophisticated way than plain text"
                               (t
                                (let* ((file-contents     (file-contents))
                                       (has-info-p        (string-match "info" filename))
-                                      (has-separator-p   (string-match "" file-contents))
+                                      (has-separator-p   (string-match "\\(\\)?\\(\\)?$"
+                                                                       file-contents))
                                       (has-node-p        (string-match "Node:" file-contents)))
                                  (if (or (annotate-info-root-dir-p filename)
                                          (and has-separator-p
