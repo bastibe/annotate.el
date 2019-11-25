@@ -1284,7 +1284,7 @@ sophisticated way than plain text"
                              (with-temp-buffer
                                (insert-file-contents filename)
                                (buffer-string)))
-              (info-format-p () ;; lot of guesswork here :(
+              (info-format-p () ; lot of guesswork here :(
                              (cond
                               ((annotate-info-root-dir-p filename)
                                :info)
@@ -1674,7 +1674,7 @@ NOT        := 'not'
              ;; NOTE := NOTE OR NOTE
              ((token-symbol-match-p 'or look-ahead)
               (annotate-summary-lexer) ; consume the 'or'
-              (let ((lhs res)  ;; the left side of this rule lhs OR rhs
+              (let ((lhs res)          ; the left side of this rule (lhs OR rhs)
                     (rhs (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
                 (if (eq :error rhs)
                     (error "No more input after 'or'")
@@ -1692,7 +1692,7 @@ NOT        := 'not'
                 ;; and finally continue the parsing saving the results
                 ;; of applying the filter-fn function
                 (operator escaped filter-fn annotation matchp)))))
-        ;; if we are here the lexer can not fine any more tokens in the query
+        ;; if we are here the lexer can not find any more tokens in the query
         ;; just return the value of res
         res)))) ; end of (if (not (annotate-summary-query-parse-end-input-p look-ahead))
 
@@ -1724,7 +1724,7 @@ This function return the annotation of the record
   (lambda (annotation query file-filter-fn note-filter-fn)
     (let ((annotate-summary-query query) ; save the query
           (query-notes-only       nil)) ; the query for just the notes
-      (let ((next-token (annotate-summary-lexer))) ;; get file-mask
+      (let ((next-token (annotate-summary-lexer))) ; get file-mask
         ;; if there are no more tokes just return all the records
         ;; these match the empty string as in rule
         ;; EXPRESSION := epsilon
