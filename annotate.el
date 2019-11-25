@@ -946,28 +946,28 @@ file."
   "Get the starting point of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
-(annotate-annotations-from-dump (annotate-load-annotations))). "
+(annotate-annotations-from-dump (nth index (annotate-load-annotations)))). "
   (cl-first annotation))
 
 (defun annotate-ending-of-annotation (annotation)
   "Get the ending point of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
-(annotate-annotations-from-dump (annotate-load-annotations))). "
+(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
   (cl-second annotation))
 
 (defun annotate-annotation-string (annotation)
   "Get the text of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
-(annotate-annotations-from-dump (annotate-load-annotations))). "
+(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
   (nth 2 annotation))
 
 (defun annotate-annotated-text (annotation)
   "Get the annotated text of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
-(annotate-annotations-from-dump (annotate-load-annotations))). "
+(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
   (and (> (length annotation) 3)
        (nth 3 annotation)))
 
@@ -996,7 +996,43 @@ essentially what you get from:
         (message "Annotations loaded."))))
 
 (defun annotate-load-annotations ()
-  "Load all annotations from disk."
+  "Load all annotations from disk.
+
+The format of the database is:
+
+(list record-1 record-2 ... record-n)
+
+Each record is:
+
+(list filename annotations checksum)
+
+where:
+
+filename: a string identifying a file on the file-system, or the
+string \"dir\" for top-level info file.
+
+checksum: a string used to fingerprint the annotate file above,
+used to check if a file has been modified.
+
+annotations:
+
+(list annotation-1 annotation-2 ... annotation-n) or nil
+
+finally annotation is:
+
+(list start end annotation-string annotated-text)
+
+start:             the buffer position where annotated text start
+end:               the buffer position where annotated text ends
+annotation-string: the text of annotation
+annotated-text:    the substring of buffer starting from 'start' an ending with 'end' (as above)
+
+example:
+
+'(\"/foo/bar\" ((0 9 \"note\" \"annotated\")) has-as-hex-string)
+
+"
+
   (cl-labels ((old-format-p (annotation)
                             (not (stringp (cl-first (last annotation))))))
     (interactive)
@@ -1401,11 +1437,11 @@ summary window is shown")
   "Holds the next token of the query in `annotate-summary-query'")
 
 (defun annotate-summary-query-lexer-symbol (res)
-  "The symbol identifyng the token (e.g. 'and)"
+  "The symbol identifying the token (e.g. 'and)"
   (elt res 0))
 
 (defun annotate-summary-query-lexer-string (res)
-  "The string associed with this token"
+  "The string associated with this token"
   (elt res 1))
 
 (defun annotate-summary-query-lexer-start (res)
@@ -1420,7 +1456,61 @@ summary window is shown")
   (elt res 3))
 
 (cl-defun annotate-summary-lexer (&optional (look-ahead-p nil))
-  "The lexer for `annotate-summary-query'"
+  "The lexer for `annotate-summary-query'.
+
+This  function, when  called, will  produce the  next token  from
+`annotate-summary-query';  a token  is  a substring  with a  well
+defined meaning according to our grammar.
+
+For example this string:
+
+p.* and (a or not b)'
+
+will be broken into these tokens:
+
+'(re        \"p.*\"   0  3)
+'(and       \"and\"   4  7)
+'(open-par  \"(\"     8  9)
+'(re        \"a\"     9 10)
+'(or        \"or\"   11 12)
+'(not       \"not\"  14 17)
+'(re        \"b\"    18 19)
+'(close-par \"(\"    19 20)
+
+The format is a proper list where:
+- first element
+  a symbol representing the type of the token
+   - 're                  = regular expression
+   - 'and , 'or , 'not    = logical operator
+   - 'open-par, close-par = open and closing parenthesis respectively
+- second element
+  the  value (the actual substring for this token)
+
+- third and fourth element (currently unused)
+ the substring limits for this token (as returned by
+ `match-beginning' and `match-end'
+
+Note that spaces are ignored and  all the tokens except `re' must
+not be prefixed with a backslash to match. So, for example not ->
+will match the token type 'not but \not will match the token 're;
+this  way  we  can  'protect' a  regexp  that  contains  reserved
+keyword (aka escaping).
+
+the  special value  :no-more-token  is returned  after the  whole
+input is processed.
+
+Calling this function with value of `look-ahead-p' nil will `consume' the token from
+`annotate-summary-query' (i.e. that string is modified)
+
+example:
+'a and b' -> 'and b', '(re \"a\" 0 1)
+
+when `look-ahead-p' is not nil the token is recognized but not cut away from
+`annotate-summary-query'
+
+example:
+'a and b' -> 'a and b', '(re \"a\" 0 1)
+"
   (cl-labels ((build-results  (token-symbol register-num)
                               (list token-symbol
                                     (match-string register-num annotate-summary-query)
@@ -1430,7 +1520,7 @@ summary window is shown")
                               (setf annotate-summary-query
                                     (cl-subseq annotate-summary-query
                                                (annotate-summary-query-lexer-end match-results)))))
-  (let ((re "\\((\\)\\|\\()\\)\\|\\([^\\]?and\\)\\|\\([^\\]?not\\)\\|\\([^\\]?or\\)\\|\\([^[:space:]()]+\\)"))
+  (let ((re "\\([^\\](\\)\\|\\([^\\])\\)\\|\\([^\\]?and\\)\\|\\([^\\]?not\\)\\|\\([^\\]?or\\)\\|\\([^[:space:]]+\\)"))
     (save-match-data
       (let* ((matchedp (string-match re annotate-summary-query))
              (res      (if matchedp
@@ -1455,39 +1545,57 @@ summary window is shown")
           (cut-query res))
         res)))))
 
-;;;; i feel this  is very likely wrong in many  ways, i hope linguists
-;;;; are going to forgive me :-)
-;;;;
-;;;; EXPRESSION := FILE-RE
-;;;;               | FILE-RE AND NOTE-RE
-;;;;               | FILE-RE OR NOTE-RE
-;;;;               | epsilon
-;;;; NOTE       := '(' NOTE ')'
-;;;;               | NOTE OPERATOR NOTE
-;;;;               | NOT NOTE
-;;;;               | RE
-;;;;               | epsilon
-;;;; OPERATOR   := AND | OR
-;;;; RE         := a regular expression
-;;;; AND        := 'and'
-;;;; OR         := 'or'
-;;;; NOT        := 'not'
-
 (defun annotate-summary-query-parse-end-input-p (token)
  "Non nil if there are no more tokens in
 `annotate-summary-query'"
   (eq token :no-more-tokens))
 
 (cl-defun annotate-summary-query-parse-note (filter-fn annotation &optional (res nil))
-  "Parser rule for note"
+  "Parser rule for note:
+
+This function will parse the following production rule
+
+NOTE       := '(' NOTE ')'
+           | NOTE OPERATOR NOTE
+           | NOT NOTE
+           | RE
+           | epsilon
+
+OPERATOR   := AND | OR
+RE         := a regular expression
+AND        := 'and'
+OR         := 'or'
+NOT        := 'not'
+
+- filter-fn is a function that accept two parameters: the regular
+  expression to match (a token of type 're, see the lexer
+  `annotate-summary-lexer' and a single annotation record (see
+  `annotate-load-annotations').
+
+  This function will reject (its value is nil) records that do
+  not match the annotation.
+
+- annotation
+  the annotation to test
+
+- res the results of this production rule (internal use only)
+
+"
   (cl-labels ((token-symbol-match-p (looking-symbol token)
                                     (eq looking-symbol
                                         (annotate-summary-query-lexer-symbol token)))
               (unescape             (escaped)
                                     (replace-regexp-in-string
-                                     "\\\\\\(\\(not\\)\\|\\(and\\)\\|\\(or\\)\\)"
+                                     "\\\\\\(\\(not\\)\\|\\(and\\)\\|\\(or\\)\\|\\((\\)\\|\\()\\)\\)"
                                      (lambda (a) (cl-subseq a 1))
                                      escaped))
+              ;; this function will parse the rule operator
+              ;; OPERATOR   := AND | OR
+              ;; where
+              ;; previous-token is the value of the token just matched in rule
+              ;; NOTE OPERATOR NOTE
+              ;; filter-fn     see the docstring
+              ;; matchp        non nil if (funcall filter-fn previous-token) is not nil
               (operator             (previous-token filter-fn annotation matchp)
                                     (let ((look-ahead        (annotate-summary-lexer t)))
                                       (if (annotate-summary-query-parse-end-input-p look-ahead)
@@ -1506,102 +1614,194 @@ summary window is shown")
                                                                    "found %S instead")
                                                            look-ahead-string)))
                                            (t
-                                            ;; found operator, recurse
+                                            ;; found operator, recurse to search for rhs of rule
+                                            ;; NOTE OPERATOR NOTE
                                             (annotate-summary-query-parse-note filter-fn
                                                                                annotation
                                                                                matchp))))))))
-    (let* ((look-ahead (annotate-summary-lexer t)))
+    (let* ((look-ahead (annotate-summary-lexer t))) ; the next token that the lexer *will* consume
+                                                    ; note the second arg is non nil
       (if (not (annotate-summary-query-parse-end-input-p look-ahead))
           (progn
             (cond
-             ((token-symbol-match-p 'close-par look-ahead) ;; ignore closing parens
+             ((token-symbol-match-p 'close-par look-ahead) ; ignore closing parens
               res)
-             ((token-symbol-match-p 'open-par look-ahead)
-              (annotate-summary-lexer)
+             ((token-symbol-match-p 'open-par look-ahead) ; next token is an open parens
+              ;; trying to match the rule:
+              ;; NOTE := '(' NOTE ')'
+              (annotate-summary-lexer) ; consume the token ')'
+              ;; match the note inside the parens
               (let ((matchp             (annotate-summary-query-parse-note filter-fn
                                                                            annotation)) ; recurse
+                    ;; after the note there *must* be a closing parenthesis
                     (maybe-close-parens (annotate-summary-lexer)))
+                ;; if not this is an error
                 (when (or (annotate-summary-query-parse-end-input-p maybe-close-parens)
                           (not (eq (annotate-summary-query-lexer-symbol maybe-close-parens)
                                    'close-par)))
                   (error "Unmatched parens"))
+                ;; continue parsing
                 (annotate-summary-query-parse-note filter-fn annotation matchp))) ; recurse
              ((token-symbol-match-p 'not look-ahead)
-              (annotate-summary-lexer)
+              (annotate-summary-lexer) ; consume the token 'not'
+              ;; the note after the 'not'  operator in rule
+              ;; NOTE := NOT NOTE
+              ;; the  third argument  is the  value to  return if
+              ;; there are no more token left in the input string
               (let ((res (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
+                ;; if there are  no more tokens here this  is an error
+                ;; because, according  to the  grammar, after a  NOT a
+                ;; NOTE is non optional
                 (if (eq :error res)
                     (error "No more input after 'not'")
+                  ;; if the last  rule (saved in res) is  not nil (and
+                  ;; is  not  :error)  return  nil,  return  the  last
+                  ;; annotation otherwise remember that the user asked
+                  ;; for an annotation that *not* matches a regex
                   (if (null res)
                       annotation
                     nil))))
+             ;; trying to match the rule:
+             ;; NOTE := NOTE AND NOTE
              ((token-symbol-match-p 'and look-ahead)
-              (annotate-summary-lexer)
-              (let ((lhs res)
+              (annotate-summary-lexer) ; consume the 'and' token
+              (let ((lhs res)          ; the left side of this rule lhs AND rhs
                     (rhs (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
-                (if (eq :error rhs)
+                (if (eq :error rhs) ; see the 'not' operator above
                     (error "No more input after 'and'")
-                  (and lhs rhs))))
+                  (and lhs rhs)))) ; both rules must match as this is a logic and
+             ;; trying to match the rule:
+             ;; NOTE := NOTE OR NOTE
              ((token-symbol-match-p 'or look-ahead)
-              (annotate-summary-lexer)
-              (let ((lhs res)
+              (annotate-summary-lexer) ; consume the 'or'
+              (let ((lhs res)  ;; the left side of this rule lhs OR rhs
                     (rhs (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
                 (if (eq :error rhs)
                     (error "No more input after 'or'")
-                  (or lhs rhs))))
+                  (or lhs rhs)))) ; either lhs or rhs  match as this is a logic or
              (t
+              ;; here we match the rule:
+              ;; NOTE := RE
+              ;; RE   := a regular expression
+              ;; we first unescape the protected tokens
+              ;; \not -> not, \( -> ( etc.
+              ;; then we apply the filter function (see the docstring)
               (let* ((escaped   (annotate-summary-query-lexer-string (annotate-summary-lexer)))
                      (unescaped (unescape escaped))
                      (matchp    (funcall filter-fn unescaped annotation)))
+                ;; and finally continue the parsing saving the results
+                ;; of applying the filter-fn function
                 (operator escaped filter-fn annotation matchp)))))
-        res))))
-
-;; EXPRESSION := FILE-RE
-;;               | FILE-RE AND NOTE-RE
-;;               | FILE-RE OR NOTE-RE
+        ;; if we are here the lexer can not fine any more tokens in the query
+        ;; just return the value of res
+        res)))) ; end of (if (not (annotate-summary-query-parse-end-input-p look-ahead))
 
 (defun annotate-summary-query-parse-expression ()
-  "Parse rule for expression"
+  "Parse rule for expression:
+
+I feel this  is very likely wrong in many  ways, i hope linguists
+are going to forgive me :-)
+
+EXPRESSION := FILE-MASK
+               | FILE-MASK AND NOTE
+               | FILE-MASK OR NOTE
+               | epsilon
+NOTE       := '(' NOTE ')'
+               | NOTE OPERATOR NOTE
+               | NOT NOTE
+               | RE
+               | epsilon
+OPERATOR   := AND | OR
+FILE-MASK  := RE
+RE         := a regular expression
+AND        := 'and'
+OR         := 'or'
+NOT        := 'not'
+
+This function return the annotation of the record
+
+"
   (lambda (annotation query file-filter-fn note-filter-fn)
-    (let ((annotate-summary-query query)
-            (query-notes-only       nil))
-        (let ((next-token (annotate-summary-lexer))) ;; get filemask
-          (if (annotate-summary-query-parse-end-input-p next-token)
-              (annotate-annotations-from-dump annotation)
-            (let* ((filtered-annotation (funcall file-filter-fn
-                                                 (annotate-summary-query-lexer-string next-token)
-                                                 annotation))
-                   (operator-token (annotate-summary-lexer)))
-              (if (annotate-summary-query-parse-end-input-p operator-token)
-                  (annotate-annotations-from-dump filtered-annotation)
-                (let ((operator (annotate-summary-query-lexer-symbol operator-token)))
-                  (cond
-                   ((eq operator 'or)
-                    (if filtered-annotation
-                        (annotate-annotations-from-dump filtered-annotation)
-                      (let ((look-ahead (annotate-summary-lexer t)))
-                        (if (annotate-summary-query-parse-end-input-p look-ahead)
-                            (error "No more input after 'or'")
-                          (progn
-                            (setf query-notes-only (concat annotate-summary-query))
-                            (mapcar (lambda (a)
-                                      (let ((annotate-summary-query (concat query-notes-only)))
-                                        (annotate-summary-query-parse-note note-filter-fn
-                                                                             a)))
-                                    (annotate-annotations-from-dump annotation)))))))
-                   ((eq operator 'and)
+    (let ((annotate-summary-query query) ; save the query
+          (query-notes-only       nil)) ; the query for just the notes
+      (let ((next-token (annotate-summary-lexer))) ;; get file-mask
+        ;; if there are no more tokes just return all the records
+        ;; these match the empty string as in rule
+        ;; EXPRESSION := epsilon
+        (if (annotate-summary-query-parse-end-input-p next-token)
+            (annotate-annotations-from-dump annotation)
+          ;; otherwise test the record with the file-mask
+          (let* ((filtered-annotation (funcall file-filter-fn
+                                               (annotate-summary-query-lexer-string next-token)
+                                               annotation))
+                 ;; get the operator as in rule
+                 (operator-token (annotate-summary-lexer)))
+            ;; if there are no operator just return the filtered (by file-mask)
+            ;; as in rule
+            ;; EXPRESSION := FILE-MASK
+            (if (annotate-summary-query-parse-end-input-p operator-token)
+                (annotate-annotations-from-dump filtered-annotation)
+              ;; otherwise get the operator and continue to parse the rule
+              ;; EXPRESSION := FILE-MASK AND NOTE
+              ;; or
+              ;; EXPRESSION := FILE-MASK OR  NOTE
+              (let ((operator (annotate-summary-query-lexer-symbol operator-token)))
+                (cond
+                 ((eq operator 'or) ; operator is 'or
+                  ;; try to parse with the rule
+                  ;; EXPRESSION := FILE-MASK OR NOTE
+                  ;; return  only  the  list  annotation  filtered  by
+                  ;; file-mask the former is non nil
+                  (if filtered-annotation
+                      (annotate-annotations-from-dump filtered-annotation)
+                    ;; the annotation filtered by  file-mask is empty, try to
+                    ;; match the NOTE rule
                     (let ((look-ahead (annotate-summary-lexer t)))
+                      ;; no more  input after  operator this  is wrong
+                      ;; according to the rule  we are trying to match:
+                      ;; EXPRESSION := FILE-MASK OR NOTE
                       (if (annotate-summary-query-parse-end-input-p look-ahead)
-                          (error "No more input after 'and'")
+                          (error "No more input after 'or'")
                         (progn
+                          ;; copy  the string  for  note parsing  note
+                          ;; that annotate-summary-query only contains
+                          ;; the substring to match the NOTE rule
                           (setf query-notes-only (concat annotate-summary-query))
+                          ;; parse all  the annotations, we get  a list
+                          ;; where non nil elements are the annotation
+                          ;; that passes the note-filter-fn test
                           (mapcar (lambda (a)
                                     (let ((annotate-summary-query (concat query-notes-only)))
                                       (annotate-summary-query-parse-note note-filter-fn
                                                                          a)))
-                                  (annotate-annotations-from-dump filtered-annotation))))))
-                   (t
-                    (error (format "Unkown operator: %s is not in '(and, or)"
-                                   (annotate-summary-query-lexer-string operator-token)))))))))))))
+                                  (annotate-annotations-from-dump annotation)))))))
+                 ((eq operator 'and)
+                  ;; try to parse with the rule
+                  ;; EXPRESSION := FILE-MASK OR NOTE
+                  (let ((look-ahead (annotate-summary-lexer t)))
+                    ;; no more  input after  operator, this  is wrong
+                    ;; according to the rule  we are trying to match:
+                    ;; EXPRESSION := FILE-MASK AND NOTE
+                    (if (annotate-summary-query-parse-end-input-p look-ahead)
+                        (error "No more input after 'and'")
+                      (progn
+                        ;; copy  the string  for  note parsing  note
+                        ;; that annotate-summary-query only contains
+                        ;; the substring to match the NOTE rule
+                        (setf query-notes-only (concat annotate-summary-query))
+                        ;; parse the already filtered by file-mask annotations only
+                        ;; we get a list where non nil elements are the annotation
+                        ;; that passes the note-filter-fn test
+                        (mapcar (lambda (a)
+                                  (let ((annotate-summary-query (concat query-notes-only)))
+                                    (annotate-summary-query-parse-note note-filter-fn
+                                                                       a)))
+                                (annotate-annotations-from-dump filtered-annotation))))))
+                 (t
+                  ;; there  is something  after  the  file-mask in  the
+                  ;; input but it is not an operator
+                  (error (format "Unknown operator: %s is not in '(and, or)"
+                                 (annotate-summary-query-lexer-string operator-token)))))))))))))
 
 (defun annotate-summary-filter-db (annotations-dump query)
   "Filter an annotation database with a query.
@@ -1615,7 +1815,7 @@ where
 - file-mask: is a regular expression that should match the filepath
  the annotation refers to;
 - and, or, not : you guess? Classics logical operators;
-- regex-note: the text of annotation must match this reguar expression.
+- regex-note: the text of annotation must match this regular expression.
 
 Examples:
 
@@ -1656,7 +1856,7 @@ annotation, like this:
                                                                      filter-file
                                                                      filter-annotations)))
                                   (setf filtered-annotations
-                                        (remove-if 'null filtered-annotations))
+                                        (cl-remove-if 'null filtered-annotations))
                                   (when filtered-annotations
                                     (let ((filename (annotate-filename-from-dump
                                                      single-annotation))
@@ -1666,7 +1866,7 @@ annotation, like this:
                                                                            filtered-annotations
                                                                            checksum))))))
          (filtered           (mapcar filter annotations-dump)))
-    (remove-if 'null filtered)))
+    (cl-remove-if 'null filtered)))
 
 (provide 'annotate)
 ;;; annotate.el ends here
