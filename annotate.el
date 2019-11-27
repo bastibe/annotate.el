@@ -1291,8 +1291,8 @@ sophisticated way than plain text"
                               (t
                                (let* ((file-contents     (file-contents))
                                       (has-info-p        (string-match "info" filename))
-                                      (has-separator-p   (string-match "\\(\\)?\\(\\)?$"
-                                                                       file-contents))
+                                      (separator-re      "\^L?\^_\^L?\^J")
+                                      (has-separator-p   (string-match separator-re file-contents))
                                       (has-node-p        (string-match "Node:" file-contents)))
                                  (if (or (annotate-info-root-dir-p filename)
                                          (and has-separator-p
@@ -1511,39 +1511,47 @@ when `look-ahead-p' is not nil the token is recognized but not cut away from
 example:
 'a and b' -> 'a and b', '(re \"a\" 0 1)
 "
-  (cl-labels ((build-results  (token-symbol register-num)
+  (cl-labels ((build-token (token-symbol token-string token-beginning token-end)
                               (list token-symbol
-                                    (match-string register-num annotate-summary-query)
-                                    (match-beginning register-num)
-                                    (match-end       register-num)))
+                                    token-string
+                                    token-beginning
+                                    token-end))
+              (build-results  (token-symbol register-num)
+                              (build-token token-symbol
+                                           (match-string register-num annotate-summary-query)
+                                           (match-beginning register-num)
+                                           (match-end       register-num)))
               (cut-query      (match-results)
                               (setf annotate-summary-query
                                     (cl-subseq annotate-summary-query
                                                (annotate-summary-query-lexer-end match-results)))))
-  (let ((re "\\([^\\](\\)\\|\\([^\\])\\)\\|\\([^\\]?and\\)\\|\\([^\\]?not\\)\\|\\([^\\]?or\\)\\|\\([^[:space:]]+\\)"))
-    (save-match-data
-      (let* ((matchedp (string-match re annotate-summary-query))
-             (res      (if matchedp
-                           (cond
-                            ((match-string 1 annotate-summary-query)
-                             (build-results 'open-par 1))
-                            ((match-string 2 annotate-summary-query)
-                             (build-results 'close-par 2))
-                            ((match-string 3 annotate-summary-query)
-                             (build-results 'and 3))
-                            ((match-string 4 annotate-summary-query)
-                             (build-results 'not 4))
-                            ((match-string 5 annotate-summary-query)
-                             (build-results 'or 5))
-                            ((match-string 6 annotate-summary-query)
-                             (build-results 're 6))
-                            (t
-                             :no-more-tokens))
-                         :no-more-tokens)))
-        (when (and (listp res)
-                   (not look-ahead-p))
-          (cut-query res))
-        res)))))
+    (let ((re (concat "\\((\\)\\|\\()\\)\\|\\(and\\)\\|\\(not\\)\\|"
+                      "\\(or\\)\\|\\(\".*\"\\)\\|\\([^[:space:]]+\\)")))
+      (save-match-data
+        (let* ((matchedp (string-match re annotate-summary-query))
+               (res      (if matchedp
+                             (cond
+                              ((match-string 1 annotate-summary-query)
+                               (build-results 'open-par 1))
+                              ((match-string 2 annotate-summary-query)
+                               (build-results 'close-par 2))
+                              ((match-string 3 annotate-summary-query)
+                               (build-results 'and 3))
+                              ((match-string 4 annotate-summary-query)
+                               (build-results 'not 4))
+                              ((match-string 5 annotate-summary-query)
+                               (build-results 'or 5))
+                              ((match-string 6 annotate-summary-query)
+                               (build-results 'escaped-re 6))
+                              ((match-string 7 annotate-summary-query)
+                               (build-results 're 7))
+                              (t
+                               :no-more-tokens))
+                           :no-more-tokens)))
+          (when (and (listp res)
+                     (not look-ahead-p))
+            (cut-query res))
+          res)))))
 
 (defun annotate-summary-query-parse-end-input-p (token)
  "Non nil if there are no more tokens in
@@ -1553,19 +1561,27 @@ example:
 (cl-defun annotate-summary-query-parse-note (filter-fn annotation &optional (res nil))
   "Parser rule for note:
 
-This function will parse the following production rule
+This function will parse the following production rules
 
 NOTE       := '(' NOTE ')'
-           | NOTE OPERATOR NOTE
-           | NOT NOTE
-           | RE
-           | epsilon
-
+               | NOTE OPERATOR NOTE
+               | NOT NOTE
+               | RE
+               | ESCAPED-RE
+               | epsilon
 OPERATOR   := AND | OR
-RE         := a regular expression
+FILE-MASK  := RE
+RE         := [^[:space:]] ; as regular expression
+ESCAPED-RE := DELIMITER
+              ANYTHING
+              DELIMITER
+ANYTHING   := .*           ; as a regualar expression
 AND        := 'and'
 OR         := 'or'
 NOT        := 'not'
+DELIMITER  := \" ; ASCII 34 (dec) 22 (hex)
+
+Arguments:
 
 - filter-fn is a function that accept two parameters: the regular
   expression to match (a token of type 're, see the lexer
@@ -1584,11 +1600,6 @@ NOT        := 'not'
   (cl-labels ((token-symbol-match-p (looking-symbol token)
                                     (eq looking-symbol
                                         (annotate-summary-query-lexer-symbol token)))
-              (unescape             (escaped)
-                                    (replace-regexp-in-string
-                                     "\\\\\\(\\(not\\)\\|\\(and\\)\\|\\(or\\)\\|\\((\\)\\|\\()\\)\\)"
-                                     (lambda (a) (cl-subseq a 1))
-                                     escaped))
               ;; this function will parse the rule operator
               ;; OPERATOR   := AND | OR
               ;; where
@@ -1679,19 +1690,30 @@ NOT        := 'not'
                 (if (eq :error rhs)
                     (error "No more input after 'or'")
                   (or lhs rhs)))) ; either lhs or rhs  match as this is a logic or
+             ((token-symbol-match-p 'escaped-re look-ahead)
+              ;; here we match the rule:
+              ;; NOTE := ESCAPED-RE
+              ;; ESCAPED-RE is a delimited string like "foo bar"
+              ;; we first unescape the protected token
+              ;; "\"foo bar\"" ->  "foo bar" (yes, just remove the delimiters)
+              ;; then we apply the filter function (see the docstring)
+              (let* ((escaped   (annotate-summary-query-lexer-string (annotate-summary-lexer)))
+                     (unescaped (substring escaped 1 (1- (length escaped)))) ; remove delimiters
+                     (matchp    (funcall filter-fn unescaped annotation)))   ; apply the filter funcrion
+                ;; and finally continue the parsing saving the results
+                ;; of applying the filter-fn function
+                (operator escaped filter-fn annotation matchp)))
              (t
               ;; here we match the rule:
               ;; NOTE := RE
               ;; RE   := a regular expression
-              ;; we first unescape the protected tokens
-              ;; \not -> not, \( -> ( etc.
-              ;; then we apply the filter function (see the docstring)
-              (let* ((escaped   (annotate-summary-query-lexer-string (annotate-summary-lexer)))
-                     (unescaped (unescape escaped))
-                     (matchp    (funcall filter-fn unescaped annotation)))
+              ;; first just get the RE token
+              (let* ((regex     (annotate-summary-query-lexer-string (annotate-summary-lexer)))
+                     ;; then apply the filter function (see the docstring)
+                     (matchp    (funcall filter-fn regex annotation)))
                 ;; and finally continue the parsing saving the results
                 ;; of applying the filter-fn function
-                (operator escaped filter-fn annotation matchp)))))
+                (operator regex filter-fn annotation matchp)))))
         ;; if we are here the lexer can not find any more tokens in the query
         ;; just return the value of res
         res)))) ; end of (if (not (annotate-summary-query-parse-end-input-p look-ahead))
@@ -1710,15 +1732,22 @@ NOTE       := '(' NOTE ')'
                | NOTE OPERATOR NOTE
                | NOT NOTE
                | RE
+               | ESCAPED-RE
                | epsilon
 OPERATOR   := AND | OR
 FILE-MASK  := RE
-RE         := a regular expression
+RE         := [^[:space:]] ; as regular expression
+ESCAPED-RE := DELIMITER
+              ANYTHING
+              DELIMITER
+ANYTHING   := .*           ; as a regualar expression
 AND        := 'and'
 OR         := 'or'
 NOT        := 'not'
+DELIMITER  := \" ; ASCII 34 (dec) 22 (hex)
 
-This function return the annotation of the record
+Note: this function return the annotation part of the record, see
+`annotate-load-annotations'.
 
 "
   (lambda (annotation query file-filter-fn note-filter-fn)
@@ -1808,7 +1837,7 @@ This function return the annotation of the record
 
 The argument `query' is a string that respect a simple syntax:
 
-[file-mask] (and | or) [not] regex-note (and | or) [not] regexp-note ...
+- [file-mask] (and | or) [not] regex-note (and | or) [not] regexp-note ...
 
 where
 
@@ -1836,8 +1865,8 @@ annotation, like this:
  matches all the annotation that refers to file in the directory
  `/home/foo' and that not contains the text `minor'.
 
-- .* and \not
- the backslash can be used to escape the operators
+- .* and \"not\"
+ the \" can be used to escape strings
 "
   (let* ((parser             (annotate-summary-query-parse-expression))
          (filter-file        (lambda (file-mask annotation-dump)
