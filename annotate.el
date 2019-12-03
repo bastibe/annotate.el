@@ -1129,6 +1129,21 @@ annotation."
     (let ((print-length nil))
       (prin1 data (current-buffer)))))
 
+(cl-defmacro with-matching-annotation-fns ((filename
+                                            beginning
+                                            ending)
+                                           &body body)
+  "Anaphoric macro to build functions to find annotations"
+  `(let ((filename-match-p          (lambda (record)
+                                      (string= (annotate-filename-from-dump record)
+                                               ,filename)))
+         (annotation-limits-match-p (lambda (a)
+                                      (and (= (annotate-beginning-of-annotation a)
+                                              ,beginning)
+                                           (= (annotate-ending-of-annotation    a)
+                                              ,ending)))))
+     ,@body))
+
 (defun annotate-db-remove-annotation (db-records
                                       record-filename
                                       annotation-beginning
@@ -1136,67 +1151,59 @@ annotation."
   "Remove from database `db-records' the annotation indentified by
  the triplets `record-filename', `annotation-beginning' and
  `annotation-ending'; if such annotation does exists."
-  (let* ((filename-match-p (lambda (record)
-                             (string= (annotate-filename-from-dump record)
-                                      record-filename)))
-         (file-matched-record (cl-find-if filename-match-p db-records)))
-    (if file-matched-record
-        (let* ((rest-of-db      (cl-remove-if filename-match-p db-records))
-               (new-annotations (cl-remove-if (lambda (a)
-                                                (and (= (annotate-beginning-of-annotation a)
-                                                        annotation-beginning)
-                                                     (= (annotate-ending-of-annotation    a)
-                                                        annotation-ending)))
-                                              (annotate-annotations-from-dump file-matched-record)))
-               (checksum        (annotate-checksum-from-dump file-matched-record))
-               (new-record      (annotate-make-record record-filename
-                                                      new-annotations
-                                                      checksum)))
-          (push new-record
-                rest-of-db))
-      db-records)))
+  (with-matching-annotation-fns
+   (record-filename
+    annotation-beginning
+    annotation-ending)
+   (let ((file-matched-record (cl-find-if filename-match-p db-records)))
+     (if file-matched-record
+         (let* ((rest-of-db      (cl-remove-if filename-match-p db-records))
+                (new-annotations (cl-remove-if annotation-limits-match-p
+                                               (annotate-annotations-from-dump file-matched-record)))
+                (checksum        (annotate-checksum-from-dump file-matched-record))
+                (new-record      (annotate-make-record record-filename
+                                                       new-annotations
+                                                       checksum)))
+           (push new-record
+                 rest-of-db))
+      db-records))))
 
 (defun annotate-db-replace-annotation (db-records
                                        record-filename
                                        annotation-beginning
                                        annotation-ending
                                        replacing-text)
-  "TODO"
-  (let* ((filename-match-p (lambda (record)
-                             (string= (annotate-filename-from-dump record)
-                                      record-filename)))
-         (file-matched-record (cl-find-if filename-match-p db-records)))
-    (if file-matched-record
-        (let ((old-annotation   (cl-find-if (lambda (a)
-                                              (and (= (annotate-beginning-of-annotation a)
-                                                      annotation-beginning)
-                                                   (= (annotate-ending-of-annotation    a)
-                                                      annotation-ending)))
-                                            (annotate-annotations-from-dump file-matched-record))))
-             (if old-annotation
-                 (let* ((rest-of-db       (cl-remove-if filename-match-p db-records))
-                        (rest-annotations (cl-remove-if (lambda (a)
-                                                          (and (= (annotate-beginning-of-annotation a)
-                                                                  annotation-beginning)
-                                                               (= (annotate-ending-of-annotation    a)
-                                                                  annotation-ending)))
-                                                        (annotate-annotations-from-dump file-matched-record)))
-                        (checksum        (annotate-checksum-from-dump file-matched-record))
-                        (new-annotation  (annotate-make-annotation annotation-beginning
-                                                                   annotation-ending
-                                                                   replacing-text
-                                                                   (annotate-annotated-text old-annotation)))
-                        (new-record      (annotate-make-record record-filename
-                                                               (append (list new-annotation)
-                                                                       rest-annotations)
-                                                               checksum)))
-                   (push new-record
-                         rest-annotations)
-                   (push new-record
-                         rest-of-db))
-               db-records))
-      db-records)))
-
+  "Replace the text of annotation from database `db-records'
+ indentified by the triplets `record-filename',
+ `annotation-beginning' and `annotation-ending'; if such
+ annotation does exists."
+  (with-matching-annotation-fns
+   (record-filename
+    annotation-beginning
+    annotation-ending)
+   (let ((file-matched-record (cl-find-if filename-match-p db-records)))
+     (if file-matched-record
+         (let ((old-annotation   (cl-find-if annotation-limits-match-p
+                                             (annotate-annotations-from-dump file-matched-record))))
+           (if old-annotation
+               (let* ((rest-of-db       (cl-remove-if filename-match-p db-records))
+                      (rest-annotations (cl-remove-if annotation-limits-match-p
+                                                      (annotate-annotations-from-dump file-matched-record)))
+                      (checksum         (annotate-checksum-from-dump file-matched-record))
+                      (new-annotation   (annotate-make-annotation annotation-beginning
+                                                                  annotation-ending
+                                                                  replacing-text
+                                                                  (annotate-annotated-text old-annotation)))
+                      (new-record       (annotate-make-record record-filename
+                                                              (append (list new-annotation)
+                                                                      rest-annotations)
+                                                              checksum)))
+                 (push new-record
+                       rest-annotations)
+                 (push new-record
+                       rest-of-db))
+             db-records))
+       db-records))))
 
 ;;;; database related procedures ends here
 
@@ -1467,7 +1474,8 @@ sophisticated way than plain text"
          (annotation-ending    (button-get button 'ending))
          (query                (button-get button 'query))
          (db                   (annotate-load-annotation-data))
-         (new-annotation-text  (read-from-minibuffer annotate-annotation-prompt)))
+         (old-annotation       (button-get button 'text))
+         (new-annotation-text  (read-from-minibuffer annotate-annotation-prompt old-annotation)))
     (when (not (annotate-string-empty-p new-annotation-text))
       (let ((replaced-annotation-db (annotate-db-replace-annotation db
                                                                     filename
@@ -1542,6 +1550,7 @@ results can be filtered with a simple query language: see
                                                   'beginning  annotation-beginning
                                                   'ending     annotation-ending
                                                   'query      filter-query
+                                                  'text       button-text
                                                   'action
                                                   'annotate-summary-replace-annotation-button-pressed
                                                   'type
