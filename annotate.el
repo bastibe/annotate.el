@@ -144,7 +144,19 @@ database is not filtered at all."
  "The maximum `string-width` allowed for an annotation to be
  placed on the right margin of the window instead of its own line
  after the annotated text."
-  :type 'number
+  :type  'number
+  :group 'annotate)
+
+(defcustom annotate-annotation-position-policy :by-length
+  "policy for annotation's position:
+  - :newline
+    always in a new-line
+  - :margin
+     always on right margin
+  - :by-length
+    decide by text's length
+"
+  :type  'symbol
   :group 'annotate)
 
 (defconst annotate-warn-file-changed-control-string
@@ -802,19 +814,31 @@ to 'maximum-width'."
                                           'annotate-highlight
                                         'annotate-highlight-secondary))
                  (annotation-long-p   (> (string-width (overlay-get ov 'annotation))
-                                          annotate-annotation-max-size-not-place-new-line))
-                 (splitted-annotation (if annotation-long-p
+                                         annotate-annotation-max-size-not-place-new-line))
+                 (position            annotate-annotation-position-policy)
+                 (position-new-line-p (cl-case position
+                                        (:new-line
+                                         t)
+                                        (:by-length
+                                         annotation-long-p)
+                                        (otherwise
+                                         nil)))
+                 (splitted-annotation (if position-new-line-p
                                           (list (overlay-get ov 'annotation))
                                         (save-match-data
-                                          (split-string (annotate-lineate (overlay-get ov 'annotation)
+                                          (split-string (annotate-lineate (overlay-get ov
+                                                                                       'annotation)
                                                                           (- eol bol))
                                                         "\n"))))
-                 (annotation-stopper  (if annotation-long-p
-                                          ""
+                 (annotation-stopper  (if position-new-line-p
+                                          (if (= annotation-counter
+                                                 (length overlays))
+                                              "\n"
+                                            "")
                                         "\n")))
             (cl-incf annotation-counter)
             (overlay-put ov 'face face-highlight)
-            (when annotation-long-p
+            (when position-new-line-p
               (setf prefix-first " \n"))
             (dolist (l splitted-annotation)
               (setq text
@@ -823,7 +847,7 @@ to 'maximum-width'."
                             (propertize l 'face face)
                             annotation-stopper))
               ;; white space before for all but the first annotation line
-              (if annotation-long-p
+              (if position-new-line-p
                   (setq prefix-first (concat prefix-first prefix-rest))
                 (setq prefix-first prefix-rest)))))
         ;; build facespec with the annotation text as display property
