@@ -1243,8 +1243,6 @@ annotation."
                                                                       rest-annotations)
                                                               checksum)))
                  (push new-record
-                       rest-annotations)
-                 (push new-record
                        rest-of-db))
              db-records))
        db-records))))
