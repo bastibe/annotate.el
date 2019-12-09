@@ -780,13 +780,16 @@ to 'maximum-width'."
     (let ((newline-position (point)))
       (goto-char (1- (point))) ; we start at the start of the previous line
       ;; find overlays in the preceding line
-      (let* ((prefix-first       (annotate-make-prefix)) ; white spaces before first line of annotation
-             (prefix-rest        (make-string annotate-annotation-column ? ))
-             (bol                (progn (beginning-of-line) (point)))
-             (eol                (progn (end-of-line) (point)))
-             (text               "")
-             (overlays           nil)
-             (annotation-counter 1))
+      (let ((prefix-first       (annotate-make-prefix)) ; white spaces
+                                                        ; before first
+                                                        ; line of
+                                                        ; annotation
+            (prefix-rest        (make-string annotate-annotation-column ? ))
+            (bol                (progn (beginning-of-line) (point)))
+            (eol                (progn (end-of-line) (point)))
+            (text               "")
+            (overlays           nil)
+            (annotation-counter 1))
         ;; include previous line if point is at bol:
         (when (null (overlays-in bol eol))
           (setq bol (1- bol)))
