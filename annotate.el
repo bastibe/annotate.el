@@ -787,7 +787,7 @@ to 'maximum-width'."
             (prefix-rest        (make-string annotate-annotation-column ? ))
             (bol                (progn (beginning-of-line) (point)))
             (eol                (progn (end-of-line) (point)))
-            (text               "")
+            (annotation-text    "")
             (overlays           nil)
             (annotation-counter 1))
         ;; include previous line if point is at bol:
@@ -851,8 +851,8 @@ to 'maximum-width'."
             (when position-new-line-p
               (setf prefix-first " \n"))
             (dolist (l multiline-annotation)
-              (setq text
-                    (concat text
+              (setq annotation-text
+                    (concat annotation-text
                             prefix-first
                             (propertize l 'face face)
                             annotation-stopper))
@@ -861,11 +861,11 @@ to 'maximum-width'."
                   (setq prefix-first (concat prefix-first prefix-rest))
                 (setq prefix-first prefix-rest)))))
         ;; build facespec with the annotation text as display property
-        (if (string= text "")
+        (if (string= annotation-text "")
             ;; annotation has been removed: remove display prop
             (list 'face 'default 'display nil)
           ;; annotation has been changed/added: change/add display prop
-          (list 'face 'default 'display text))))))
+          (list 'face 'default 'display annotation-text))))))
 
 (defun annotate--remove-annotation-property (begin end)
   "Cleans up annotation properties associated with a region."
