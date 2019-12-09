@@ -155,6 +155,11 @@ database is not filtered at all."
      always on right margin
   - :by-length
     decide by text's length
+
+    if the length is more than the value of
+    `annotate-annotation-max-size-not-place-new-line' place the
+    annotation on a new line, place on the right margin
+    otherwise.
 "
   :type  'symbol
   :group 'annotate)
@@ -805,7 +810,10 @@ to 'maximum-width'."
                                   (overlays-in bol eol))
                     (lambda (x y)
                       (< (overlay-end x) (overlay-end y)))))
-        ;; put each annotation on its own line
+        ;; configure each annotation's properties  and place it on the
+        ;; the window. The actual  position of the annotation (newline
+        ;; or  right  marigin)  is  indicated  by  the  value  of  the
+        ;; variable: `annotate-annotation-position-policy'.
         (dolist (ov overlays)
           (let* ((face                (if (= (cl-rem annotation-counter 2) 0)
                                           'annotate-annotation
