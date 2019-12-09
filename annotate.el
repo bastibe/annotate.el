@@ -826,8 +826,7 @@ to 'maximum-width'."
                                         'annotate-highlight-secondary))
                  (annotation-long-p   (> (string-width (overlay-get ov 'annotation))
                                          annotate-annotation-max-size-not-place-new-line))
-                 (position            annotate-annotation-position-policy)
-                 (position-new-line-p (cl-case position
+                 (position-new-line-p (cl-case annotate-annotation-position-policy
                                         (:new-line
                                          t)
                                         (:by-length
