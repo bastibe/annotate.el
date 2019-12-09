@@ -823,24 +823,24 @@ to 'maximum-width'."
                                          annotation-long-p)
                                         (otherwise
                                          nil)))
-                 (splitted-annotation (if position-new-line-p
-                                          (list (overlay-get ov 'annotation))
-                                        (save-match-data
-                                          (split-string (annotate-lineate (overlay-get ov
-                                                                                       'annotation)
-                                                                          (- eol bol))
-                                                        "\n"))))
-                 (annotation-stopper  (if position-new-line-p
-                                          (if (= annotation-counter
-                                                 (length overlays))
-                                              "\n"
-                                            "")
-                                        "\n")))
+                 (multiline-annotation (if position-new-line-p
+                                           (list (overlay-get ov 'annotation))
+                                         (save-match-data
+                                           (split-string (annotate-lineate (overlay-get ov
+                                                                                        'annotation)
+                                                                           (- eol bol))
+                                                         "\n"))))
+                 (annotation-stopper   (if position-new-line-p
+                                           (if (= annotation-counter
+                                                  (length overlays))
+                                               "\n"
+                                             "")
+                                         "\n")))
             (cl-incf annotation-counter)
             (overlay-put ov 'face face-highlight)
             (when position-new-line-p
               (setf prefix-first " \n"))
-            (dolist (l splitted-annotation)
+            (dolist (l multiline-annotation)
               (setq text
                     (concat text
                             prefix-first
