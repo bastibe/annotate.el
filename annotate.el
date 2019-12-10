@@ -140,6 +140,30 @@ database is not filtered at all."
   :type 'boolean
   :group 'annotate)
 
+(defcustom annotate-annotation-max-size-not-place-new-line 15
+ "The maximum `string-width` allowed for an annotation to be
+ placed on the right margin of the window instead of its own line
+ after the annotated text."
+  :type  'number
+  :group 'annotate)
+
+(defcustom annotate-annotation-position-policy :by-length
+  "policy for annotation's position:
+  - :newline
+    always in a new-line
+  - :margin
+     always on right margin
+  - :by-length
+    decide by text's length
+
+    if the length is more than the value of
+    `annotate-annotation-max-size-not-place-new-line' place the
+    annotation on a new line, place on the right margin
+    otherwise.
+"
+  :type  'symbol
+  :group 'annotate)
+
 (defconst annotate-warn-file-changed-control-string
   (concat "The file '%s' has changed on disk "
           "from the last time the annotations were saved.\n"
@@ -756,10 +780,14 @@ to 'maximum-width'."
     (let ((newline-position (point)))
       (goto-char (1- (point))) ; we start at the start of the previous line
       ;; find overlays in the preceding line
-      (let ((prefix             (annotate-make-prefix)) ; white spaces before first annotation
+      (let ((prefix-first       (annotate-make-prefix)) ; white spaces
+                                                        ; before first
+                                                        ; line of
+                                                        ; annotation
+            (prefix-rest        (make-string annotate-annotation-column ? ))
             (bol                (progn (beginning-of-line) (point)))
             (eol                (progn (end-of-line) (point)))
-            (text               "")
+            (annotation-text    "")
             (overlays           nil)
             (annotation-counter 1))
         ;; include previous line if point is at bol:
@@ -782,36 +810,62 @@ to 'maximum-width'."
                                                   (<= (overlay-start a)
                                                       newline-position
                                                       (overlay-end a))))
-                                      (overlays-in bol eol))
+                                  (overlays-in bol eol))
                     (lambda (x y)
                       (< (overlay-end x) (overlay-end y)))))
-        ;; put each annotation on its own line
+        ;; configure each annotation's properties  and place it on the
+        ;; the window. The actual  position of the annotation (newline
+        ;; or  right  marigin)  is  indicated  by  the  value  of  the
+        ;; variable: `annotate-annotation-position-policy'.
         (dolist (ov overlays)
-          (cl-incf annotation-counter)
-          (let ((face           (if (= (cl-rem annotation-counter 2) 0)
-                                    'annotate-annotation
-                                  'annotate-annotation-secondary))
-                (face-highlight (if (= (cl-rem annotation-counter 2) 0)
-                                    'annotate-highlight
-                                  'annotate-highlight-secondary)))
+          (let* ((face                (if (= (cl-rem annotation-counter 2) 0)
+                                          'annotate-annotation
+                                        'annotate-annotation-secondary))
+                 (face-highlight      (if (= (cl-rem annotation-counter 2) 0)
+                                          'annotate-highlight
+                                        'annotate-highlight-secondary))
+                 (annotation-long-p   (> (string-width (overlay-get ov 'annotation))
+                                         annotate-annotation-max-size-not-place-new-line))
+                 (position-new-line-p (cl-case annotate-annotation-position-policy
+                                        (:new-line
+                                         t)
+                                        (:by-length
+                                         annotation-long-p)
+                                        (otherwise
+                                         nil)))
+                 (multiline-annotation (if position-new-line-p
+                                           (list (overlay-get ov 'annotation))
+                                         (save-match-data
+                                           (split-string (annotate-lineate (overlay-get ov
+                                                                                        'annotation)
+                                                                           (- eol bol))
+                                                         "\n"))))
+                 (annotation-stopper   (if position-new-line-p
+                                           (if (= annotation-counter
+                                                  (length overlays))
+                                               "\n"
+                                             "")
+                                         "\n")))
+            (cl-incf annotation-counter)
             (overlay-put ov 'face face-highlight)
-            (dolist (l (save-match-data
-                         (split-string (annotate-lineate (overlay-get ov 'annotation)
-                                                         (- eol bol))
-                                       "\n")))
-              (setq text
-                    (concat text
-                            prefix
+            (when position-new-line-p
+              (setf prefix-first " \n"))
+            (dolist (l multiline-annotation)
+              (setq annotation-text
+                    (concat annotation-text
+                            prefix-first
                             (propertize l 'face face)
-                            "\n"))
+                            annotation-stopper))
               ;; white space before for all but the first annotation line
-              (setq prefix (make-string annotate-annotation-column ? )))))
+              (if position-new-line-p
+                  (setq prefix-first (concat prefix-first prefix-rest))
+                (setq prefix-first prefix-rest)))))
         ;; build facespec with the annotation text as display property
-        (if (string= text "")
+        (if (string= annotation-text "")
             ;; annotation has been removed: remove display prop
             (list 'face 'default 'display nil)
           ;; annotation has been changed/added: change/add display prop
-          (list 'face 'default 'display text))))))
+          (list 'face 'default 'display annotation-text))))))
 
 (defun annotate--remove-annotation-property (begin end)
   "Cleans up annotation properties associated with a region."
