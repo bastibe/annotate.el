@@ -168,7 +168,7 @@ annotation, like this:
 #+BEGIN_SRC text
  .* and "not"
 #+END_SRC
- the ="= can be used to escape strings.
+ the quotation mark (") can be used to escape strings.
 
 As a shortcut, an empty query will match everything (just press
 ~return~ at prompt).
