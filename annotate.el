@@ -57,7 +57,8 @@
 
 ;;;###autoload
 (define-minor-mode annotate-mode
-  "Toggle Annotate mode."
+  "Toggle Annotate mode.
+See https://github.com/bastibe/annotate.el/ for documentation."
   :init-value nil
   :lighter " Ann"
   :keymap (make-sparse-keymap)
