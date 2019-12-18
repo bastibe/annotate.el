@@ -42,7 +42,7 @@ can take advantage of its packages generated files management.
 
 ** keybindings
 
-*** ~C-c  C-a~
+*** ~C-c  C-a~ (function annotate-annotate)
     creates  a new annotation  for that
     region. With no active region, ~C-c C-a~ will create an annotation for
     the word  under point. If point  is on an annotated  region, ~C-c C-a~
@@ -58,24 +58,25 @@ can take advantage of its packages generated files management.
      - ~annotate-annotation-max-size-not-place-new-line~;
      - ~annotate-annotation-position-policy~.
 
-*** ~C-c ]~
+*** ~C-c ]~ (function annotate-next-annotation)
     Jump to the next  annotation.
 
-*** ~C-c [~
+*** ~C-c [~ (function annotate-previous-annotation)
     Jump to the previous annotation.
 
-*** ~C-c C-s~
-    Show  summary window.   A window  with a  list of  annotated files
-    together     with    their     annotations     is    shown.      If
-    ~annotate-summary-ask-query~ is  non nil  (default is ~t~)  then a
-    prompt is  shown where the  user can insert  a query to  filter the
-    annotation database, see [[Query Language]].
+*** ~C-c C-s~ (function annotate-show-annotation-summary)
+    Show summary window.
 
-    The summary window allow editing  and removing of annotation using
+    A window with a list of annotated files together with their
+    annotations is shown. If ~annotate-summary-ask-query~ is non nil
+    (default is ~t~) then a prompt is shown where the user can insert
+    a query to filter the annotation database, see [[Query Language]].
+
+    The summary window allow editing and removing of annotation using
     the provided buttons.
 
-    The annotation text can be pressed  to and will open the annotated
-    file,  placing  the cursor  at  the  point where  the  corresponding
+    The annotation text can be pressed to and will open the annotated
+    file, placing the cursor at the point where the corresponding
     annotated text appears.
 
 **** related customizable variable
@@ -96,7 +97,7 @@ as comments into the current buffer, like this:
 **** related customizable variable
      - ~annotate-integrate-marker~
      - ~annotate-diff-export-context~
-     - ~annotate-integrate-higlight~
+     - ~annotate-integrate-highlight~
      - ~annotate-fallback-comment~
 
 * More documentation
@@ -108,10 +109,13 @@ as comments into the current buffer, like this:
 
 ** Known bugs
 
-   annotations in org-mode source blocks will be underlined, but the
+   Annotations in org-mode source blocks will be underlined, but the
    annotations don't show up. This is likely a fundamental
    incompatibility with the way source blocks are highlighted and the
    way annotations are displayed.
+
+   Deleting the first  character of an annotated text  will remove the
+   annotation (this turned out to be useful, though).
 
 ** Report bugs
 
@@ -125,7 +129,7 @@ as comments into the current buffer, like this:
   is shown below:
 
 #+BEGIN_SRC text
- [file-mask] (and | or) [not] regex-note (and | or) [not] regexp-note ...
+ [file-mask] [(and | or) [not] regex-note (and | or) [not] regexp-note ...]
 #+END_SRC
 
 where

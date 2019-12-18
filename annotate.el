@@ -2101,7 +2101,7 @@ Note: this function return the annotation part of the record, see
 
 The argument `query' is a string that respect a simple syntax:
 
-- [file-mask] (and | or) [not] regex-note (and | or) [not] regexp-note ...
+- [file-mask] [(and | or) [not] regex-note (and | or) [not] regexp-note ...]
 
 where
 
