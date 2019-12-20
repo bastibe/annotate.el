@@ -57,7 +57,8 @@
 
 ;;;###autoload
 (define-minor-mode annotate-mode
-  "Toggle Annotate mode."
+  "Toggle Annotate mode.
+See https://github.com/bastibe/annotate.el/ for documentation."
   :init-value nil
   :lighter " Ann"
   :keymap (make-sparse-keymap)
@@ -2100,7 +2101,7 @@ Note: this function return the annotation part of the record, see
 
 The argument `query' is a string that respect a simple syntax:
 
-- [file-mask] (and | or) [not] regex-note (and | or) [not] regexp-note ...
+- [file-mask] [(and | or) [not] regex-note (and | or) [not] regexp-note ...]
 
 where
 

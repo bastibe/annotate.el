@@ -1,0 +1,181 @@
+#+OPTIONS: html-postamble:nil html-preamble:nil toc:nil
+#+AUTHOR:
+#+TITLE: Annotate.el
+
+[[http://melpa.org/#/annotate][http://melpa.org/packages/annotate-badge.svg]]
+
+[[http://stable.melpa.org/#/annotate][http://stable.melpa.org/packages/annotate-badge.svg]]
+
+* introduction
+
+This  package provides  a minor  mode ~annotate-mode~,  which can  add
+annotations   to   arbitrary   files  without   changing   the   files
+themselves. This is very useful for code reviews. When ~annotate-mode~
+is active, ~C-c C-a~ will create, edit, or delete annotations.
+
+[[https://raw.githubusercontent.com/bastibe/annotate.el/master/example.png]]
+
+* Usage
+
+** Quick start
+
+With an  active region, ~C-c  C-a~ creates  a new annotation  for that
+region. With no active region, ~C-c C-a~ will create an annotation for
+the word  under point. If point  is on an annotated  region, ~C-c C-a~
+will edit that annotation instead of  creating a new one. Clearing the
+annotation deletes them.
+
+Use ~C-c ]~ to jump to the next  annotation and ~C-c [~ to jump to the
+previous annotation.
+
+** Metadata
+
+All  annotations are  saved  in  ~annotate-file~ (=~/.annotations=  by
+default).
+
+Users of
+[[https://github.com/emacscollective/no-littering][no-littering]]
+can take advantage of its packages generated files management.
+
+**** related customizable variable
+     - ~annotate-file~
+
+** keybindings
+
+*** ~C-c  C-a~ (function annotate-annotate)
+    creates  a new annotation  for that
+    region. With no active region, ~C-c C-a~ will create an annotation for
+    the word  under point. If point  is on an annotated  region, ~C-c C-a~
+    will edit that annotation instead of  creating a new one. Clearing the
+    annotation deletes them.
+
+**** related customizable variable
+     - ~annotate-highlight~;
+     - ~annotate-highlight-secondary~;
+     - ~annotate-annotation~;
+     - ~annotate-annotation-secondary~;
+     - ~annotate-annotation-column~;
+     - ~annotate-annotation-max-size-not-place-new-line~;
+     - ~annotate-annotation-position-policy~.
+
+*** ~C-c ]~ (function annotate-next-annotation)
+    Jump to the next  annotation.
+
+*** ~C-c [~ (function annotate-previous-annotation)
+    Jump to the previous annotation.
+
+*** ~C-c C-s~ (function annotate-show-annotation-summary)
+    Show summary window.
+
+    A window with a list of annotated files together with their
+    annotations is shown. If ~annotate-summary-ask-query~ is non nil
+    (default is ~t~) then a prompt is shown where the user can insert
+    a query to filter the annotation database, see [[Query Language]].
+
+    The summary window allow editing and removing of annotation using
+    the provided buttons.
+
+    The annotation text can be pressed to and will open the annotated
+    file, placing the cursor at the point where the corresponding
+    annotated text appears.
+
+**** related customizable variable
+     - ~annotate-summary-ask-query~.
+
+* Exporting
+
+Annotations can be exported ~annotate-export-annotations~ as commented
+unified diffs, like this:
+
+[[https://raw.githubusercontent.com/bastibe/annotate.el/master/diff-example.png]]
+
+Alternatively, they can be integrated ~annotate-integrate-annotations~
+as comments into the current buffer, like this:
+
+[[https://raw.githubusercontent.com/bastibe/annotate.el/master/integrate-example.png]]
+
+**** related customizable variable
+     - ~annotate-integrate-marker~
+     - ~annotate-diff-export-context~
+     - ~annotate-integrate-highlight~
+     - ~annotate-fallback-comment~
+
+* More documentation
+
+ Please check ~M-x customize-group RET annotate~ as there is
+ extensive documentation for each customizable variable.
+
+* BUGS
+
+** Known bugs
+
+   Annotations in org-mode source blocks will be underlined, but the
+   annotations don't show up. This is likely a fundamental
+   incompatibility with the way source blocks are highlighted and the
+   way annotations are displayed.
+
+   Deleting the first  character of an annotated text  will remove the
+   annotation (this turned out to be useful, though).
+
+** Report bugs
+
+   To report bugs please, point your browser to the
+   [[https://github.com/bastibe/annotate.el/issues][issue tracker]].
+
+* Query Language
+
+  The summary window can shows  results filtered by criteria specified
+  with a very simple query language, the basis syntax for that language
+  is shown below:
+
+#+BEGIN_SRC text
+ [file-mask] [(and | or) [not] regex-note (and | or) [not] regexp-note ...]
+#+END_SRC
+
+where
+
+  - file-mask :: is a regular expression that should match the path of file
+    the annotation refers to;
+  - and, or, not :: you guess? Classics logical operators;
+  - regex-note :: the text of annotation must match this regular expression.
+
+** Examples
+
+#+BEGIN_SRC text
+  lisp$ and TODO
+#+END_SRC
+
+   matches the text ~TODO~ in all lisp files
+
+Parenthesis can be used for the expression related to the text of
+annotation, like this:
+
+#+BEGIN_SRC text
+ lisp$ and (TODO or important)
+#+END_SRC
+
+   the same as above but checks also for string `important'
+
+#+BEGIN_SRC text
+ /home/foo/
+#+END_SRC
+   matches all the annotation that refers to file in the directory
+   ~/home/foo~
+
+#+BEGIN_SRC text
+ /home/foo/ and not minor
+#+END_SRC
+
+   matches all the annotation that refers to file in the directory
+   ~/home/foo~ and that not contains the text ~minor~.
+
+#+BEGIN_SRC text
+ .* and "not"
+#+END_SRC
+ the quotation mark (") can be used to escape strings.
+
+As a shortcut, an empty query will match everything (just press
+~return~ at prompt).
+
+* LICENSE
+This package is released under the MIT license [[./LICENSE][LICENSE]]
