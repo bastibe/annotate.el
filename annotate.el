@@ -638,16 +638,17 @@ annotation plus the newline."
   (if (>= (point) limit)
       nil ; no match found before limit
     (progn
-      ;; go to the end of the longest overlay under point
-      (let ((overlays (sort (overlays-at (point))
+      ;; go to the end of the longest annotation under point
+      (let ((overlays (sort (cl-remove-if-not 'annotationp
+                                              (overlays-at (point)))
                             (lambda (x y)
                               (> (overlay-end x) (overlay-end y))))))
-        (if overlays
-            (goto-char (overlay-end (car overlays)))))
-      ;; capture the area from the overlay to EOL for the modification guard
-      ;; and the newline itself for the annotation.
-      (re-search-forward "\\(.*\\(\n\\)\\)")
-      t)))
+        (when overlays
+          (goto-char (overlay-end (car overlays)))))
+      ;; capture the  area from the  overlay to EOL (regexp  match #1)
+      ;; for  the modification  guard and  the newline  itself (regexp
+      ;; match #2) for the annotation.
+      (re-search-forward "\\(.*\\(\n\\)\\)" limit t))))
 
 (cl-defstruct annotate-group
   words
