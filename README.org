@@ -178,4 +178,5 @@ As a shortcut, an empty query will match everything (just press
 ~return~ at prompt).
 
 * LICENSE
-This package is released under the MIT license [[./LICENSE][LICENSE]]
+
+This package is released under the MIT license, see file [[./LICENSE][LICENSE]]
