@@ -52,7 +52,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.4.7"
+  :version "0.5.0"
   :group 'text)
 
 ;;;###autoload
