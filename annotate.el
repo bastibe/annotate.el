@@ -1511,16 +1511,27 @@ sophisticated way than plain text"
          (end-of-button   (button-get button 'end-of-button))
          (db              (annotate-load-annotation-data))
          (filtered        (annotate-db-remove-annotation db filename beginning ending)))
-    (annotate-dump-annotation-data filtered)
-    (with-current-buffer annotate-summary-buffer-name
-      (read-only-mode -1)
-      (save-excursion
-        (button-put button 'invisible t)
-        (let ((annotation-button (previous-button (point))))
-          (button-put annotation-button 'face '(:strike-through t)))
-        (let ((replace-button (next-button (point))))
-          (button-put replace-button 'invisible t)))
-      (read-only-mode 1))))
+    (annotate-dump-annotation-data filtered) ; save the new database with entry removed
+    (cl-labels ((redraw-summary-window () ; update the summary window
+                  (with-current-buffer annotate-summary-buffer-name
+                    (read-only-mode -1)
+                    (save-excursion
+                      (button-put button 'invisible t)
+                      (let ((annotation-button (previous-button (point))))
+                        (button-put annotation-button 'face '(:strike-through t)))
+                      (let ((replace-button (next-button (point))))
+                        (button-put replace-button 'invisible t)))
+                    (read-only-mode 1)))
+                ;; if the file where the  deleted annotation belong to is visited,
+                ;; update the buffer
+                (update-visited-buffer-maybe ()
+                  (let ((visited-buffer (find-buffer-visiting filename)))
+                    (when visited-buffer ;; a buffer is visiting the file
+                      (with-current-buffer visited-buffer
+                        (annotate-mode -1)
+                        (annotate-mode  1))))))
+      (redraw-summary-window)
+      (update-visited-buffer-maybe))))
 
 (defun annotate-summary-replace-annotation-button-pressed (button)
   (let* ((filename             (button-get button 'file))
