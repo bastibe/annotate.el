@@ -89,14 +89,20 @@ See https://github.com/bastibe/annotate.el/ for documentation."
   :group 'annotate)
 
 (defface annotate-annotation
-  '((t (:background "coral" :foreground "black")))
+  '((t (:background "coral" :foreground "black" :inherit default)))
   "Face for annotations."
   :group 'annotate)
 
 (defface annotate-annotation-secondary
-  '((t (:background "khaki" :foreground "black")))
+  '((t (:background "khaki" :foreground "black" :inherit default)))
   "Face for secondary annotations."
   :group 'annotate)
+
+(defface annotate-prefix
+  '((t (:inherit default)))
+ "Face for character used to pad annotation (fill space between
+text lines and annotation text)."
+ :group 'annotate)
 
 (defcustom annotate-annotation-column 85
   "Where annotations appear."
@@ -278,6 +284,12 @@ position (so that it is unchanged after this function is called)."
   "Does this annotation contains annotated text?"
   (= (overlay-start annotation)
      (overlay-end   annotation)))
+
+(defun annotate-annotation-force-newline-policy (annotation)
+  (overlay-put annotation 'force-newline-policy t))
+
+(defun annotate-annotation-newline-policy-forced-p (annotation)
+  (overlay-get annotation 'force-newline-policy))
 
 (defun annotate-before-change-fn (a b)
   "This function is added to 'before-change-functions' hook and
@@ -833,7 +845,8 @@ to 'maximum-width'."
                                         (:new-line
                                          t)
                                         (:by-length
-                                         annotation-long-p)
+                                         (or (annotate-annotation-newline-policy-forced-p ov)
+                                             annotation-long-p))
                                         (otherwise
                                          nil)))
                  (multiline-annotation (if position-new-line-p
@@ -856,7 +869,7 @@ to 'maximum-width'."
             (dolist (l multiline-annotation)
               (setq annotation-text
                     (concat annotation-text
-                            prefix-first
+                            (propertize prefix-first 'face 'annotate-prefix)
                             (propertize l 'face face)
                             annotation-stopper))
               ;; white space before for all but the first annotation line
@@ -1308,36 +1321,65 @@ interval and, if found, the buffer is annotated right there.
 The searched interval can be customized setting the variable:
 'annotate-search-region-lines-delta'.
 "
-  (cl-labels ((create-annotation     (start end annotation-text)
-                                     (let ((highlight (make-overlay start end)))
-                                       (overlay-put highlight 'face 'annotate-highlight)
-                                       (overlay-put highlight 'annotation annotation-text)))
-              (beginning-of-nth-line (start line-count)
-                                     (save-excursion
-                                       (goto-char start)
-                                       (forward-line line-count)
-                                       (beginning-of-line)
-                                       (point)))
-              (go-backward           (start)
-                                     (beginning-of-nth-line
-                                      start
-                                      (- annotate-search-region-lines-delta)))
-              (go-forward            (start)
-                                     (beginning-of-nth-line start
-                                                            annotate-search-region-lines-delta))
-              (guess-match-and-add   (start end annotated-text max)
-                                     (cl-block surrounding
-                                       (while (< start max)
-                                         (let ((to-match (ignore-errors
-                                                           (buffer-substring-no-properties start
-                                                                                           end))))
-                                           (if (and to-match
-                                                    (string= to-match annotated-text))
-                                               (cl-return-from surrounding start))
-                                           (progn
-                                             (setf start (1+ start)
-                                                   end   (1+ end)))))
-                                       nil)))
+  (let ((new-annotation nil))
+    (cl-labels ((create-annotation     (start end annotation-text)
+                                       (let ((highlight (make-overlay start end)))
+                                         (overlay-put highlight 'face 'annotate-highlight)
+                                         (overlay-put highlight 'annotation annotation-text)
+                                         (setf new-annotation highlight)))
+                (beginning-of-nth-line (start line-count)
+                                       (save-excursion
+                                         (goto-char start)
+                                         (forward-line line-count)
+                                         (beginning-of-line)
+                                         (point)))
+                (go-backward           (start)
+                                       (beginning-of-nth-line
+                                        start
+                                        (- annotate-search-region-lines-delta)))
+                (go-forward            (start)
+                                       (beginning-of-nth-line start
+                                                              annotate-search-region-lines-delta))
+                (guess-match-and-add   (start end annotated-text max)
+                                       (cl-block surrounding
+                                         (while (< start max)
+                                           (let ((to-match (ignore-errors
+                                                             (buffer-substring-no-properties start
+                                                                                             end))))
+                                             (if (and to-match
+                                                      (string= to-match annotated-text))
+                                                 (cl-return-from surrounding start))
+                                             (progn
+                                               (setf start (1+ start)
+                                                     end   (1+ end)))))
+                                         nil))
+                (maybe-force-newline-policy  (annotation)
+                   ;; force  newline policy  if height  of any  the face  of the
+                   ;; overlay is different from height of default face
+                   (save-excursion
+                     (goto-char (overlay-start annotation))
+                     (let* ((bol                  (annotate-beginning-of-line-pos))
+                            (eol                  (annotate-end-of-line-pos))
+                            (changed-face-pos     (min bol (overlay-start annotation)))
+                            (limit                (max eol (overlay-end   annotation)))
+                            (all-faces            (list (get-text-property changed-face-pos 'face)))
+                            (default-face-height  (face-attribute 'default :height))
+                            (all-faces-height     ())
+                            (force-newline-p      nil))
+                       (while (< changed-face-pos limit)
+                         (setf changed-face-pos
+                               (next-single-property-change changed-face-pos 'face (current-buffer) limit))
+                         (push (get-text-property changed-face-pos 'face)
+                               all-faces))
+                       (setf all-faces-height
+                             (mapcar (lambda (face)
+                                       (face-attribute face :height nil 'default))
+                                     (cl-remove-if #'null all-faces)))
+                       (setf force-newline-p
+                             (cl-find-if (lambda (a) (/= a default-face-height))
+                                         all-faces-height))
+                       (when force-newline-p
+                         (annotate-annotation-force-newline-policy annotation))))))
       (if (not (annotate-string-empty-p annotated-text))
           (let ((text-to-match (ignore-errors
                                  (buffer-substring-no-properties start end))))
@@ -1356,18 +1398,19 @@ The searched interval can be customized setting the variable:
                      (create-annotation new-match
                                         (+ new-match length-match)
                                         annotation-text)))
-              (lwarn '(annotate-mode)
+              (lwarn '(annotate-mode) ; if matches annotated text failed
                      :warning
                      annotate-warn-file-searching-annotation-failed-control-string
                      (annotate-actual-file-name)
                      annotation-text
                      text-to-match)))
-        (create-annotation start end annotation-text))
+        (create-annotation start end annotation-text)) ; create new annotation
       (when (use-region-p)
         (deactivate-mark))
       (save-excursion
         (goto-char end)
-        (font-lock-fontify-block 1))))
+        (font-lock-fontify-block 1))
+      (maybe-force-newline-policy new-annotation))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
