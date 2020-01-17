@@ -756,24 +756,25 @@ to 'maximum-width'."
                        (if (= (length seq) 1)
                            nil
                          (annotate-safe-subseq seq from to nil))))
-  (let* ((theoretical-line-width      (- (window-body-width)
-                                         annotate-annotation-column))
-         (available-width             (if (> theoretical-line-width 0)
-                                          theoretical-line-width
-                                        line-width))
-         (lineated-list               (annotate-group-by-width text available-width))
-         (max-width                   (apply #'max
-                                             (mapcar #'string-width lineated-list)))
-         (all-but-last-lineated-list  (%subseq lineated-list 0 (1- (length lineated-list))))
-         (last-line                   (if all-but-last-lineated-list
-                                          (car (last lineated-list))
-                                        (cl-first lineated-list)))
-         (lineated                    (cl-mapcar (lambda (a)
-                                                   (pad a max-width t))
-                                                 all-but-last-lineated-list)))
-    (apply #'concat
-           (append lineated
-                   (list (pad last-line max-width nil)))))))
+    (let* ((current-window             (get-buffer-window (current-buffer)))
+           (theoretical-line-width     (- (window-body-width current-window)
+                                          annotate-annotation-column))
+           (available-width            (if (> theoretical-line-width 0)
+                                           theoretical-line-width
+                                         line-width))
+           (lineated-list              (annotate-group-by-width text available-width))
+           (max-width                  (apply #'max
+                                              (mapcar #'string-width lineated-list)))
+           (all-but-last-lineated-list (%subseq lineated-list 0 (1- (length lineated-list))))
+           (last-line                   (if all-but-last-lineated-list
+                                            (car (last lineated-list))
+                                          (cl-first lineated-list)))
+           (lineated                   (cl-mapcar (lambda (a)
+                                                    (pad a max-width t))
+                                                  all-but-last-lineated-list)))
+      (apply #'concat
+             (append lineated
+                     (list (pad last-line max-width nil)))))))
 
 (defun annotate--annotation-builder ()
   "Searches the line before point for annotations, and returns a
