@@ -81,3 +81,7 @@
     not loaded;
   - a simple heuristic is used to search for annotated text when
     annotate mode is loaded.
+
+- 2020-01-22 V0.5.1 Bastian Bechtold, cage ::
+  - fixed bug that prevented correct fontifications for major modes
+    that puts overlays on the buffer's text (e.g. SLIME).

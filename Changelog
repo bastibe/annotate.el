@@ -1,0 +1,9 @@
+2020-01-22 Bastian Bechtold, cage
+
+        * annotate.el (annotate--font-lock-matcher):
+        - fixed error for regexp search
+	  Sometimes some modes/package puts overlay on the last character of a
+	  buffer (notably SLIME when the parenthesis of a form are not
+          balanced). This will make 're-search-forward' in the aforementioned
+          function fails and font lock becomes a mess (e.g. text color
+          disappears).
