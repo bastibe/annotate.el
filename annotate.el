@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.5.0
+;; Version: 0.5.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -52,7 +52,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.5.0"
+  :version "0.5.1"
   :group 'text)
 
 ;;;###autoload
@@ -141,8 +141,8 @@ major mode is a member of this list (space separated entries)."
   :group 'annotate)
 
 (defcustom annotate-summary-ask-query t
-  "If non nil a prompt asking  for a query to filter the database
-before  showing it  in  a summary  window is  used.   If nil  the
+ "If non nil a prompt asking for a query to filter the database
+before showing it in a summary window is used. If nil the
 database is not filtered at all."
   :type 'boolean
   :group 'annotate)
@@ -427,7 +427,7 @@ major mode."
      (string-width (annotate-actual-comment-end))))
 
 (defun annotate-wrap-in-comment (&rest strings)
-  "Put comment markers at the start and  (if it makes sense)
+ "Put comment markers at the start and (if it makes sense)
 end of a string. See: annotate-actual-comment-start and
 annotate-actual-comment-end"
   (apply #'concat (append (list (annotate-actual-comment-start))
@@ -657,8 +657,8 @@ annotation plus the newline."
                               (> (overlay-end x) (overlay-end y))))))
         (when overlays
           (goto-char (overlay-end (car overlays)))))
-      ;; capture the  area from the  overlay to EOL (regexp  match #1)
-      ;; for  the modification  guard and  the newline  itself (regexp
+      ;; capture the area from the overlay to EOL (regexp match #1)
+      ;; for the modification guard and the newline itself (regexp
       ;; match #2) for the annotation.
       (re-search-forward "\\(.*\\(\n\\)\\)" limit t))))
 
@@ -810,17 +810,17 @@ to 'maximum-width'."
           (setq bol (1- bol)))
         (setq overlays
               (sort (cl-remove-if (lambda (a) (or (not (annotationp a))
-                                                  ;; if  an  annotated
-                                                  ;; text  contains  a
-                                                  ;; newline   (is   a
+                                                  ;; if an annotated
+                                                  ;; text contains a
+                                                  ;; newline (is a
                                                   ;; multiline one) do
-                                                  ;; not           add
+                                                  ;; not add
                                                   ;; annotation for it
                                                   ;; here (i.e. remove
-                                                  ;; from  that list),
-                                                  ;; this   annotation
-                                                  ;; will be  shown on
-                                                  ;; the  next newline
+                                                  ;; from that list),
+                                                  ;; this annotation
+                                                  ;; will be shown on
+                                                  ;; the next newline
                                                   ;; instead
                                                   (<= (overlay-start a)
                                                       newline-position
@@ -828,9 +828,9 @@ to 'maximum-width'."
                                   (overlays-in bol eol))
                     (lambda (x y)
                       (< (overlay-end x) (overlay-end y)))))
-        ;; configure each annotation's properties  and place it on the
-        ;; the window. The actual  position of the annotation (newline
-        ;; or  right  marigin)  is  indicated  by  the  value  of  the
+        ;; configure each annotation's properties and place it on the
+        ;; the window. The actual position of the annotation (newline
+        ;; or right marigin) is indicated by the value of the
         ;; variable: `annotate-annotation-position-policy'.
         (dolist (ov overlays)
           (let* ((face                (if (= (cl-rem annotation-counter 2) 0)
@@ -947,7 +947,7 @@ an overlay and it's annotation."
 ;;; database related procedures
 
 (defun annotate-info-actual-filename ()
-  "The info  filename that feed  this buffer  or nil if  not this
+ "The info filename that feed this buffer or nil if not this
 buffer is not on info-mode"
   (annotate-guess-filename-for-dump Info-current-file nil))
 
@@ -1778,8 +1778,8 @@ summary window is shown")
 (cl-defun annotate-summary-lexer (&optional (look-ahead-p nil))
   "The lexer for `annotate-summary-query'.
 
-This  function, when  called, will  produce the  next token  from
-`annotate-summary-query';  a token  is  a substring  with a  well
+This function, when called, will produce the next token from
+`annotate-summary-query'; a token is a substring with a well
 defined meaning according to our grammar.
 
 For example this string:
@@ -1810,13 +1810,13 @@ The format is a proper list where:
  the substring limits for this token (as returned by
  `match-beginning' and `match-end'
 
-Note that spaces are ignored and  all the tokens except `re' must
+Note that spaces are ignored and all the tokens except `re' must
 not be prefixed with a backslash to match. So, for example not ->
 will match the token type 'not but \not will match the token 're;
-this  way  we  can  'protect' a  regexp  that  contains  reserved
+this way we can 'protect' a regexp that contains reserved
 keyword (aka escaping).
 
-the  special value  :no-more-token  is returned  after the  whole
+The special value :no-more-token is returned after the whole
 input is processed.
 
 Calling this function with value of `look-ahead-p' nil will `consume' the token from
@@ -1977,16 +1977,16 @@ Arguments:
               (annotate-summary-lexer) ; consume the token 'not'
               ;; the note after the 'not'  operator in rule
               ;; NOTE := NOT NOTE
-              ;; the  third argument  is the  value to  return if
+              ;; the third argument is the value to return if
               ;; there are no more token left in the input string
               (let ((res (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
-                ;; if there are  no more tokens here this  is an error
-                ;; because, according  to the  grammar, after a  NOT a
+                ;; if there are no more tokens here this is an error
+                ;; because, according to the grammar, after a NOT a
                 ;; NOTE is non optional
                 (if (eq :error res)
                     (error "No more input after 'not'")
-                  ;; if the last  rule (saved in res) is  not nil (and
-                  ;; is  not  :error)  return  nil,  return  the  last
+                  ;; if the last rule (saved in res) is not nil (and
+                  ;; is not :error) return nil, return the last
                   ;; annotation otherwise remember that the user asked
                   ;; for an annotation that *not* matches a regex
                   (if (null res)
@@ -2009,7 +2009,7 @@ Arguments:
                     (rhs (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
                 (if (eq :error rhs)
                     (error "No more input after 'or'")
-                  (or lhs rhs)))) ; either lhs or rhs  match as this is a logic or
+                  (or lhs rhs)))) ; either lhs or rhs match as this is a logic or
              ((token-symbol-match-p 'escaped-re look-ahead)
               ;; here we match the rule:
               ;; NOTE := ESCAPED-RE
@@ -2099,24 +2099,24 @@ Note: this function return the annotation part of the record, see
                  ((eq operator 'or) ; operator is 'or
                   ;; try to parse with the rule
                   ;; EXPRESSION := FILE-MASK OR NOTE
-                  ;; return  only  the  list  annotation  filtered  by
+                  ;; return only the list annotation filtered by
                   ;; file-mask the former is non nil
                   (if filtered-annotation
                       (annotate-annotations-from-dump filtered-annotation)
-                    ;; the annotation filtered by  file-mask is empty, try to
+                    ;; the annotation filtered by file-mask is empty, try to
                     ;; match the NOTE rule
                     (let ((look-ahead (annotate-summary-lexer t)))
-                      ;; no more  input after  operator this  is wrong
-                      ;; according to the rule  we are trying to match:
+                      ;; no more input after operator this is wrong
+                      ;; according to the rule we are trying to match:
                       ;; EXPRESSION := FILE-MASK OR NOTE
                       (if (annotate-summary-query-parse-end-input-p look-ahead)
                           (error "No more input after 'or'")
                         (progn
-                          ;; copy  the string  for  note parsing  note
+                          ;; copy the string for note parsing note
                           ;; that annotate-summary-query only contains
                           ;; the substring to match the NOTE rule
                           (setf query-notes-only (concat annotate-summary-query))
-                          ;; parse all  the annotations, we get  a list
+                          ;; parse all the annotations, we get a list
                           ;; where non nil elements are the annotation
                           ;; that passes the note-filter-fn test
                           (mapcar (lambda (a)
@@ -2128,13 +2128,13 @@ Note: this function return the annotation part of the record, see
                   ;; try to parse with the rule
                   ;; EXPRESSION := FILE-MASK OR NOTE
                   (let ((look-ahead (annotate-summary-lexer t)))
-                    ;; no more  input after  operator, this  is wrong
-                    ;; according to the rule  we are trying to match:
+                    ;; no more input after operator, this is wrong
+                    ;; according to the rule we are trying to match:
                     ;; EXPRESSION := FILE-MASK AND NOTE
                     (if (annotate-summary-query-parse-end-input-p look-ahead)
                         (error "No more input after 'and'")
                       (progn
-                        ;; copy  the string  for  note parsing  note
+                        ;; copy the string for note parsing note
                         ;; that annotate-summary-query only contains
                         ;; the substring to match the NOTE rule
                         (setf query-notes-only (concat annotate-summary-query))
@@ -2147,7 +2147,7 @@ Note: this function return the annotation part of the record, see
                                                                        a)))
                                 (annotate-annotations-from-dump filtered-annotation))))))
                  (t
-                  ;; there  is something  after  the  file-mask in  the
+                  ;; there is something after the file-mask in the
                   ;; input but it is not an operator
                   (error (format "Unknown operator: %s is not in '(and, or)"
                                  (annotate-summary-query-lexer-string operator-token)))))))))))))
