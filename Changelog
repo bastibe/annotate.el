@@ -1,3 +1,21 @@
+2020-01-25 Bastian Bechtold, cage
+
+        * annotate.el (defun annotate-annotation-force-newline-policy,
+                       annotate-annotation-newline-policy-forced-p,
+		       annotate-create-annotation,
+                       annotate-lineate,
+                       annotate-summary-delete-annotation-button-pressed):
+	- mitigated bug that prevented rendering of annotation in
+          org-mode forcing 'newline' policy for annotation
+          positioning.
+          See the local function
+          'maybe-force-newline-policy' in 'annotate-create-annotation'.
+        - choosen the window that contains the current buffer when resizing the annotations
+          see variable 'current-window' in 'annotate-lineate';
+        - redraw buffer if one of its annotations is deleted
+          operating from the summary window.
+          see: 'annotate-summary-delete-annotation-button-pressed'.
+
 2020-01-22 Bastian Bechtold, cage
 
         * annotate.el (annotate--font-lock-matcher):

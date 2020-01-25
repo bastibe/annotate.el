@@ -85,3 +85,10 @@
 - 2020-01-22 V0.5.1 Bastian Bechtold, cage ::
   - fixed bug that prevented correct fontifications for major modes
     that puts overlays on the buffer's text (e.g. SLIME).
+
+- 2020-01-25 V0.5.2 Bastian Bechtold, cage ::
+  - fixed bug that prevented annotation of buffer when org-mode was used;
+  - when an user delete an annotation for a file using a button from
+    summary window force refresh of a buffer that is visiting said
+    file, if exists, to reflect the changes;
+  - fixed flowings of annotatinons when window's width is changed.
