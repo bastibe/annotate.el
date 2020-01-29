@@ -648,7 +648,8 @@ annotation plus the newline."
       ;; capture the area from the overlay to EOL (regexp match #1)
       ;; for the modification guard and the newline itself (regexp
       ;; match #2) for the annotation.
-      (re-search-forward "\\(.*\\(\n\\)\\)" limit t))))
+      (when (< (point) limit)
+        (re-search-forward "\\(.*\\(\n\\)\\)" limit t)))))
 
 (cl-defstruct annotate-group
   words
