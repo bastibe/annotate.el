@@ -639,8 +639,11 @@ annotation plus the newline."
       nil ; no match found before limit
     (progn
       ;; go to the end of the longest annotation under point
-      (let ((overlays (sort (cl-remove-if-not 'annotationp
-                                              (overlays-at (point)))
+      (let ((overlays (sort (cl-remove-if (lambda (a)
+                                            (or (not (annotationp a))
+                                                (> (overlay-end a)
+                                                   limit)))
+                                          (overlays-at (point)))
                             (lambda (x y)
                               (> (overlay-end x) (overlay-end y))))))
         (when overlays
