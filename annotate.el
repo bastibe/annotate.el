@@ -640,19 +640,19 @@ annotation plus the newline."
     (progn
       ;; go to the end of the longest annotation under point
       (let ((overlays (sort (cl-remove-if (lambda (a)
-                                            (or (not (annotationp a))
-                                                (> (overlay-end a)
-                                                   limit)))
+                                            (not (and (annotationp a)
+                                                      (< (overlay-end a)
+                                                         limit))))
                                           (overlays-at (point)))
                             (lambda (x y)
-                              (> (overlay-end x) (overlay-end y))))))
+                              (> (overlay-end x)
+                                 (overlay-end y))))))
         (when overlays
           (goto-char (overlay-end (car overlays)))))
       ;; capture the area from the overlay to EOL (regexp match #1)
       ;; for the modification guard and the newline itself (regexp
       ;; match #2) for the annotation.
-      (when (< (point) limit)
-        (re-search-forward "\\(.*\\(\n\\)\\)" limit t)))))
+      (re-search-forward "\\(.*\\(\n\\)\\)" limit t))))
 
 (cl-defstruct annotate-group
   words
