@@ -1275,19 +1275,18 @@ annotation."
 (defun annotate-clear-annotations ()
   "Clear all current annotations."
   (interactive)
-  (let ((overlays
-         (overlays-in 0 (buffer-size)))
-        (modified-p (buffer-modified-p)))
+  (let ((overlays   (overlays-in 0 (buffer-size)))
+        (modifiedp (buffer-modified-p)))
     ;; only remove annotations, not all overlays
     (setq overlays (cl-remove-if
                     (lambda (ov) (not (annotationp ov)))
                     overlays))
     (dolist (ov overlays)
-      (annotate--remove-annotation-property
-       (overlay-start ov)
-       (overlay-end ov))
-      (delete-overlay ov))
-    (set-buffer-modified-p modified-p)))
+      (annotate--remove-annotation-property (overlay-start ov)
+                                            (overlay-end ov))
+      (delete-overlay ov)
+      (setf modifiedp t)
+    (set-buffer-modified-p modifiedp))))
 
 (defun annotate-string-empty-p (a)
   "Is the arg an empty string or null?"
