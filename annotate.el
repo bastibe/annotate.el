@@ -1458,7 +1458,7 @@ The searched interval can be customized setting the variable:
   "Return the previous annotation before point or nil if no annotation
 was found"
   (let* ((overlay-pos            (previous-overlay-change point))
-         (all-overlays           (overlays-at overlay-pos))
+         (all-overlays           (overlays-at (1- overlay-pos)))
          (sorted-overlays        (sort all-overlays
                                        (lambda (a b)
                                          (> (overlay-end a)
