@@ -1446,19 +1446,7 @@ NOTE this assumes that annotations never overlaps"
   (let ((all-annotations (annotate-annotations-at pos)))
     (if all-annotations
         (annotate-previous-annotation-starts (overlay-ends (cl-first all-annotations)))
-      (previous-annotation-ends pos)))))
-
-(defun annotate-next-annotation-starts (point)
-  "Return the previous annotation that starts after point or nil if no annotation
-was found"
-  ;; NOTE this assumes that annotations never overlaps
-  (let ((all-annotations (annotate-annotations-at point)))
-    (if all-annotations
-        (annotate-next-annotation-starts (overlay-end (cl-first all-annotations)))
-      (let* ((overlay-pos             (next-overlay-change point))
-             (all-annotations-at-pos  (annotate-annotations-at overlay-pos))
-             (annotation              (cl-first all-annotations-at-pos)))
-        annotation))))
+      (next-annotation-starts pos)))))
 
 (defun annotate-symbol-strictly-at-point ()
  "Return non nil if a symbol is at char immediately following
