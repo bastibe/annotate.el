@@ -134,7 +134,7 @@ text lines and annotation text)."
   :type 'string
   :group 'annotate)
 
-(defcustom annotate-blacklist-major-mode '(org-mode)
+(defcustom annotate-blacklist-major-mode '()
   "Prevent loading of annotate-mode When the visited file's
 major mode is a member of this list (space separated entries)."
   :type  '(repeat symbol)
