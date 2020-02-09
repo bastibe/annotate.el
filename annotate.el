@@ -1428,7 +1428,7 @@ NOTE this assumes that annotations never overlaps"
                      nil)))))
   (let ((all-annotations (annotate-annotations-at pos)))
     (if all-annotations
-        (annotate-previous-annotation-ends (1- (overlay-start (cl-first all-annotations))))
+        (previous-annotation-ends (1- (overlay-start (cl-first all-annotations))))
       (previous-annotation-ends pos)))))
 
 (defun annotate-next-annotation-starts (pos)
@@ -1445,7 +1445,7 @@ NOTE this assumes that annotations never overlaps"
                      nil)))))
   (let ((all-annotations (annotate-annotations-at pos)))
     (if all-annotations
-        (annotate-previous-annotation-starts (overlay-ends (cl-first all-annotations)))
+        (next-annotation-starts (overlay-ends (cl-first all-annotations)))
       (next-annotation-starts pos)))))
 
 (defun annotate-symbol-strictly-at-point ()
