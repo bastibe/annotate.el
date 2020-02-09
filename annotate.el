@@ -346,19 +346,26 @@ modified (for example a newline is inserted)."
 (defun annotate-annotate ()
   "Create, modify, or delete annotation."
   (interactive)
-  (let ((overlay (car (overlays-at (point)))))
-    (cond
-     ((and (overlayp overlay)
-           (overlay-get overlay 'annotation))
-      (annotate-change-annotation (point))
-      (font-lock-fontify-buffer nil))
-     (t
-      (cl-destructuring-bind (start end)
-          (annotate-bounds)
-        (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
-          (annotate-create-annotation start end annotation-text nil)
-          (font-lock-fontify-block 1)))))
-    (set-buffer-modified-p t)))
+  (cl-labels ((create-new-annotation ()
+               (cl-destructuring-bind (start end)
+                   (annotate-bounds)
+                 (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
+                   (annotate-create-annotation start end annotation-text nil)))))
+    (let ((overlay (car (overlays-at (point)))))
+      (cond
+       ((use-region-p)
+        (let ((annotations (cl-remove-if-not #'annotationp
+                                             (overlays-in (region-beginning)
+                                                          (region-end)))))
+          (if annotations
+              (message "Error: the region overlaps with at least an already existings annotation")
+            (create-new-annotation))))
+       ((annotationp overlay)
+        (annotate-change-annotation (point))
+        (font-lock-fontify-buffer nil))
+       (t
+        (create-new-annotation)))
+      (set-buffer-modified-p t))))
 
 (defun annotate-next-annotation ()
   "Move point to the next annotation."
