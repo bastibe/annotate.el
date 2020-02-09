@@ -358,19 +358,26 @@ modified (for example a newline is inserted)."
 (defun annotate-annotate ()
   "Create, modify, or delete annotation."
   (interactive)
-  (let ((overlay (car (overlays-at (point)))))
-    (cond
-     ((and (overlayp overlay)
-           (overlay-get overlay 'annotation))
-      (annotate-change-annotation (point))
-      (font-lock-fontify-buffer nil))
-     (t
-      (cl-destructuring-bind (start end)
-          (annotate-bounds)
-        (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
-          (annotate-create-annotation start end annotation-text nil)
-          (font-lock-fontify-block 1)))))
-    (set-buffer-modified-p t)))
+  (cl-labels ((create-new-annotation ()
+               (cl-destructuring-bind (start end)
+                   (annotate-bounds)
+                 (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
+                   (annotate-create-annotation start end annotation-text nil)))))
+    (let ((overlay (car (overlays-at (point)))))
+      (cond
+       ((use-region-p)
+        (let ((annotations (cl-remove-if-not #'annotationp
+                                             (overlays-in (region-beginning)
+                                                          (region-end)))))
+          (if annotations
+              (message "Error: the region overlaps with at least an already existings annotation")
+            (create-new-annotation))))
+       ((annotationp overlay)
+        (annotate-change-annotation (point))
+        (font-lock-fontify-buffer nil))
+       (t
+        (create-new-annotation)))
+      (set-buffer-modified-p t))))
 
 (defun annotate-next-annotation ()
   "Move point to the next annotation."
@@ -651,10 +658,14 @@ annotation plus the newline."
       nil ; no match found before limit
     (progn
       ;; go to the end of the longest annotation under point
-      (let ((overlays (sort (cl-remove-if-not 'annotationp
-                                              (overlays-at (point)))
+      (let ((overlays (sort (cl-remove-if (lambda (a)
+                                            (not (and (annotationp a)
+                                                      (< (overlay-end a)
+                                                         limit))))
+                                          (overlays-at (point)))
                             (lambda (x y)
-                              (> (overlay-end x) (overlay-end y))))))
+                              (> (overlay-end x)
+                                 (overlay-end y))))))
         (when overlays
           (goto-char (overlay-end (car overlays)))))
       ;; capture the area from the overlay to EOL (regexp match #1)
@@ -1278,19 +1289,18 @@ annotation."
 (defun annotate-clear-annotations ()
   "Clear all current annotations."
   (interactive)
-  (let ((overlays
-         (overlays-in 0 (buffer-size)))
-        (modified-p (buffer-modified-p)))
+  (let ((overlays   (overlays-in 0 (buffer-size)))
+        (modifiedp (buffer-modified-p)))
     ;; only remove annotations, not all overlays
     (setq overlays (cl-remove-if
                     (lambda (ov) (not (annotationp ov)))
                     overlays))
     (dolist (ov overlays)
-      (annotate--remove-annotation-property
-       (overlay-start ov)
-       (overlay-end ov))
-      (delete-overlay ov))
-    (set-buffer-modified-p modified-p)))
+      (annotate--remove-annotation-property (overlay-start ov)
+                                            (overlay-end ov))
+      (delete-overlay ov)
+      (setf modifiedp t)
+    (set-buffer-modified-p modifiedp))))
 
 (defun annotate-string-empty-p (a)
   "Is the arg an empty string or null?"
@@ -1444,26 +1454,111 @@ The searched interval can be customized setting the variable:
           (concat " \n" (make-string annotate-annotation-column ? ))
         (make-string prefix-length ? )))))
 
+(defun annotate-previous-annotation-change (point)
+  "Return the previous annotation before point or nil if no annotation
+was found"
+  (let* ((overlay-pos            (previous-overlay-change point))
+         (all-overlays           (overlays-at overlay-pos))
+         (sorted-overlays        (sort all-overlays
+                                       (lambda (a b)
+                                         (> (overlay-end a)
+                                            (overlay-end b)))))
+         ;; TODO checks if is correct that could contains 0 or 1 annotation
+         (annotations            (cl-remove-if-not #'annotationp
+                                                   all-overlays))
+         (overlay-most-right-end (and sorted-overlays
+                                      (overlay-end (cl-first sorted-overlays))))
+         (first-overlay          (and sorted-overlays
+                                      (cl-first sorted-overlays))))
+    (cond
+     (annotations
+      (cl-first annotations))
+     ((= (point-min)
+         overlay-pos)
+      nil)
+     (first-overlay
+      (annotate-previous-annotation-change (1- (overlay-start first-overlay)))))))
+
+(defun annotate-next-annotation-change (point)
+ "Return the next annotation after point or nil if no annotation
+was found"
+ (let* ((overlay-pos  (next-overlay-change point))
+         (all-overlays (overlays-at overlay-pos))
+         ;; TODO checks if is correct that could contains 0 or 1 annotation
+         (sorted-overlays       (sort all-overlays
+                                      (lambda (a b)
+                                        (< (overlay-start a)
+                                           (overlay-start b)))))
+         (annotations           (cl-remove-if-not #'annotationp
+                                                  all-overlays))
+         (overlay-most-left-end (and sorted-overlays
+                                     (overlay-end (cl-first sorted-overlays))))
+
+         (first-overlay         (and sorted-overlays
+                                     (cl-first sorted-overlays))))
+    (cond
+     (annotations
+      (cl-first annotations))
+     ((= (point-max)
+         overlay-pos)
+      nil)
+     (first-overlay
+      (annotate-previous-annotation-change (overlay-end first-overlay))))))
+
+(defun annotate-symbol-strictly-at-point ()
+ "Return non nil if a symbol is at char immediately following
+ the point. This is needed as `thing-at-point' family of
+ functions returns non nil if the thing (a symbol in this case)
+ is around the point, according to the documentation."
+  (cl-labels ((after-point ()
+               (save-excursion
+                 (goto-char (1+ (point)))
+                 (bounds-of-thing-at-point 'symbol))))
+    (let ((sym-on-point     (bounds-of-thing-at-point 'symbol))
+          (sym-after-point  (after-point)))
+      (and  sym-on-point
+            sym-after-point
+            (cl-equalp sym-on-point
+                       sym-after-point)))))
+
 (defun annotate-bounds ()
   "The bounds of the region or whatever is at point."
-  (list (cond
-         ((use-region-p)
-          (region-beginning))
-         ((thing-at-point 'symbol)
-          (car (bounds-of-thing-at-point 'symbol)))
-         (t
-          (point)))
-        (cond
-         ((use-region-p)
-          (if (and (char-before (region-end))
-                   (char-equal (char-before (region-end))
-                               ?\n))
-              (1- (region-end))
-            (region-end)))
-         ((thing-at-point 'symbol)
-          (cdr (bounds-of-thing-at-point 'symbol)))
-         (t
-          (1+ (point))))))
+  (cl-labels ((left-ends ()
+               (cond
+                ((use-region-p)
+                 (region-beginning))
+                ((annotate-symbol-strictly-at-point)
+                 (let* ((annotation-before (annotate-previous-annotation-change (point)))
+                        (boundaries        (bounds-of-thing-at-point 'symbol))
+                        (symbol-start      (car boundaries))
+                        (annotation-end    (if annotation-before
+                                               (overlay-end annotation-before)
+                                             -1)))
+                   (max symbol-start
+                        annotation-end)))
+                (t
+                 (point))))
+              (right-ends ()
+               (cond
+                ((use-region-p)
+                 (if (and (char-before (region-end))
+                          (char-equal (char-before (region-end))
+                                      ?\n))
+                     (1- (region-end))
+                   (region-end)))
+                ((annotate-symbol-strictly-at-point)
+                 (let* ((annotation-after (annotate-next-annotation-change (point)))
+                        (boundaries       (bounds-of-thing-at-point 'symbol))
+                        (symbol-end       (cdr boundaries))
+                        (annotation-start (if annotation-after
+                                              (overlay-start annotation-after)
+                                            (1+ symbol-end))))
+                       (min symbol-end
+                            annotation-start)))
+                (t
+                 (1+ (point))))))
+    (list (left-ends)
+          (right-ends))))
 
 (defun annotate-make-annotation (beginning ending annotation annotated-text)
   (list beginning ending annotation annotated-text))
