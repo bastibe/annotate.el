@@ -85,3 +85,11 @@
 - 2020-01-22 V0.5.1 Bastian Bechtold, cage ::
   - fixed bug that prevented correct fontifications for major modes
     that puts overlays on the buffer's text (e.g. SLIME).
+
+- 2020-02-10 V0.5.2 Bastian Bechtold, cage ::
+
+  - fixed bugs that makes some annotations overlaps;
+  - fixed some bugs in fontifications of multiline annotation;
+  - when the only user interactions, before saving, with a visited file was
+    the call of 'annotate-clear-annotations' the annotations
+    will shows again at reload, this should be fixed now.
