@@ -1411,42 +1411,44 @@ The searched interval can be customized setting the variable:
         (make-string prefix-length ? )))))
 
 (defun annotate-annotations-at (pos)
+  "Returns the annotations (overlay where (annotationp overlay) -> t)
+   at positions pos or nil if no annotations exists at pos"
   (cl-remove-if-not #'annotationp
                     (overlays-at pos)))
 
 (defun annotate-previous-annotation-ends (pos)
-  "Return the previous annotation that ends before pos or nil if no annotation
+  "Returns the previous annotation that ends before pos or nil if no annotation
 was found.
 NOTE this assumes that annotations never overlaps"
   (cl-labels ((previous-annotation-ends (start)
-               (let ((all-annotations (annotate-annotations-at start)))
-                 (if all-annotations
-                     (cl-first all-annotations)
-                   (if (> (1- start)
-                          (point-min))
-                       (previous-annotation-ends (1- start))
-                     nil)))))
-  (let ((all-annotations (annotate-annotations-at pos)))
-    (if all-annotations
-        (previous-annotation-ends (1- (overlay-start (cl-first all-annotations))))
-      (previous-annotation-ends pos)))))
+                (let ((all-annotations (annotate-annotations-at start)))
+                  (while (and (>= (1- start)
+                                  (point-min))
+                              (null all-annotations))
+                    (setf start (1- start))
+                    (setf all-annotations (annotate-annotations-at (1- start))))
+                  all-annotations)))
+    (let ((all-annotations (annotate-annotations-at pos)))
+      (if all-annotations
+          (previous-annotation-ends (1- (overlay-start (cl-first all-annotations))))
+        (previous-annotation-ends pos)))))
 
 (defun annotate-next-annotation-starts (pos)
-  "Return the previous annotation that ends before pos or nil if no annotation
+  "Returns the previous annotation that ends before pos or nil if no annotation
 was found.
 NOTE this assumes that annotations never overlaps"
-  (cl-labels ((next-annotation-starts (start)
-               (let ((all-annotations (annotate-annotations-at start)))
-                 (if all-annotations
-                     (cl-first all-annotations)
-                   (if (> (1+ start)
-                          (point-max))
-                       (previous-annotation-ends (1+ start))
-                     nil)))))
-  (let ((all-annotations (annotate-annotations-at pos)))
-    (if all-annotations
-        (next-annotation-starts (overlay-ends (cl-first all-annotations)))
-      (next-annotation-starts pos)))))
+  (cl-labels ((next-annotation-ends (start)
+                (let ((all-annotations (annotate-annotations-at start)))
+                  (while (and (<= (1+ start)
+                                  (point-max))
+                              (null all-annotations))
+                    (setf start (1+ start))
+                    (setf all-annotations (annotate-annotations-at (1+ start))))
+                  all-annotations)))
+    (let ((all-annotations (annotate-annotations-at pos)))
+      (if all-annotations
+          (next-annotation-ends (overlay-end (cl-first all-annotations)))
+        (next-annotation-ends pos)))))
 
 (defun annotate-symbol-strictly-at-point ()
  "Return non nil if a symbol is at char immediately following
