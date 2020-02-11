@@ -1492,27 +1492,31 @@ The searched interval can be customized setting the variable:
           (concat " \n" (make-string annotate-annotation-column ? ))
         (make-string prefix-length ? )))))
 
-(defun annotate-annotations-at (pos)
+(defun annotate-annotation-at (pos)
   "Returns the annotations (overlay where (annotationp overlay) -> t)
-   at positions pos or nil if no annotations exists at pos"
-  (cl-remove-if-not #'annotationp
-                    (overlays-at pos)))
+at positions pos or nil if no annotations exists at pos.
+
+NOTE this assumes that annotations never overlaps so the list of
+all annotations can contains only one element maximum."
+  (let ((all (cl-remove-if-not #'annotationp
+                               (overlays-at pos))))
+    (cl-first all)))
 
 (defun annotate-previous-annotation-ends (pos)
   "Returns the previous annotation that ends before pos or nil if no annotation
 was found.
 NOTE this assumes that annotations never overlaps"
   (cl-labels ((previous-annotation-ends (start)
-                (let ((all-annotations (annotate-annotations-at start)))
+                (let ((annotation (annotate-annotation-at start)))
                   (while (and (>= (1- start)
                                   (point-min))
-                              (null all-annotations))
+                              (null annotation))
                     (setf start (1- start))
-                    (setf all-annotations (annotate-annotations-at (1- start))))
-                  all-annotations)))
-    (let ((all-annotations (annotate-annotations-at pos)))
-      (if all-annotations
-          (previous-annotation-ends (1- (overlay-start (cl-first all-annotations))))
+                    (setf annotation (annotate-annotation-at (1- start))))
+                  annotation)))
+    (let ((annotation (annotate-annotation-at pos)))
+      (if annotation
+          (previous-annotation-ends (1- (overlay-start annotation)))
         (previous-annotation-ends pos)))))
 
 (defun annotate-next-annotation-starts (pos)
@@ -1520,16 +1524,16 @@ NOTE this assumes that annotations never overlaps"
 was found.
 NOTE this assumes that annotations never overlaps"
   (cl-labels ((next-annotation-ends (start)
-                (let ((all-annotations (annotate-annotations-at start)))
+                (let ((annotation (annotate-annotation-at start)))
                   (while (and (<= (1+ start)
                                   (point-max))
-                              (null all-annotations))
+                              (null annotation))
                     (setf start (1+ start))
-                    (setf all-annotations (annotate-annotations-at (1+ start))))
-                  all-annotations)))
-    (let ((all-annotations (annotate-annotations-at pos)))
-      (if all-annotations
-          (next-annotation-ends (overlay-end (cl-first all-annotations)))
+                    (setf annotation (annotate-annotation-at (1+ start))))
+                  annotation)))
+    (let ((annotation (annotate-annotation-at pos)))
+      (if annotation
+          (next-annotation-ends (overlay-end annotation))
         (next-annotation-ends pos)))))
 
 (defun annotate-symbol-strictly-at-point ()
