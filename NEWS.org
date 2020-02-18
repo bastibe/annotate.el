@@ -86,7 +86,15 @@
   - fixed bug that prevented correct fontifications for major modes
     that puts overlays on the buffer's text (e.g. SLIME).
 
-- 2020-01-25 V0.5.2 Bastian Bechtold, cage ::
+- 2020-02-10 V0.5.2 Bastian Bechtold, cage ::
+
+  - fixed bugs that makes some annotations overlaps;
+  - fixed some bugs in fontifications of multiline annotation;
+  - when the only user interactions, before saving, with a visited file was
+    the call of 'annotate-clear-annotations' the annotations
+    will shows again at reload, this should be fixed now.
+
+- 2020-02-18 V0.5.3 Bastian Bechtold, cage ::
   - fixed bug that prevented annotation of buffer when org-mode was used;
   - when an user delete an annotation for a file using a button from
     summary window force refresh of a buffer that is visiting said

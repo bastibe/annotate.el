@@ -114,6 +114,9 @@ as comments into the current buffer, like this:
    incompatibility with the way source blocks are highlighted and the
    way annotations are displayed.
 
+   Annotating a region that contains newline(s) can results in various
+   issues.
+
    Deleting the first  character of an annotated text  will remove the
    annotation (this turned out to be useful, though).
 
