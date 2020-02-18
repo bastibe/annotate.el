@@ -46,6 +46,9 @@
 ;; the previous annotation. Use M-x annotate-export-annotations to
 ;; save annotations as a no-difference diff file.
 
+;; Important note: annotation can not overlaps and newline character
+;; can not be annotated.
+
 ;;; Code:
 (require 'cl-lib)
 
@@ -376,42 +379,49 @@ modified (for example a newline is inserted)."
         (create-new-annotation)))
       (set-buffer-modified-p t))))
 
-(defun annotate-move-next-annotation ()
+(cl-defun annotate-move-next-annotation (&key (startingp t))
   "Move point to the next annotation."
   (interactive)
-  ;; get all following overlays
-  (let ((overlays
-         (overlays-in (point) (buffer-size))))
-    ;; skip overlays not created by annotate.el
-    (setq overlays (cl-remove-if (lambda (ov) (not (annotationp ov)))
-                    overlays))
-    ;; skip properties under point
-    (dolist (current (overlays-at (point)))
-      (setq overlays (remove current overlays)))
-    ;; sort overlays ascending
-    (setq overlays (sort overlays (lambda (x y)
-                                    (< (overlay-start x) (overlay-start y)))))
-    (if (null overlays)
-        (message "No further annotations.")
-      ;; jump to first overlay list
-      (goto-char (overlay-start (nth 0 overlays))))))
+  (let ((annotation (annotate-annotation-at (point))))
+    (if startingp
+        (if annotation
+            (let* ((chain-last          (annotate-chain-last annotation))
+                   (annotation-last-end (overlay-end chain-last))
+                   (look-ahead          (annotate-next-annotation-starts annotation-last-end)))
+              (if look-ahead
+                  (progn
+                    (goto-char annotation-last-end)
+                    (annotate-move-next-annotation :startingp nil))
+                (message "This is the last annotation.")))
+          (let ((next-annotation (annotate-next-annotation-starts (point))))
+            (when next-annotation
+              (goto-char (overlay-start next-annotation)))))
+      (if annotation
+          (let ((chain-first (annotate-chain-first annotation)))
+            (goto-char (overlay-start chain-first)))
+        (annotate-move-next-annotation :startingp t)))))
 
-(defun annotate-move-previous-annotation ()
+(cl-defun annotate-move-previous-annotation (&key (startingp t))
   "Move point to the previous annotation."
   (interactive)
-  ;; get all previous overlays
-  (let ((overlays
-         (overlays-in 0 (point))))
-    ;; skip overlays not created by annotate.el
-    (setq overlays (cl-remove-if (lambda (ov) (not (annotationp ov)))
-                                 overlays))
-    ;; sort overlays descending
-    (setq overlays (sort overlays (lambda (x y)
-                                    (> (overlay-start x) (overlay-start y)))))
-    (if (null overlays)
-        (message "No previous annotations.")
-      ;; jump to first overlay in list
-      (goto-char (overlay-start (nth 0 overlays))))))
+  (let ((annotation (annotate-annotation-at (point))))
+    (if startingp
+        (if annotation
+            (let* ((chain-first            (annotate-chain-first annotation))
+                   (annotation-first-start (overlay-start chain-first))
+                   (look-behind            (annotate-previous-annotation-ends annotation-first-start)))
+              (if look-behind
+                  (progn
+                    (goto-char (1- annotation-first-start))
+                    (annotate-move-previous-annotation :startingp nil))
+                (message "This is the first annotation.")))
+          (let ((previous-annotation (annotate-previous-annotation-ends (point))))
+            (when previous-annotation
+              (goto-char (1- (overlay-end previous-annotation))))))
+      (if annotation
+          (let ((chain-last (annotate-chain-last annotation)))
+            (goto-char (overlay-end chain-last)))
+        (annotate-move-previous-annotation :startingp t)))))
 
 (defun annotate-actual-comment-start ()
   "String for comment start related to current buffer's major
@@ -867,7 +877,7 @@ to 'maximum-width'."
                   (overlay-put ov
                                'face
                                (overlay-get first-in-chain 'face))))
-            (when (annotate-chain-latest-p ov)
+            (when (annotate-chain-last-p ov)
               (when position-new-line-p
                 (setf prefix-first " \n"))
               (dolist (l multiline-annotation)
@@ -1301,25 +1311,35 @@ annotation."
       (string= "" a)))
 
 (cl-defmacro annotate-ensure-annotation ((overlay) &body body)
+  "Runs body only if overlay is an annotation (i.e. passes annotationp)"
   `(and (annotationp ,overlay)
         (progn ,@body)))
 
 (defun annotate-annotation-prop-get (annotation property)
+  "Get  property  `property'  from  annotation  `annotation'.  If
+`annotation' does not pass `annotatonp' returns nil"
   (annotate-ensure-annotation (annotation)
     (overlay-get annotation property)))
 
 (defun annotate-annotation-get-chain-position (annotation)
+  "Get property's value that  define position of this annootation
+in a chain of annotations"
   (annotate-annotation-prop-get annotation annotate-prop-chain-position))
 
 (defun annotate-annotation-chain-position (annotation pos)
+  "Set property's value that  define position of this annootation
+in a chain of annotations"
   (overlay-put annotation annotate-prop-chain-position pos))
 
-(defun annotate-chain-latest-p (annotation)
+(defun annotate-chain-last-p (annotation)
+  "Non nil if this annotation is the last element of a chain of annotations"
   (let ((value (annotate-annotation-get-chain-position annotation)))
     (and value
          (cl-equalp value annotate-prop-chain-pos-marker-last))))
 
 (defun annotate-chain-first-p (annotation)
+  "Non nil if  this annotation is the first element,  or the only
+of a chain of annotations"
   (let* ((chain-pos           (annotate-annotation-get-chain-position annotation))
          (annotation-start    (overlay-start annotation))
          (previous-annotation (annotate-previous-annotation-ends annotation-start))
@@ -1333,6 +1353,7 @@ annotation."
                     annotate-prop-chain-pos-marker-last))))))
 
 (defun annotate-chain-first (annotation)
+  "Find first element of the chain where `annotation' belongs"
   (cond
    ((null annotation)
     nil)
@@ -1343,12 +1364,57 @@ annotation."
            (previous-annotation (annotate-previous-annotation-ends annotation-start)))
       (annotate-chain-first previous-annotation)))))
 
+(defun annotate-chain-last (annotation)
+  "Find last element of the chain where `annotation' belongs"
+  (cond
+   ((null annotation)
+    nil)
+   ((annotate-chain-last-p annotation)
+    annotation)
+   (t
+    (let* ((annotation-end  (overlay-end annotation))
+           (next-annotation (annotate-next-annotation-starts annotation-end)))
+      (annotate-chain-last next-annotation)))))
+
 (defun annotate-chain-first-at (pos)
-  (let* ((all-overlays (overlays-at pos))
-         (annotation   (cl-first (cl-remove-if-not #'annotationp
-                                                   all-overlays))))
+  "Find first element of the chain of annotation that overlap point `pos'"
+  (let ((annotation (annotate-annotation-at pos)))
     (annotate-ensure-annotation (annotation)
       (annotate-chain-first annotation))))
+
+(defun annotate-chain-last-at (pos)
+  "Find last element of the chain of annotation that overlap point `pos'"
+  (let ((annotation (annotate-annotation-at pos)))
+    (annotate-ensure-annotation (annotation)
+      (annotate-chain-last annotation))))
+
+(defun annotate-find-chain (annotation)
+  "Find all annotation that are parts of the chain where `annotation' belongs"
+  (annotate-ensure-annotation (annotation)
+    (cl-labels ((find-next-annotation (pos)
+                 (annotate-annotation-at (next-overlay-change pos))))
+      (let* ((chain-first      (annotate-chain-first annotation))
+             (results          (list chain-first))
+             (chain-last       (annotate-chain-last  annotation))
+             (start-pos        (overlay-end chain-first))
+             (next-annotation  (find-next-annotation start-pos)))
+        (if (eq chain-first
+                chain-last)
+            results
+          (while (not (eq next-annotation
+                          chain-last))
+            (if next-annotation
+                (progn
+                  (cl-pushnew next-annotation results)
+                  (setf start-pos       (overlay-end next-annotation)))
+              (cl-incf start-pos))
+            (setf next-annotation (find-next-annotation start-pos)))
+          (push chain-last results)
+          (reverse results))))))
+
+(defun annotate-annotations-chain-at (pos)
+  "Find all annotation that are parts of the chain that overlaps at `point'"
+  (annotate-find-chain (annotate-annotation-at pos)))
 
 (defun annotate-create-annotation (start end annotation-text annotated-text)
   "Create a new annotation for selected region.
@@ -1462,24 +1528,31 @@ The searched interval can be customized setting the variable:
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
-  (let* ((highlight (car (overlays-at pos)))
-         (annotation (read-from-minibuffer
-                      annotate-annotation-prompt
-                      (overlay-get highlight 'annotation))))
+  (let* ((highlight       (annotate-annotation-at pos))
+         (annotation-text (read-from-minibuffer annotate-annotation-prompt
+                                                (overlay-get highlight 'annotation))))
+    (cl-labels ((delete (annotation)
+                 (let ((chain (annotate-find-chain annotation)))
+                   (dolist (single-element chain)
+                     (goto-char (overlay-end single-element))
+                     (move-end-of-line nil)
+                      (annotate--remove-annotation-property (overlay-start single-element)
+                                                            (overlay-end   single-element))
+                      (delete-overlay single-element))))
+                (change (annotation)
+                  (let ((chain (annotate-find-chain annotation)))
+                    (dolist (single-element chain)
+                        (overlay-put single-element 'annotation annotation-text)))))
     (save-excursion
-      (goto-char (overlay-end highlight))
-      (move-end-of-line nil)
       (cond
        ;; annotation was cancelled:
-       ((null annotation))
+       ((null annotation-text))
        ;; annotation was erased:
-       ((string= "" annotation)
-        (annotate--remove-annotation-property
-         (overlay-start highlight)
-         (overlay-end highlight))
-        (delete-overlay highlight))
+       ((string= "" annotation-text)
+        (delete highlight))
        ;; annotation was changed:
-       (t (overlay-put highlight 'annotation annotation))))))
+       (t
+        (change highlight)))))))
 
 (defun annotate-make-prefix ()
   "An empty string from the end of the line upto the annotation."
@@ -1512,7 +1585,7 @@ NOTE this assumes that annotations never overlaps"
                                   (point-min))
                               (null annotation))
                     (setf start (1- start))
-                    (setf annotation (annotate-annotation-at (1- start))))
+                    (setf annotation (annotate-annotation-at start)))
                   annotation)))
     (let ((annotation (annotate-annotation-at pos)))
       (if annotation
@@ -1529,7 +1602,7 @@ NOTE this assumes that annotations never overlaps"
                                   (point-max))
                               (null annotation))
                     (setf start (1+ start))
-                    (setf annotation (annotate-annotation-at (1+ start))))
+                    (setf annotation (annotate-annotation-at start)))
                   annotation)))
     (let ((annotation (annotate-annotation-at pos)))
       (if annotation
@@ -1596,19 +1669,25 @@ NOTE this assumes that annotations never overlaps"
 
 (defun annotate-describe-annotations ()
   "Return a list of all annotations in the current buffer."
-  (let ((overlays (overlays-in 0 (buffer-size))))
-    ;; skip non-annotation overlays
-    (setq overlays
-          (cl-remove-if (lambda (ov) (not (annotationp ov)))
-                        overlays))
-    (mapcar (lambda (ov)
-              (let ((from (overlay-start ov))
-                    (to   (overlay-end ov)))
-                (list from
-                      to
-                      (overlay-get ov 'annotation)
-                      (buffer-substring-no-properties from to))))
-            overlays)))
+  (let ((all-annotations (cl-remove-if-not #'annotationp (overlays-in 0 (buffer-size))))
+        (chain-visited   ()))
+    (cl-remove-if #'null
+                  (mapcar (lambda (annotation)
+                            (let* ((chain       (annotate-find-chain annotation))
+                                   (chain-first (annotate-chain-first annotation))
+                                   (chain-last  (annotate-chain-last annotation))
+                                   (from        (overlay-start chain-first))
+                                   (to          (overlay-end   chain-last)))
+                              (when (not (cl-find-if (lambda (a)
+                                                       (eq (cl-first chain)
+                                                           (cl-first a)))
+                                                     chain-visited))
+                                (push chain chain-visited)
+                                (list from
+                                      to
+                                      (overlay-get annotation 'annotation)
+                                      (buffer-substring-no-properties from to)))))
+                          all-annotations))))
 
 (defun annotate-info-root-dir-p (filename)
   "Is the name of this file equals to the info root node?"
