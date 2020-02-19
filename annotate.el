@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.5.1
+;; Version: 0.5.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -52,7 +52,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.5.1"
+  :version "0.5.2"
   :group 'text)
 
 ;;;###autoload
@@ -346,19 +346,26 @@ modified (for example a newline is inserted)."
 (defun annotate-annotate ()
   "Create, modify, or delete annotation."
   (interactive)
-  (let ((overlay (car (overlays-at (point)))))
-    (cond
-     ((and (overlayp overlay)
-           (overlay-get overlay 'annotation))
-      (annotate-change-annotation (point))
-      (font-lock-fontify-buffer nil))
-     (t
-      (cl-destructuring-bind (start end)
-          (annotate-bounds)
-        (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
-          (annotate-create-annotation start end annotation-text nil)
-          (font-lock-fontify-block 1)))))
-    (set-buffer-modified-p t)))
+  (cl-labels ((create-new-annotation ()
+               (cl-destructuring-bind (start end)
+                   (annotate-bounds)
+                 (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
+                   (annotate-create-annotation start end annotation-text nil)))))
+    (let ((overlay (car (overlays-at (point)))))
+      (cond
+       ((use-region-p)
+        (let ((annotations (cl-remove-if-not #'annotationp
+                                             (overlays-in (region-beginning)
+                                                          (region-end)))))
+          (if annotations
+              (message "Error: the region overlaps with at least an already existings annotation")
+            (create-new-annotation))))
+       ((annotationp overlay)
+        (annotate-change-annotation (point))
+        (font-lock-fontify-buffer nil))
+       (t
+        (create-new-annotation)))
+      (set-buffer-modified-p t))))
 
 (defun annotate-next-annotation ()
   "Move point to the next annotation."
@@ -639,10 +646,14 @@ annotation plus the newline."
       nil ; no match found before limit
     (progn
       ;; go to the end of the longest annotation under point
-      (let ((overlays (sort (cl-remove-if-not 'annotationp
-                                              (overlays-at (point)))
+      (let ((overlays (sort (cl-remove-if (lambda (a)
+                                            (not (and (annotationp a)
+                                                      (< (overlay-end a)
+                                                         limit))))
+                                          (overlays-at (point)))
                             (lambda (x y)
-                              (> (overlay-end x) (overlay-end y))))))
+                              (> (overlay-end x)
+                                 (overlay-end y))))))
         (when overlays
           (goto-char (overlay-end (car overlays)))))
       ;; capture the area from the overlay to EOL (regexp match #1)
@@ -1264,19 +1275,18 @@ annotation."
 (defun annotate-clear-annotations ()
   "Clear all current annotations."
   (interactive)
-  (let ((overlays
-         (overlays-in 0 (buffer-size)))
-        (modified-p (buffer-modified-p)))
+  (let ((overlays   (overlays-in 0 (buffer-size)))
+        (modifiedp (buffer-modified-p)))
     ;; only remove annotations, not all overlays
     (setq overlays (cl-remove-if
                     (lambda (ov) (not (annotationp ov)))
                     overlays))
     (dolist (ov overlays)
-      (annotate--remove-annotation-property
-       (overlay-start ov)
-       (overlay-end ov))
-      (delete-overlay ov))
-    (set-buffer-modified-p modified-p)))
+      (annotate--remove-annotation-property (overlay-start ov)
+                                            (overlay-end ov))
+      (delete-overlay ov)
+      (setf modifiedp t)
+    (set-buffer-modified-p modifiedp))))
 
 (defun annotate-string-empty-p (a)
   "Is the arg an empty string or null?"
@@ -1400,28 +1410,108 @@ The searched interval can be customized setting the variable:
           (concat " \n" (make-string annotate-annotation-column ? ))
         (make-string prefix-length ? )))))
 
+(defun annotate-annotation-at (pos)
+  "Returns the annotations (overlay where (annotationp overlay) -> t)
+at positions pos or nil if no annotations exists at pos.
+
+NOTE this assumes that annotations never overlaps so the list of
+all annotations can contains only one element maximum."
+  (let ((all (cl-remove-if-not #'annotationp
+                               (overlays-at pos))))
+    (cl-first all)))
+
+(defun annotate-previous-annotation-ends (pos)
+  "Returns the previous annotation that ends before pos or nil if no annotation
+was found.
+NOTE this assumes that annotations never overlaps"
+  (cl-labels ((previous-annotation-ends (start)
+                (let ((annotation (annotate-annotation-at start)))
+                  (while (and (>= (1- start)
+                                  (point-min))
+                              (null annotation))
+                    (setf start (1- start))
+                    (setf annotation (annotate-annotation-at (1- start))))
+                  annotation)))
+    (let ((annotation (annotate-annotation-at pos)))
+      (if annotation
+          (previous-annotation-ends (1- (overlay-start annotation)))
+        (previous-annotation-ends pos)))))
+
+(defun annotate-next-annotation-starts (pos)
+  "Returns the previous annotation that ends before pos or nil if no annotation
+was found.
+NOTE this assumes that annotations never overlaps"
+  (cl-labels ((next-annotation-ends (start)
+                (let ((annotation (annotate-annotation-at start)))
+                  (while (and (<= (1+ start)
+                                  (point-max))
+                              (null annotation))
+                    (setf start (1+ start))
+                    (setf annotation (annotate-annotation-at (1+ start))))
+                  annotation)))
+    (let ((annotation (annotate-annotation-at pos)))
+      (if annotation
+          (next-annotation-ends (overlay-end annotation))
+        (next-annotation-ends pos)))))
+
+(defun annotate-symbol-strictly-at-point ()
+ "Return non nil if a symbol is at char immediately following
+ the point. This is needed as `thing-at-point' family of
+ functions returns non nil if the thing (a symbol in this case)
+ is around the point, according to the documentation."
+  (cl-labels ((after-point ()
+               (save-excursion
+                 (goto-char (1+ (point)))
+                 (bounds-of-thing-at-point 'symbol))))
+    (let ((sym-on-point     (bounds-of-thing-at-point 'symbol))
+          (sym-after-point  (after-point)))
+      (and  sym-on-point
+            sym-after-point
+            (cl-equalp sym-on-point
+                       sym-after-point)))))
+
 (defun annotate-bounds ()
   "The bounds of the region or whatever is at point."
-  (list (cond
-         ((use-region-p)
-          (region-beginning))
-         ((thing-at-point 'symbol)
-          (car (bounds-of-thing-at-point 'symbol)))
-         (t
-          (point)))
-        (cond
-         ((use-region-p)
-          (if (and (char-before (region-end))
-                   (char-equal (char-before (region-end))
-                               ?\n))
-              (1- (region-end))
-            (region-end)))
-         ((thing-at-point 'symbol)
-          (cdr (bounds-of-thing-at-point 'symbol)))
-         (t
-          (1+ (point))))))
+  (cl-labels ((left-ends ()
+               (cond
+                ((use-region-p)
+                 (region-beginning))
+                ((annotate-symbol-strictly-at-point)
+                 (let* ((annotation-before (annotate-previous-annotation-ends (point)))
+                        (boundaries        (bounds-of-thing-at-point 'symbol))
+                        (symbol-start      (car boundaries))
+                        (annotation-end    (if annotation-before
+                                               (overlay-end annotation-before)
+                                             -1)))
+                   (max symbol-start
+                        annotation-end)))
+                (t
+                 (point))))
+              (right-ends ()
+               (cond
+                ((use-region-p)
+                 (if (and (char-before (region-end))
+                          (char-equal (char-before (region-end))
+                                      ?\n))
+                     (1- (region-end))
+                   (region-end)))
+                ((annotate-symbol-strictly-at-point)
+                 (let* ((annotation-after (annotate-next-annotation-starts (point)))
+                        (boundaries       (bounds-of-thing-at-point 'symbol))
+                        (symbol-end       (cdr boundaries))
+                        (annotation-start (if annotation-after
+                                              (overlay-start annotation-after)
+                                            (1+ symbol-end))))
+                       (min symbol-end
+                            annotation-start)))
+                (t
+                 (1+ (point))))))
+    (list (left-ends)
+          (right-ends))))
 
 (defun annotate-make-annotation (beginning ending annotation annotated-text)
+ "Build a annotation data structure that can be dumped on a
+metadata file database"
   (list beginning ending annotation annotated-text))
 
 (defun annotate-describe-annotations ()
@@ -1504,6 +1594,8 @@ sophisticated way than plain text"
           (goto-char (button-get button 'go-to))))))))
 
 (defun annotate-summary-delete-annotation-button-pressed (button)
+ "Function to be called when a 'delete' button in summary window
+is activated"
   (let* ((filename        (button-get button 'file))
          (beginning       (button-get button 'beginning))
          (ending          (button-get button 'ending))
@@ -1523,6 +1615,8 @@ sophisticated way than plain text"
       (read-only-mode 1))))
 
 (defun annotate-summary-replace-annotation-button-pressed (button)
+  "Function to be called when a 'replace' button in summary window
+is activated"
   (let* ((filename             (button-get button 'file))
          (annotation-beginning (button-get button 'beginning))
          (annotation-ending    (button-get button 'ending))
