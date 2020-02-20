@@ -1554,6 +1554,8 @@ NOTE this assumes that annotations never overlaps"
           (right-ends))))
 
 (defun annotate-make-annotation (beginning ending annotation annotated-text)
+ "Build a annotation data structure that can be dumped on a
+metadata file database"
   (list beginning ending annotation annotated-text))
 
 (defun annotate-describe-annotations ()
@@ -1636,6 +1638,8 @@ sophisticated way than plain text"
           (goto-char (button-get button 'go-to))))))))
 
 (defun annotate-summary-delete-annotation-button-pressed (button)
+ "Function to be called when a 'delete' button in summary window
+is activated"
   (let* ((filename        (button-get button 'file))
          (beginning       (button-get button 'beginning))
          (ending          (button-get button 'ending))
@@ -1666,6 +1670,8 @@ sophisticated way than plain text"
       (update-visited-buffer-maybe))))
 
 (defun annotate-summary-replace-annotation-button-pressed (button)
+  "Function to be called when a 'replace' button in summary window
+is activated"
   (let* ((filename             (button-get button 'file))
          (annotation-beginning (button-get button 'beginning))
          (annotation-ending    (button-get button 'ending))
