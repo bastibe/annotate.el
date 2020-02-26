@@ -106,7 +106,7 @@ See https://github.com/bastibe/annotate.el/ for documentation."
   :type 'number
   :group 'annotate)
 
-(defcustom annotate-diff-export-context 2
+(defcustom annotate-diff-export-context 8
   "How many lines of context to include in diff export."
   :type 'number
   :group 'annotate)
@@ -453,9 +453,10 @@ annotate-actual-comment-end"
 An example might look like this:"
   (interactive)
   (save-excursion
-    (dolist (ov (sort (overlays-in 0 (buffer-size))
+    (dolist (ov (sort (annotate-all-annotations)
                       (lambda (o1 o2)
-                        (< (overlay-start o1) (overlay-start o2)))))
+                        (< (overlay-start o1)
+                           (overlay-start o2)))))
       (goto-char (overlay-start ov))
       (cond
        ;; overlay spans more than one line
@@ -526,11 +527,12 @@ An example might look like this:"
                                                                  (annotate-comments-length)))
                                                          ? )
                                             underline-marker)
-                  "\n"
-                  (annotate-wrap-in-comment annotate-integrate-marker
-                                            (overlay-get ov 'annotation))))))
-      (remove-text-properties
-         (point) (1+ (point)) '(display nil)))))
+                  "\n")
+          (when (annotate-chain-last-p ov)
+            (let ((annotation-integrated-text (annotate-wrap-in-comment annotate-integrate-marker
+                                                                        (overlay-get ov 'annotation))))
+              (insert annotation-integrated-text)))))))
+    (annotate-clear-annotations)))
 
 (defun annotate-export-annotations ()
   "Export all annotations as a unified diff file.
@@ -554,7 +556,10 @@ annotation, and can be conveniently viewed in diff-mode."
   (let* ((filename      (annotate-actual-file-name))
          (export-buffer (generate-new-buffer (concat filename
                                                      ".annotations.diff")))
-         (annotations   (annotate-describe-annotations))
+         (annotations   (sort (annotate-all-annotations)
+                              (lambda (a b)
+                                (< (overlay-start a)
+                                   (overlay-start b)))))
          (parent-buffer-mode major-mode))
     ;; write the diff file description
     (with-current-buffer export-buffer
@@ -567,11 +572,10 @@ annotation, and can be conveniently viewed in diff-mode."
     ;; write diff, highlight, and comment for each annotation
     (save-excursion
       ;; sort annotations by location in the file
-      (dolist (ann (sort annotations (lambda (a1 a2)
-                                       (< (car a1) (car a2)))))
-        (let* ((start (nth 0 ann))
-               (end (nth 1 ann))
-               (text (nth 2 ann))
+      (dolist (ann annotations)
+        (let* ((start (overlay-start ann))
+               (end   (overlay-end ann))
+               (text  (overlay-get ann 'annotation))
                ;; beginning of first annotated line
                (bol (progn (goto-char start)
                            (beginning-of-line)
@@ -583,65 +587,37 @@ annotation, and can be conveniently viewed in diff-mode."
                ;; all lines that contain annotations
                (annotated-lines (buffer-substring bol eol))
                ;; context lines before the annotation
-               (previous-lines (annotate-context-before start))
+               (previous-lines  (annotate-context-before start))
                ;; context lines after the annotation
                (following-lines (annotate-context-after end))
+               (chain-last-p    (annotate-chain-last-p ann))
                ;; line header for diff chunk
-               (diff-range (annotate-diff-line-range start end)))
+               (diff-range      (annotate-diff-line-range start end chain-last-p)))
           (with-current-buffer export-buffer
             (insert "@@ " diff-range " @@\n")
-            (insert (annotate-prefix-lines " " previous-lines))
+            (when previous-lines
+              (insert (annotate-prefix-lines " " previous-lines)))
             (insert (annotate-prefix-lines "-" annotated-lines))
             ;; loop over annotation lines and insert with highlight
             ;; and annotation text
-            (let ((annotation-line-list
-                   (butlast (split-string
-                             (annotate-prefix-lines "+" annotated-lines)
-                             "\n"))))
-              (cond
-               ;; annotation has only one line
-               ((= (length annotation-line-list) 1)
+            (let ((annotation-line-list (butlast (split-string
+                                                  (annotate-prefix-lines "+" annotated-lines)
+                                                  "\n")))
+                  (integration-padding   (if (and (> (1- start) 0)
+                                                  (> (1- start) bol))
+                                             (make-string (- (1- start) bol) ? )
+                                           "")))
                 (insert (car annotation-line-list) "\n")
                 (unless (string= (car annotation-line-list) "+")
-                  (insert (annotate-wrap-in-comment (make-string (- start bol) ? )
+                  (insert "+"
+                          (annotate-wrap-in-comment integration-padding
                                                     (make-string (- end start)
                                                                  annotate-integrate-higlight))
                           "\n"))
-                (insert (annotate-wrap-in-comment (make-string (- start bol) ? )
-                                                  text)
-                        "\n"))
-               ;; annotation has more than one line
-               (t
-                (let ((line (car annotation-line-list))) ; first line
-                  ;; first diff line
-                  (insert line "\n")
-                  ;; underline highlight (from start to eol)
-                  (unless (string= line "+") ; empty line
-                    (insert (annotate-wrap-in-comment (make-string (- start bol) ? )
-                                                      (make-string (- (length line) (- start bol))
-                                                                   annotate-integrate-higlight))
-                            "\n")))
-                (dolist (line (cdr (butlast annotation-line-list))) ; nth line
-                  ;; nth diff line
-                  (insert line "\n")
-                  ;; nth underline highlight (from bol to eol)
-                  (unless (string= line "+")
-                    (insert (annotate-wrap-in-comment (make-string (length line)
-                                                                   annotate-integrate-higlight))
-                            "\n")))
-                (let ((line (car (last annotation-line-list))))
-                  ;; last diff line
-                  (insert line "\n")
-                  ;; last underline highlight (from bol to end)
-                  (unless (string= line "+")
-                    (insert (annotate-wrap-in-comment (make-string (- (length line)
-                                                                      (- eol end)
-                                                                      1)
-                                                                   annotate-integrate-higlight))
-                            "\n")))
-                ;; annotation text
-                (insert (annotate-wrap-in-comment text)
-                        "\n"))))
+                (when (annotate-chain-last-p ann)
+                  (insert "+"
+                          (annotate-wrap-in-comment integration-padding text)
+                          "\n")))
             (insert (annotate-prefix-lines " " following-lines))))))
           (switch-to-buffer export-buffer)
           (diff-mode)
@@ -929,13 +905,15 @@ an overlay and it's annotation."
         '(annotate--remove-annotation-property)))
 
 (defun annotate-context-before (pos)
-  "Context lines before POS."
+ "Context lines before POS. Return nil if we reach a line before
+first line of the buffer"
   (save-excursion
     (goto-char pos)
     (beginning-of-line)
     (let ((bol (point)))
-      (beginning-of-line (- (1- annotate-diff-export-context)))
-      (buffer-substring-no-properties (point) (max 1 (1- bol))))))
+      (when (> (1- bol) 0)
+        (beginning-of-line (- (1- annotate-diff-export-context)))
+        (buffer-substring-no-properties (point) (max 1 (1- bol)))))))
 
 (defun annotate-context-after (pos)
   "Context lines after POS."
@@ -951,12 +929,27 @@ an overlay and it's annotation."
   (let ((lines (split-string text "\n")))
     (apply 'concat (mapcar (lambda (l) (concat prefix l "\n")) lines))))
 
-(defun annotate-diff-line-range (start end)
+(defun annotate-diff-line-range (start end chain-last-p)
   "Calculate diff-like line range for annotation."
-  (let ((start-line (line-number-at-pos start))
-        (diff-size (+ (* 2 annotate-diff-export-context)
-                      (1+ (- (line-number-at-pos end) (line-number-at-pos start))))))
-  (format "-%i,%i +%i,%i" start-line diff-size start-line diff-size)))
+  (save-excursion
+    (let* ((lines-before      (- (- annotate-diff-export-context)
+                                 (forward-line (- annotate-diff-export-context)))) ; this move point, too!
+           (start-line        (line-number-at-pos (point)))
+           (diff-offset-start (+ 1
+                                 (- lines-before)
+                                 annotate-diff-export-context))
+           (end-increment     (if chain-last-p
+                                  2
+                                1))
+           (diff-offset-end   (+ diff-offset-start
+                                 end-increment
+                                 (- (line-number-at-pos end)
+                                    (line-number-at-pos start)))))
+      (format "-%i,%i +%i,%i"
+              start-line
+              diff-offset-start
+              start-line
+              diff-offset-end))))
 
 ;;; database related procedures
 
@@ -1454,21 +1447,25 @@ The searched interval can be customized setting the variable:
                (save-excursion
                  (let ((chain-pos 0)
                        (all-overlays ()))
-                  (while (< start end)
-                    (goto-char start)
-                    (re-search-forward "\n" end :goto-end)
-                    (when (<= (point) end)
-                      (let* ((end-overlay (if (/= (point) end)
-                                              (1- (point))
-                                            (point)))
-                             (highlight (make-overlay start end-overlay)))
-                        (overlay-put highlight 'face 'annotate-highlight)
-                        (overlay-put highlight 'annotation annotation-text)
-                        (annotate-annotation-chain-position highlight
-                                                            annotate-prop-chain-pos-marker-last)
-                        (push highlight all-overlays)))
-                    (setf start (point)))
-                  (remap-chain-pos (reverse all-overlays)))))
+                   (while (< start end)
+                     (goto-char start)
+                     (let ((char-maybe-newline (string (char-after))))
+                       (if (string= char-maybe-newline "\n")
+                           (goto-char (1+ (point)))
+                         (progn
+                           (re-search-forward "\n" end :goto-end)
+                           (when (<= (point) end)
+                             (let* ((end-overlay (if (/= (point) end)
+                                                     (1- (point))
+                                                   (point)))
+                                    (highlight (make-overlay start end-overlay)))
+                               (overlay-put highlight 'face 'annotate-highlight)
+                               (overlay-put highlight 'annotation annotation-text)
+                               (annotate-annotation-chain-position highlight
+                                                                   annotate-prop-chain-pos-marker-last)
+                               (push highlight all-overlays))))))
+                     (setf start (point)))
+                   (remap-chain-pos (reverse all-overlays)))))
               (beginning-of-nth-line (start line-count)
                                      (save-excursion
                                        (goto-char start)
@@ -1665,12 +1662,14 @@ NOTE this assumes that annotations never overlaps"
           (right-ends))))
 
 (defun annotate-make-annotation (beginning ending annotation annotated-text)
- "Build a annotation data structure that can be dumped on a
-metadata file database"
   (list beginning ending annotation annotated-text))
 
-(defun annotate-describe-annotations ()
+(defun annotate-all-annotations ()
   "Return a list of all annotations in the current buffer."
+  (cl-remove-if-not #'annotationp (overlays-in 0 (buffer-size))))
+
+(defun annotate-describe-annotations ()
+  "Return a list, suitable for database dump, of all annotations in the current buffer."
   (let ((all-annotations (cl-remove-if-not #'annotationp (overlays-in 0 (buffer-size))))
         (chain-visited   ()))
     (cl-remove-if #'null
@@ -1755,8 +1754,6 @@ sophisticated way than plain text"
           (goto-char (button-get button 'go-to))))))))
 
 (defun annotate-summary-delete-annotation-button-pressed (button)
- "Function to be called when a 'delete' button in summary window
-is activated"
   (let* ((filename        (button-get button 'file))
          (beginning       (button-get button 'beginning))
          (ending          (button-get button 'ending))
@@ -1776,8 +1773,6 @@ is activated"
       (read-only-mode 1))))
 
 (defun annotate-summary-replace-annotation-button-pressed (button)
-  "Function to be called when a 'replace' button in summary window
-is activated"
   (let* ((filename             (button-get button 'file))
          (annotation-beginning (button-get button 'beginning))
          (annotation-ending    (button-get button 'ending))
