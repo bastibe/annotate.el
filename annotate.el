@@ -1578,10 +1578,10 @@ was found.
 NOTE this assumes that annotations never overlaps"
   (cl-labels ((previous-annotation-ends (start)
                 (let ((annotation (annotate-annotation-at start)))
-                  (while (and (>= (1- start)
+                  (while (and (/= start
                                   (point-min))
                               (null annotation))
-                    (setf start (1- start))
+                    (setf start (previous-overlay-change start))
                     (setf annotation (annotate-annotation-at start)))
                   annotation)))
     (let ((annotation (annotate-annotation-at pos)))
@@ -1595,10 +1595,10 @@ was found.
 NOTE this assumes that annotations never overlaps"
   (cl-labels ((next-annotation-ends (start)
                 (let ((annotation (annotate-annotation-at start)))
-                  (while (and (<= (1+ start)
+                  (while (and (/= start
                                   (point-max))
                               (null annotation))
-                    (setf start (1+ start))
+                    (setf start (next-overlay-change start))
                     (setf annotation (annotate-annotation-at start)))
                   annotation)))
     (let ((annotation (annotate-annotation-at pos)))
