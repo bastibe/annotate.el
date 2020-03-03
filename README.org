@@ -58,10 +58,10 @@ can take advantage of its packages generated files management.
      - ~annotate-annotation-max-size-not-place-new-line~;
      - ~annotate-annotation-position-policy~.
 
-*** ~C-c ]~ (function annotate-next-annotation)
+*** ~C-c ]~ (function annotate-goto-next-annotation)
     Jump to the next  annotation.
 
-*** ~C-c [~ (function annotate-previous-annotation)
+*** ~C-c [~ (function annotate-goto-previous-annotation)
     Jump to the previous annotation.
 
 *** ~C-c C-s~ (function annotate-show-annotation-summary)

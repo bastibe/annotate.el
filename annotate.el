@@ -72,9 +72,9 @@ See https://github.com/bastibe/annotate.el/ for documentation."
 
 (define-key annotate-mode-map (kbd "C-c C-s") 'annotate-show-annotation-summary)
 
-(define-key annotate-mode-map (kbd "C-c ]") 'annotate-move-next-annotation)
+(define-key annotate-mode-map (kbd "C-c ]") 'annotate-goto-next-annotation)
 
-(define-key annotate-mode-map (kbd "C-c [") 'annotate-move-previous-annotation)
+(define-key annotate-mode-map (kbd "C-c [") 'annotate-goto-previous-annotation)
 
 (defcustom annotate-file (locate-user-emacs-file "annotations" ".annotations")
   "File where annotations are stored."
@@ -379,7 +379,7 @@ modified (for example a newline is inserted)."
         (create-new-annotation)))
       (set-buffer-modified-p t))))
 
-(cl-defun annotate-move-next-annotation (&key (startingp t))
+(cl-defun annotate-goto-next-annotation (&key (startingp t))
   "Move point to the next annotation."
   (interactive)
   (let ((annotation (annotate-annotation-at (point))))
@@ -391,7 +391,7 @@ modified (for example a newline is inserted)."
               (if look-ahead
                   (progn
                     (goto-char annotation-last-end)
-                    (annotate-move-next-annotation :startingp nil))
+                    (annotate-goto-next-annotation :startingp nil))
                 (message "This is the last annotation.")))
           (let ((next-annotation (annotate-next-annotation-starts (point))))
             (when next-annotation
@@ -399,9 +399,9 @@ modified (for example a newline is inserted)."
       (if annotation
           (let ((chain-first (annotate-chain-first annotation)))
             (goto-char (overlay-start chain-first)))
-        (annotate-move-next-annotation :startingp t)))))
+        (annotate-goto-next-annotation :startingp t)))))
 
-(cl-defun annotate-move-previous-annotation (&key (startingp t))
+(cl-defun annotate-goto-previous-annotation (&key (startingp t))
   "Move point to the previous annotation."
   (interactive)
   (let ((annotation (annotate-annotation-at (point))))
@@ -413,7 +413,7 @@ modified (for example a newline is inserted)."
               (if look-behind
                   (progn
                     (goto-char (1- annotation-first-start))
-                    (annotate-move-previous-annotation :startingp nil))
+                    (annotate-goto-previous-annotation :startingp nil))
                 (message "This is the first annotation.")))
           (let ((previous-annotation (annotate-previous-annotation-ends (point))))
             (when previous-annotation
@@ -421,7 +421,7 @@ modified (for example a newline is inserted)."
       (if annotation
           (let ((chain-last (annotate-chain-last annotation)))
             (goto-char (overlay-end chain-last)))
-        (annotate-move-previous-annotation :startingp t)))))
+        (annotate-goto-previous-annotation :startingp t)))))
 
 (defun annotate-actual-comment-start ()
   "String for comment start related to current buffer's major
