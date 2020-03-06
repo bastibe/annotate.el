@@ -100,3 +100,6 @@
     summary window force refresh of a buffer that is visiting said
     file, if exists, to reflect the changes;
   - fixed flowings of annotatinons when window's width is changed.
+
+- 2020-04-06 V0.5.4 Bastian Bechtold, cage ::
+  Fixed bugs of multiline annotations, diff exports and integration.
