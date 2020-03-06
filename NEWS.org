@@ -93,3 +93,10 @@
   - when the only user interactions, before saving, with a visited file was
     the call of 'annotate-clear-annotations' the annotations
     will shows again at reload, this should be fixed now.
+
+- 2020-03-06 V0.5.3 Bastian Bechtold, cage ::
+  - Partially fixed bug that prevented annotation of buffer when org-mode was used;
+  - when an user delete an annotation for a file using a button from
+    summary window force refresh of a buffer that is visiting said
+    file, if exists, to reflect the changes;
+  - fixed flowings of annotatinons when window's width is changed.
