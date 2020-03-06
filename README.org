@@ -180,6 +180,18 @@ annotation, like this:
 As a shortcut, an empty query will match everything (just press
 ~return~ at prompt).
 
+* FAQ
+  Sometimes the package does not respect the customizable variable's value of
+  ~annotate-annotation-position-policy~, is this a bug?
+
+  No  it is  not, when  a line  which is  using a  non default  font is
+  annotated  the software  force  the ~:new-line~  policy,  that is  the
+  annotation will be  displayed on a new line regardless  of the value
+  of the variable mentioned in the question.
+
+  This is necessary  to prevent the annotation to be  pushed beyond the
+  window limits if an huge font is used by the annotated text.
+
 * LICENSE
 
 This package is released under the MIT license, see file [[./LICENSE][LICENSE]]
