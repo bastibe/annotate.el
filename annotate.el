@@ -1534,7 +1534,8 @@ The searched interval can be customized setting the variable:
                              (cl-find-if (lambda (a) (/= a default-face-height))
                                          all-faces-height))
                        (when force-newline-p
-                         (annotate-annotation-force-newline-policy annotation))))))
+                         (annotate-annotation-force-newline-policy annotation))
+                       annotation))))
       (if (not (annotate-string-empty-p annotated-text))
           (let ((text-to-match (ignore-errors
                                  (buffer-substring-no-properties start end))))
