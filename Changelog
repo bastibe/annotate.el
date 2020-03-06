@@ -27,7 +27,7 @@
         disappears).
 
 2020-02-10 Bastian Bechtold, cage
-	* annotate.el (annotate--font-lock-matcher annotate-bounds nnotate-symbol-strictly-at-point annotate-next-annotation-change annotate-previous-annotation-change annotate-clear-annotations annotate-annotate)
+	* annotate.el (annotate--font-lock-matcher annotate-bounds annotate-symbol-strictly-at-point annotate-next-annotation-change annotate-previous-annotation-change annotate-clear-annotations annotate-annotate)
 	- prevented fails of fontification of annotated regions
 	As we walk across the overlays we can get past the limit;
 	- mark buffer as modified even if the only action the user performed
@@ -35,3 +35,17 @@
 	the file)
 	- prevented annotation of text marked with a region that overlap with
 	an existing annotation.
+
+2020-03-06 Bastian Bechtold, cage ::
+	* annotate.el (annotate-annotation-force-newline-policy annotate-annotation-newline-policy-forced-p annotate-summary-delete-annotation-button-pressed annotate--annotation-builder)
+
+	- used  an heuristic  to force newline  policy when  the annotated
+	text  does  not  uses a  standard  fonts  (using  font  height  as
+	comparison);
+
+	-  when, in  summary  window,  the delete  button  is pressed  the
+	software take care of reload  annotate mode for the visited buffer
+	the annotation button is referring to;
+
+	- when re-flowing annotation the window width was calculated always
+	for the current buffer (the one with the focus).

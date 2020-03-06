@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.5.2
+;; Version: 0.5.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -52,7 +52,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.5.2"
+  :version "0.5.3"
   :group 'text)
 
 ;;;###autoload
@@ -156,7 +156,7 @@ database is not filtered at all."
 
 (defcustom annotate-annotation-position-policy :by-length
   "policy for annotation's position:
-  - :newline
+  - :new-line
     always in a new-line
   - :margin
      always on right margin
