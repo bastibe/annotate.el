@@ -325,7 +325,17 @@ modified (for example a newline is inserted)."
            (move-overlay overlay (overlay-start overlay) a)
            ;; delete overlay if there is no more annotated text
            (when (annotate-annotated-text-empty-p overlay)
-             (delete-overlay overlay))))))))
+             ;; we  are  deleting  the  last element  of  a  chain  (a
+             ;; stopper)...
+             (when (annotate-chain-last-p overlay)
+               ;; move 'stopper' to the previous chain element
+               (let ((annot-before (annotate-previous-annotation-ends (overlay-start overlay))))
+                 ;; ...if such element exists
+                 (when annot-before
+                   (annotate-annotation-chain-position annot-before
+                                                       annotate-prop-chain-pos-marker-last))))
+             (delete-overlay overlay)
+             (font-lock-fontify-buffer))))))))
 
 (defun annotate-info-select-fn ()
   "The function to be called when an info buffer is updated"
