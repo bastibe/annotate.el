@@ -101,5 +101,8 @@
     file, if exists, to reflect the changes;
   - fixed flowings of annotatinons when window's width is changed.
 
-- 2020-04-06 V0.6.0 Bastian Bechtold, cage ::
+- 2020-03-06 V0.6.0 Bastian Bechtold, cage ::
   Fixed bugs of multiline annotations, diff exports and integration.
+
+- 2020-03-16 V0.6.1 Bastian Bechtold, cage ::
+  Fixed annotation picking in 'annotate-annotate'.

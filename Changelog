@@ -10,7 +10,7 @@
           positioning.
           See the local function
           'maybe-force-newline-policy' in 'annotate-create-annotation'.
-        - choosen the window that contains the current buffer when resizing the annotations
+        - chosen the window that contains the current buffer when resizing the annotations
           see variable 'current-window' in 'annotate-lineate';
         - redraw buffer if one of its annotations is deleted
           operating from the summary window.
@@ -50,7 +50,7 @@
         - when re-flowing annotation the window width was calculated always
         for the current buffer (the one with the focus).
 
-2020-04-06 Bastian Bechtold, cage
+2020-03-06 Bastian Bechtold, cage
         * annotate.el
 
         - each annotation (the overlay, actually) now has a property 'position
@@ -67,3 +67,12 @@
 
           Please note that this changes impacted more or less the whole
           package's code.
+
+2020-03-16 Bastian Bechtold, cage
+        * annotate.el (annotate-annotate)
+
+	- fixed annotation picking in 'annotate-annotate'
+          at  the  beginning  of  the  function we  was  picking  the  first
+	  available  overlay.   So  the annotated  text  contained  multiple
+	  overlays and an  annotation was not the first we  missed the last,
+	  This means, for example, that the annotation was not modifiable.

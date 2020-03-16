@@ -385,7 +385,7 @@ modified (for example a newline is inserted)."
                    (annotate-bounds)
                  (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
                    (annotate-create-annotation start end annotation-text nil)))))
-    (let ((overlay (car (overlays-at (point)))))
+    (let ((annotation (annotate-annotation-at (point))))
       (cond
        ((use-region-p)
         (let ((annotations (cl-remove-if-not #'annotationp
@@ -394,7 +394,7 @@ modified (for example a newline is inserted)."
           (if annotations
               (message "Error: the region overlaps with at least an already existings annotation")
             (create-new-annotation))))
-       ((annotationp overlay)
+       (annotation
         (annotate-change-annotation (point))
         (font-lock-fontify-buffer nil))
        (t
