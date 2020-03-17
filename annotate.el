@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.6.0
+;; Version: 0.6.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.6.0"
+  :version "0.6.1"
   :group 'text)
 
 ;;;###autoload
@@ -2417,7 +2417,7 @@ Note: this function return the annotation part of the record, see
 
 The argument `query' is a string that respect a simple syntax:
 
-- [file-mask] [(and | or) [not] regex-note (and | or) [not] regexp-note ...]
+- [file-mask] [(and | or) [not] regex-note [(and | or) [not] regexp-note ...]]
 
 where
 
