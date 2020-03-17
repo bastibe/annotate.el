@@ -132,7 +132,7 @@ as comments into the current buffer, like this:
   is shown below:
 
 #+BEGIN_SRC text
- [file-mask] [(and | or) [not] regex-note (and | or) [not] regexp-note ...]
+ [file-mask] [(and | or) [not] regex-note [(and | or) [not] regexp-note ...]]
 #+END_SRC
 
 where

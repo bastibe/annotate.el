@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.6.0
+;; Version: 0.6.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.6.0"
+  :version "0.6.1"
   :group 'text)
 
 ;;;###autoload
@@ -385,7 +385,7 @@ modified (for example a newline is inserted)."
                    (annotate-bounds)
                  (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
                    (annotate-create-annotation start end annotation-text nil)))))
-    (let ((overlay (car (overlays-at (point)))))
+    (let ((annotation (annotate-annotation-at (point))))
       (cond
        ((use-region-p)
         (let ((annotations (cl-remove-if-not #'annotationp
@@ -394,7 +394,7 @@ modified (for example a newline is inserted)."
           (if annotations
               (message "Error: the region overlaps with at least an already existings annotation")
             (create-new-annotation))))
-       ((annotationp overlay)
+       (annotation
         (annotate-change-annotation (point))
         (font-lock-fontify-buffer nil))
        (t
@@ -2417,7 +2417,7 @@ Note: this function return the annotation part of the record, see
 
 The argument `query' is a string that respect a simple syntax:
 
-- [file-mask] [(and | or) [not] regex-note (and | or) [not] regexp-note ...]
+- [file-mask] [(and | or) [not] regex-note [(and | or) [not] regexp-note ...]]
 
 where
 
