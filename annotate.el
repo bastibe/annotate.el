@@ -1538,7 +1538,17 @@ The searched interval can be customized setting the variable:
                                all-faces))
                        (setf all-faces-height
                              (mapcar (lambda (face)
-                                       (face-attribute face :height nil 'default))
+                                       (cond
+                                        ((facep face)
+                                         (face-attribute face :height nil 'default))
+                                        ((and (consp face)
+                                              (keywordp (cl-first face))) ; a plist
+                                         (cl-getf face :height
+                                                  (face-attribute 'default :height)))
+                                        ((consp face) ; a list of named face, first wins
+                                         (face-attribute (cl-first face) :height nil 'default))
+                                        (t
+                                         (face-attribute 'default :height))))
                                      (cl-remove-if #'null all-faces)))
                        (setf force-newline-p
                              (cl-find-if (lambda (a) (/= a default-face-height))
