@@ -106,3 +106,6 @@
 
 - 2020-03-16 V0.6.1 Bastian Bechtold, cage ::
   Fixed annotation picking in 'annotate-annotate'.
+
+- 2020-03-25 V0.6.2 Bastian Bechtold, cage ::
+  Fixed bug that prevent annotation of text with complex faces definition.
