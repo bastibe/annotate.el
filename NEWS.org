@@ -109,3 +109,5 @@
 
 - 2020-03-25 V0.6.2 Bastian Bechtold, cage ::
   Fixed bug that prevent annotation of text with complex faces definition.
+  Thanks to the person who filed the issue
+  (see: https://github.com/bastibe/annotate.el/pull/63)
