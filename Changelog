@@ -76,3 +76,17 @@
 	  available  overlay.   So  the annotated  text  contained  multiple
 	  overlays and an  annotation was not the first we  missed the last,
 	  This means, for example, that the annotation was not modifiable.
+2020-03-16 Bastian Bechtold, cage
+        * annotate.el (annotate-create-annotation)
+
+	- fixed managing return value of
+	"(get-text-property changed-face-pos 'face)"
+
+	When finding  the face of a portion  of buffer, to try to  get the right
+	positioning   of   the    annotation,   using:
+
+	"(get-text-property changed-face-pos 'face)"
+
+	the code  assumed this function returned  a symbol (the face  of the
+	text) or nil: this is  incorrect according to the documentation; the
+	code above can returns a symbol, a plist or even list of symbols.

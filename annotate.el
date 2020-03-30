@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.6.1
+;; Version: 0.6.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.6.1"
+  :version "0.6.2"
   :group 'text)
 
 ;;;###autoload
@@ -1538,7 +1538,17 @@ The searched interval can be customized setting the variable:
                                all-faces))
                        (setf all-faces-height
                              (mapcar (lambda (face)
-                                       (face-attribute face :height nil 'default))
+                                       (cond
+                                        ((facep face)
+                                         (face-attribute face :height nil 'default))
+                                        ((and (consp face)
+                                              (keywordp (cl-first face))) ; a plist
+                                         (cl-getf face :height
+                                                  (face-attribute 'default :height)))
+                                        ((consp face) ; a list of named face, first wins
+                                         (face-attribute (cl-first face) :height nil 'default))
+                                        (t
+                                         (face-attribute 'default :height))))
                                      (cl-remove-if #'null all-faces)))
                        (setf force-newline-p
                              (cl-find-if (lambda (a) (/= a default-face-height))
