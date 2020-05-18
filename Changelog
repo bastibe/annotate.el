@@ -1,3 +1,7 @@
+2020-05-18 Bastian Bechtold, cage
+	* annotate.el
+	- Increased version to 0.7.0 for stable release
+
 2020-01-25 Bastian Bechtold, cage
 
         * annotate.el (defun annotate-annotation-force-newline-policy,
