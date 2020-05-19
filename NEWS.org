@@ -111,3 +111,6 @@
   Fixed bug that prevent annotation of text with complex faces definition.
   Thanks to the person who filed the issue
   (see: https://github.com/bastibe/annotate.el/pull/63)
+
+- 2020-05-18 V0.7.0 Bastian Bechtold, cage ::
+  Increased version to 0.7.0 for stable release
