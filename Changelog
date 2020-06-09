@@ -1,10 +1,15 @@
+2020-06-09 Bastian Bechtold, cage
+	* annotate.el (annotate-buffers-annotate-mode, annotate-switch-db)
+	- added functions to switch the database of annotations used for the emacs session;
+	- increased version to 0.7.1
+
 2020-05-18 Bastian Bechtold, cage
 	* annotate.el
 	- Increased version to 0.7.0 for stable release
 
 2020-01-25 Bastian Bechtold, cage
 
-        * annotate.el (defun annotate-annotation-force-newline-policy,
+        * annotate.el (annotate-annotation-force-newline-policy,
                        annotate-annotation-newline-policy-forced-p,
                        annotate-create-annotation,
                        annotate-lineate,

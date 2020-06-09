@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.7.0
+;; Version: 0.7.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.7.0"
+  :version "0.7.1"
   :group 'text)
 
 ;;;###autoload
@@ -2516,7 +2516,7 @@ code, always use load files from trusted sources!"
   (let ((new-db (read-file-name "Database file location: ")))
     (when (not (annotate-string-empty-p new-db))
       (if (file-exists-p new-db)
-          (let* ((confirm-message "Loading elisp file from untrusted source may results in severe security problems. Load %S? [y/N]")
+          (let* ((confirm-message "Loading elisp file from untrusted source may results in severe security problems. Load %S? [y/N] ")
                  (load-file-confirmed (if force-load
                                           t
                                         (string= (read-from-minibuffer (format confirm-message
@@ -2527,9 +2527,12 @@ code, always use load files from trusted sources!"
                   (setf annotate-file new-db)
                   (cl-loop for annotated-buffer in (annotate-buffers-annotate-mode) do
                            (with-current-buffer annotated-buffer
-                             (annotate-with-inhibit-modification-hooks
-                              (annotate-mode -1)
-                              (annotate-mode  1)))))
+                             (let ((buffer-was-modified-p (buffer-modified-p annotated-buffer)))
+                               (annotate-with-inhibit-modification-hooks
+                                (annotate-mode -1)
+                                (annotate-mode  1)
+                                (when (not buffer-was-modified-p)
+                                  (set-buffer-modified-p nil)))))))
               (message "Load aborted by the user")))
         (user-error (format "The file %S does not exists." new-db))))))
 

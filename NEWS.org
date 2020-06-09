@@ -114,3 +114,6 @@
 
 - 2020-05-18 V0.7.0 Bastian Bechtold, cage ::
   Increased version to 0.7.0 for stable release
+
+- 2020-06-09 V0.7.1 Bastian Bechtold, cage ::
+  The database of annotation can be changed using the command ~annotate-switch-db~.
