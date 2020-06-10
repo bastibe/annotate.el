@@ -1,7 +1,7 @@
 2020-06-09 Bastian Bechtold, cage
 	* annotate.el (annotate-buffers-annotate-mode, annotate-switch-db)
 	- added functions to switch the database of annotations used for the emacs session;
-	- increased version to 0.7.1
+	- increased version to 0.8.0
 
 2020-05-18 Bastian Bechtold, cage
 	* annotate.el
