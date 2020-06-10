@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.7.0
+;; Version: 0.8.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.7.0"
+  :version "0.8.0"
   :group 'text)
 
 ;;;###autoload
@@ -2488,6 +2488,55 @@ annotation, like this:
     (cl-remove-if 'null filtered)))
 
 ;;;; end of filtering: parser, lexer, etc.
+
+;;;; switching database
+
+(defun annotate-buffers-annotate-mode ()
+ "Returns a list of all the buffers that have
+annotate minor mode active"
+  (let ((all-buffers (buffer-list)))
+    (cl-labels ((annotate-mode-p (buffer)
+                  (with-current-buffer buffer
+                    (and (boundp 'annotate-mode)
+                         annotate-mode))))
+      (cl-remove-if-not #'annotate-mode-p all-buffers))))
+
+(cl-defun annotate-switch-db (&optional (force-load nil))
+ "Ask the user for a new annotation database files, load it and
+refresh all the annotations contained in each buffer where
+annotate minor mode is active.
+
+If `force-load' is non nil no prompt asking user for confirmation
+about loading the new file is shown.
+
+Note: this function will attempt to load (compile and
+eval/execute) the content of the file as it was elisp source
+code, always use load files from trusted sources!"
+  (interactive)
+  (let ((new-db (read-file-name "Database file location: ")))
+    (when (not (annotate-string-empty-p new-db))
+      (if (file-exists-p new-db)
+          (let* ((confirm-message "Loading elisp file from untrusted source may results in severe security problems. Load %S? [y/N] ")
+                 (load-file-confirmed (if force-load
+                                          t
+                                        (string= (read-from-minibuffer (format confirm-message
+                                                                               new-db))
+                                                 "y"))))
+            (if load-file-confirmed
+                (progn
+                  (setf annotate-file new-db)
+                  (cl-loop for annotated-buffer in (annotate-buffers-annotate-mode) do
+                           (with-current-buffer annotated-buffer
+                             (let ((buffer-was-modified-p (buffer-modified-p annotated-buffer)))
+                               (annotate-with-inhibit-modification-hooks
+                                (annotate-mode -1)
+                                (annotate-mode  1)
+                                (when (not buffer-was-modified-p)
+                                  (set-buffer-modified-p nil)))))))
+              (message "Load aborted by the user")))
+        (user-error (format "The file %S does not exists." new-db))))))
+
+;; end of switching database
 
 (provide 'annotate)
 ;;; annotate.el ends here

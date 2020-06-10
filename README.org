@@ -30,8 +30,16 @@ previous annotation.
 
 ** Metadata
 
-All  annotations are  saved  in  ~annotate-file~ (=~/.annotations=  by
-default).
+The  current  database  for  annotations  is  contained  in  the  file
+indicated by the variable ~annotate-file~ (=~/.emacs.d/annotations= by
+default) but  each user can change  this value in a  dynamic way using
+the  command ~annotate-switch-db~.   This  command will  take care  to
+refresh/redraw   all   annotations   in    the   buffers   that   uses
+~annotate-mode~.
+
+Please note that switching database,  in this context, means rebinding
+the  aforementioned variable  (~annotate-file~).  This  means than  no
+more than a single database can be active for each Emacs session.
 
 Users of
 [[https://github.com/emacscollective/no-littering][no-littering]]
