@@ -1,7 +1,3 @@
-2020-06-24 Bastian Bechtold, cage
-	* README.org
-	-  Updated the "Known bugs" section of README.
-
 2020-06-09 Bastian Bechtold, cage
 	* annotate.el (annotate-buffers-annotate-mode, annotate-switch-db)
 	- added functions to switch the database of annotations used for the emacs session;

@@ -122,10 +122,12 @@ as comments into the current buffer, like this:
      incompatibility with the way source blocks are highlighted and the
      way annotations are displayed.
 
-   - ~scroll-down-line~ could  get stuck on  a annotated line.   In this
-     case a  workaround is  to call  the command  with a  numeric prefix
-     equals to  one plus the number  of annotation text lines  below the
-     annotated text.
+   - Because   of  a   limitation  in   the  Emacs   display  routines
+     ~scroll-down-line~ could get stuck on a annotated line. So no fix
+     can  be  provided by  the  autors  of ~annotate.el~,  a  possible
+     workaround is to call the command with a numeric prefix equals to
+     one plus the number of  annotation text lines below the annotated
+     text.
 
      For example:
 
