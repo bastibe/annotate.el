@@ -117,3 +117,6 @@
 
 - 2020-06-09 V0.8.0 Bastian Bechtold, cage ::
   The database of annotation can be changed using the command ~annotate-switch-db~.
+
+- 2020-06-24 V0.8.1 Bastian Bechtold, cage ::
+  Updated the ~Known bugs~ section of ~README~.
