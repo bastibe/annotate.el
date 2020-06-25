@@ -117,16 +117,37 @@ as comments into the current buffer, like this:
 
 ** Known bugs
 
-   Annotations in org-mode source blocks will be underlined, but the
-   annotations don't show up. This is likely a fundamental
-   incompatibility with the way source blocks are highlighted and the
-   way annotations are displayed.
+   - Annotations in org-mode source blocks will be underlined, but the
+     annotations don't show up. This is likely a fundamental
+     incompatibility with the way source blocks are highlighted and the
+     way annotations are displayed.
 
-   Annotating a region that contains newline(s) can results in various
-   issues.
+   - Because   of  a   limitation  in   the  Emacs   display  routines
+     ~scroll-down-line~ could get stuck on a annotated line. So no fix
+     can  be  provided by  the  autors  of ~annotate.el~,  a  possible
+     workaround is to call the command with a numeric prefix equals to
+     one plus the number of  annotation text lines below the annotated
+     text.
 
-   Deleting the first  character of an annotated text  will remove the
-   annotation (this turned out to be useful, though).
+     For example:
+
+     #+BEGIN_SRC text
+     foo bar baz
+     annotation
+     #+END_SRC
+
+     needs a prefix of 2: ~C-u 2 M-x scroll-down-line~
+
+     But note that:
+
+     #+BEGIN_SRC text
+     foo bar baz   annotation
+     #+END_SRC
+
+     Needs no prefix.
+
+   - Deleting the first  character of an annotated text  will remove the
+     annotation (this turned out to be useful, though).
 
 ** Report bugs
 
