@@ -1,3 +1,10 @@
+2020-06-26
+	* annotate.el (annotate-switch-db)
+	- Added file argument 'database-file-path',
+	  this could help people calling this function in a non interactive
+	  way from their code;
+	- fixed some typos in documentation and comments.
+
 2020-06-09 Bastian Bechtold, cage
 	* annotate.el (annotate-buffers-annotate-mode, annotate-switch-db)
 	- added functions to switch the database of annotations used for the emacs session;
