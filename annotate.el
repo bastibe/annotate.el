@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.8.0
+;; Version: 0.8.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.8.0"
+  :version "0.8.1"
   :group 'text)
 
 ;;;###autoload
@@ -392,7 +392,7 @@ modified (for example a newline is inserted)."
                                              (overlays-in (region-beginning)
                                                           (region-end)))))
           (if annotations
-              (message "Error: the region overlaps with at least an already existings annotation")
+              (message "Error: the region overlaps with at least an already existing annotation")
             (create-new-annotation))))
        (annotation
         (annotate-change-annotation (point))
@@ -831,7 +831,7 @@ to 'maximum-width'."
                       (< (overlay-end x) (overlay-end y)))))
         ;; configure each annotation's properties and place it on the
         ;; the window. The actual position of the annotation (newline
-        ;; or right marigin) is indicated by the value of the
+        ;; or right margin) is indicated by the value of the
         ;; variable: `annotate-annotation-position-policy'.
         (dolist (ov overlays)
           (let* ((face                (cond
@@ -1206,7 +1206,7 @@ i.e. the first record is removed."
                 records-db))
 
 (defun annotate-db-purge ()
- "Update datbase *on disk* removing all the records with empty
+ "Update database *on disk* removing all the records with empty
 annotation."
   (interactive)
   (let ((db (annotate-db-clean-records (annotate-load-annotation-data))))
@@ -1249,7 +1249,7 @@ annotation."
                                       record-filename
                                       annotation-beginning
                                       annotation-ending)
-  "Remove from database `db-records' the annotation indentified by
+  "Remove from database `db-records' the annotation identified by
  the triplets `record-filename', `annotation-beginning' and
  `annotation-ending'; if such annotation does exists."
   (with-matching-annotation-fns
@@ -1275,7 +1275,7 @@ annotation."
                                        annotation-ending
                                        replacing-text)
   "Replace the text of annotation from database `db-records'
- indentified by the triplets `record-filename',
+ identified by the triplets `record-filename',
  `annotation-beginning' and `annotation-ending'; if such
  annotation does exists."
   (with-matching-annotation-fns
@@ -1334,17 +1334,17 @@ annotation."
 
 (defun annotate-annotation-prop-get (annotation property)
   "Get  property  `property'  from  annotation  `annotation'.  If
-`annotation' does not pass `annotatonp' returns nil"
+`annotation' does not pass `annotationp' returns nil"
   (annotate-ensure-annotation (annotation)
     (overlay-get annotation property)))
 
 (defun annotate-annotation-get-chain-position (annotation)
-  "Get property's value that  define position of this annootation
+  "Get property's value that  define position of this annotation
 in a chain of annotations"
   (annotate-annotation-prop-get annotation annotate-prop-chain-position))
 
 (defun annotate-annotation-chain-position (annotation pos)
-  "Set property's value that  define position of this annootation
+  "Set property's value that  define position of this annotation
 in a chain of annotations"
   (overlay-put annotation annotate-prop-chain-position pos))
 
@@ -2165,7 +2165,7 @@ RE         := [^[:space:]] ; as regular expression
 ESCAPED-RE := DELIMITER
               ANYTHING
               DELIMITER
-ANYTHING   := .*           ; as a regualar expression
+ANYTHING   := .*           ; as a regular expression
 AND        := 'and'
 OR         := 'or'
 NOT        := 'not'
@@ -2289,7 +2289,7 @@ Arguments:
               ;; then we apply the filter function (see the docstring)
               (let* ((escaped   (annotate-summary-query-lexer-string (annotate-summary-lexer)))
                      (unescaped (substring escaped 1 (1- (length escaped)))) ; remove delimiters
-                     (matchp    (funcall filter-fn unescaped annotation)))   ; apply the filter funcrion
+                     (matchp    (funcall filter-fn unescaped annotation)))   ; apply the filter function
                 ;; and finally continue the parsing saving the results
                 ;; of applying the filter-fn function
                 (operator escaped filter-fn annotation matchp)))
@@ -2501,10 +2501,14 @@ annotate minor mode active"
                          annotate-mode))))
       (cl-remove-if-not #'annotate-mode-p all-buffers))))
 
-(cl-defun annotate-switch-db (&optional (force-load nil))
+(cl-defun annotate-switch-db (&optional (force-load nil)  (database-file-path nil))
  "Ask the user for a new annotation database files, load it and
 refresh all the annotations contained in each buffer where
 annotate minor mode is active.
+
+if `database-file-path' is nil (the default) a prompt asking for
+a file containing database is presented to the user, otherwise
+the value of this argument is used.
 
 If `force-load' is non nil no prompt asking user for confirmation
 about loading the new file is shown.
@@ -2513,7 +2517,8 @@ Note: this function will attempt to load (compile and
 eval/execute) the content of the file as it was elisp source
 code, always use load files from trusted sources!"
   (interactive)
-  (let ((new-db (read-file-name "Database file location: ")))
+  (let ((new-db (or database-file-path
+                    (read-file-name "Database file location: "))))
     (when (not (annotate-string-empty-p new-db))
       (if (file-exists-p new-db)
           (let* ((confirm-message "Loading elisp file from untrusted source may results in severe security problems. Load %S? [y/N] ")
