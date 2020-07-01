@@ -50,6 +50,9 @@
 ;; can not be annotated.
 
 ;;; Code:
+
+(require 'info)
+
 (require 'cl-lib)
 
 ;;;###autoload
