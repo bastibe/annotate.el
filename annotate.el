@@ -287,7 +287,7 @@ annotation as defined in the database."
   (let ((modifiedp (gensym)))
     `(let ((,modifiedp (buffer-modified-p)))
        ,@body
-       (set-buffer-modified-p modifiedp))))
+       (set-buffer-modified-p ,modifiedp))))
 
 (defun annotate-end-of-line-pos ()
  "Get the position of the end of line and rewind the point's
