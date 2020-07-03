@@ -1,3 +1,10 @@
+2020-07-01
+	* annotate.el (annotate-change-annotation)
+
+	- ensured that the modified status of as buffer is not modified by the local
+	function 'delete' in 'annotate-change-annotation';
+	- added dependency on 'info'.
+
 2020-06-26
 	* annotate.el (annotate-switch-db)
 	- Added file argument 'database-file-path',

@@ -50,12 +50,15 @@
 ;; can not be annotated.
 
 ;;; Code:
+
+(require 'info)
+
 (require 'cl-lib)
 
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.8.1"
+  :version "0.8.2"
   :group 'text)
 
 ;;;###autoload
@@ -277,6 +280,14 @@ annotation as defined in the database."
              (setf inhibit-modification-hooks t)
              ,@body)
          (setf inhibit-modification-hooks ,old-mode)))))
+
+(cl-defmacro annotate-with-restore-modified-bit (&rest body)
+  "Save the value of `buffer-modified-p' before `body' is exectuted
+  and restore the saved value just after the end of `body'."
+  (let ((modifiedp (gensym)))
+    `(let ((,modifiedp (buffer-modified-p)))
+       ,@body
+       (set-buffer-modified-p ,modifiedp))))
 
 (defun annotate-end-of-line-pos ()
  "Get the position of the end of line and rewind the point's
@@ -1320,7 +1331,7 @@ annotation."
                                             (overlay-end ov))
       (delete-overlay ov)
       (setf modifiedp t)
-    (set-buffer-modified-p modifiedp))))
+      (set-buffer-modified-p modifiedp))))
 
 (defun annotate-string-empty-p (a)
   "Is the arg an empty string or null?"
@@ -1593,13 +1604,14 @@ The searched interval can be customized setting the variable:
          (annotation-text (read-from-minibuffer annotate-annotation-prompt
                                                 (overlay-get highlight 'annotation))))
     (cl-labels ((delete (annotation)
-                 (let ((chain (annotate-find-chain annotation)))
-                   (dolist (single-element chain)
-                     (goto-char (overlay-end single-element))
-                     (move-end-of-line nil)
+                 (let ((chain      (annotate-find-chain annotation)))
+                   (annotate-with-restore-modified-bit
+                    (dolist (single-element chain)
+                      (goto-char (overlay-end single-element))
+                      (move-end-of-line nil)
                       (annotate--remove-annotation-property (overlay-start single-element)
                                                             (overlay-end   single-element))
-                      (delete-overlay single-element))))
+                      (delete-overlay single-element)))))
                 (change (annotation)
                   (let ((chain (annotate-find-chain annotation)))
                     (dolist (single-element chain)
