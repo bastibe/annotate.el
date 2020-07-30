@@ -247,6 +247,10 @@ annotation as defined in the database."
 (defconst annotate-summary-replace-button-label "[replace]"
   "The label for the button, in summary window, to replace an annotation")
 
+(define-error 'annotate-error "Annotation error")
+
+(define-error 'annotate-empty-annotation-text-error "Empty annotation text" 'annotate-error)
+
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
   (cl-find-if 'annotationp
@@ -395,7 +399,10 @@ modified (for example a newline is inserted)."
                (cl-destructuring-bind (start end)
                    (annotate-bounds)
                  (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
-                   (annotate-create-annotation start end annotation-text nil)))))
+                   (condition-case error-message
+                       (annotate-create-annotation start end annotation-text nil)
+                     (annotate-empty-annotation-text-error
+                      (user-error "Annotation text is empty.")))))))
     (let ((annotation (annotate-annotation-at (point))))
       (cond
        ((use-region-p)
@@ -1567,36 +1574,39 @@ The searched interval can be customized setting the variable:
                        (when force-newline-p
                          (annotate-annotation-force-newline-policy annotation))
                        annotation))))
-      (if (not (annotate-string-empty-p annotated-text))
-          (let ((text-to-match (ignore-errors
-                                 (buffer-substring-no-properties start end))))
-            (if (and text-to-match
-                     (string= text-to-match annotated-text))
-                (create-annotation start end annotation-text)
-              (let* ((starting-point-matching (go-backward start))
-                     (ending-point-match      (go-forward  start))
-                     (length-match            (- end start))
-                     (new-match               (guess-match-and-add starting-point-matching
-                                                                   (+ starting-point-matching
-                                                                      length-match)
-                                                                   annotated-text
-                                                                   ending-point-match)))
-                (and new-match
-                     (create-annotation new-match
-                                        (+ new-match length-match)
-                                        annotation-text)))
-              (lwarn '(annotate-mode) ; if matches annotated text failed
-                     :warning
-                     annotate-warn-file-searching-annotation-failed-control-string
-                     (annotate-actual-file-name)
-                     annotation-text
-                     text-to-match)))
-        (create-annotation start end annotation-text)) ; create new annotation
-      (when (use-region-p)
-        (deactivate-mark))
-      (save-excursion
-        (goto-char end)
-        (font-lock-fontify-block 1))))
+    (if (annotate-string-empty-p annotation-text)
+        (signal 'annotate-empty-annotation-text-error t)
+      (progn
+        (if (not (annotate-string-empty-p annotated-text))
+            (let ((text-to-match (ignore-errors
+                                   (buffer-substring-no-properties start end))))
+              (if (and text-to-match
+                       (string= text-to-match annotated-text))
+                  (create-annotation start end annotation-text)
+                (let* ((starting-point-matching (go-backward start))
+                       (ending-point-match      (go-forward  start))
+                       (length-match            (- end start))
+                       (new-match               (guess-match-and-add starting-point-matching
+                                                                     (+ starting-point-matching
+                                                                        length-match)
+                                                                     annotated-text
+                                                                     ending-point-match)))
+                  (and new-match
+                       (create-annotation new-match
+                                          (+ new-match length-match)
+                                          annotation-text)))
+                (lwarn '(annotate-mode) ; if matches annotated text failed
+                       :warning
+                       annotate-warn-file-searching-annotation-failed-control-string
+                       (annotate-actual-file-name)
+                       annotation-text
+                       text-to-match)))
+          (create-annotation start end annotation-text)) ; create new annotation
+        (when (use-region-p)
+          (deactivate-mark))
+        (save-excursion
+          (goto-char end)
+          (font-lock-fontify-block 1))))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
