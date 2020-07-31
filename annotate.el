@@ -247,9 +247,17 @@ annotation as defined in the database."
 (defconst annotate-summary-replace-button-label "[replace]"
   "The label for the button, in summary window, to replace an annotation")
 
+;;;; custom errors
+
 (define-error 'annotate-error "Annotation error")
 
-(define-error 'annotate-empty-annotation-text-error "Empty annotation text" 'annotate-error)
+(define-error 'annotate-empty-annotation-text-error
+  "Empty annotation text"
+  'annotate-error)
+
+(define-error 'annotate-db-file-not-found
+  "Annotations database file not found"
+  'annotate-error)
 
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
@@ -1233,8 +1241,9 @@ annotation."
 (defun annotate-load-annotation-data ()
   "Read and return saved annotations."
   (with-temp-buffer
-    (when (file-exists-p annotate-file)
-      (insert-file-contents annotate-file))
+    (if (file-exists-p annotate-file)
+        (insert-file-contents annotate-file)
+      (signal 'annotate-db-file-not-found annotate-file))
     (goto-char (point-max))
     (cond ((= (point) 1)
            nil)
