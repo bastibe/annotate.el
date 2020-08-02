@@ -259,6 +259,10 @@ annotation as defined in the database."
   "Annotations database file not found"
   'annotate-error)
 
+(define-error 'annotate-annotate-region-overlaps
+  "Error: the region overlaps with at least an already existing annotation"
+  'annotate-error)
+
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
   (cl-find-if 'annotationp
@@ -418,7 +422,7 @@ modified (for example a newline is inserted)."
                                              (overlays-in (region-beginning)
                                                           (region-end)))))
           (if annotations
-              (message "Error: the region overlaps with at least an already existing annotation")
+              (signal 'annotate-annotate-region-overlaps annotations)
             (create-new-annotation))))
        (annotation
         (annotate-change-annotation (point))
