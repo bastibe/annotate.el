@@ -263,6 +263,10 @@ annotation as defined in the database."
   "Error: the region overlaps with at least an already existing annotation"
   'annotate-error)
 
+(define-error 'annotate-query-parsing-error
+  "Parsing failed:"
+  'annotate-error)
+
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
   (cl-find-if 'annotationp
@@ -2251,10 +2255,11 @@ Arguments:
                                                (annotate-summary-query-lexer-string look-ahead)))
                                           (cond
                                            ((not (cl-find look-ahead-symbol '(and or close-par)))
-                                            (error (format (concat "Expecting for operator "
-                                                                   "('and' or 'or') or \")\". "
-                                                                   "found %S instead")
-                                                           look-ahead-string)))
+                                            (signal 'annotate-query-parsing-error
+                                                    (format (concat "Expecting for operator "
+                                                                    "('and' or 'or') or \")\". "
+                                                                    "found %S instead")
+                                                            look-ahead-string)))
                                            (t
                                             ;; found operator, recurse to search for rhs of rule
                                             ;; NOTE OPERATOR NOTE
@@ -2281,7 +2286,7 @@ Arguments:
                 (when (or (annotate-summary-query-parse-end-input-p maybe-close-parens)
                           (not (eq (annotate-summary-query-lexer-symbol maybe-close-parens)
                                    'close-par)))
-                  (error "Unmatched parens"))
+                  (signal 'annotate-query-parsing-error "Unmatched parens"))
                 ;; continue parsing
                 (annotate-summary-query-parse-note filter-fn annotation matchp))) ; recurse
              ((token-symbol-match-p 'not look-ahead)
@@ -2295,7 +2300,7 @@ Arguments:
                 ;; because, according to the grammar, after a NOT a
                 ;; NOTE is non optional
                 (if (eq :error res)
-                    (error "No more input after 'not'")
+                    (signal 'annotate-query-parsing-error "No more input after 'not'")
                   ;; if the last rule (saved in res) is not nil (and
                   ;; is not :error) return nil, return the last
                   ;; annotation otherwise remember that the user asked
@@ -2310,7 +2315,7 @@ Arguments:
               (let ((lhs res)          ; the left side of this rule lhs AND rhs
                     (rhs (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
                 (if (eq :error rhs) ; see the 'not' operator above
-                    (error "No more input after 'and'")
+                    (signal 'annotate-query-parsing-error "No more input after 'and'")
                   (and lhs rhs)))) ; both rules must match as this is a logic and
              ;; trying to match the rule:
              ;; NOTE := NOTE OR NOTE
@@ -2319,7 +2324,7 @@ Arguments:
               (let ((lhs res)          ; the left side of this rule (lhs OR rhs)
                     (rhs (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
                 (if (eq :error rhs)
-                    (error "No more input after 'or'")
+                    (signal 'annotate-query-parsing-error "No more input after 'or'")
                   (or lhs rhs)))) ; either lhs or rhs match as this is a logic or
              ((token-symbol-match-p 'escaped-re look-ahead)
               ;; here we match the rule:
@@ -2421,7 +2426,7 @@ Note: this function return the annotation part of the record, see
                       ;; according to the rule we are trying to match:
                       ;; EXPRESSION := FILE-MASK OR NOTE
                       (if (annotate-summary-query-parse-end-input-p look-ahead)
-                          (error "No more input after 'or'")
+                          (signal 'annotate-query-parsing-error "No more input after 'or'")
                         (progn
                           ;; copy the string for note parsing note
                           ;; that annotate-summary-query only contains
@@ -2443,7 +2448,7 @@ Note: this function return the annotation part of the record, see
                     ;; according to the rule we are trying to match:
                     ;; EXPRESSION := FILE-MASK AND NOTE
                     (if (annotate-summary-query-parse-end-input-p look-ahead)
-                        (error "No more input after 'and'")
+                        (signal 'annotate-query-parsing-error "No more input after 'and'")
                       (progn
                         ;; copy the string for note parsing note
                         ;; that annotate-summary-query only contains
@@ -2460,8 +2465,9 @@ Note: this function return the annotation part of the record, see
                  (t
                   ;; there is something after the file-mask in the
                   ;; input but it is not an operator
-                  (error (format "Unknown operator: %s is not in '(and, or)"
-                                 (annotate-summary-query-lexer-string operator-token)))))))))))))
+                  (signal 'annotate-query-parsing-error
+                          (format "Unknown operator: %s is not in '(and, or)"
+                                  (annotate-summary-query-lexer-string operator-token)))))))))))))
 
 (defun annotate-summary-filter-db (annotations-dump query)
   "Filter an annotation database with a query.
