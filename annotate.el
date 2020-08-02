@@ -1813,11 +1813,11 @@ sophisticated way than plain text"
                               ((annotate-info-root-dir-p filename)
                                :info)
                               (t
-                               (let* ((file-contents     (file-contents))
-                                      (has-info-p        (string-match "info" filename))
-                                      (separator-re      "\^L?\^_\^L?\^J")
-                                      (has-separator-p   (string-match separator-re file-contents))
-                                      (has-node-p        (string-match "Node:" file-contents)))
+                               (let* ((file-contents   (file-contents))
+                                      (has-info-p      (string-match "info" filename))
+                                      (separator-re    "\^L?\^_\^L?\^J")
+                                      (has-separator-p (string-match separator-re file-contents))
+                                      (has-node-p      (string-match "Node:" file-contents)))
                                  (if (or (annotate-info-root-dir-p filename)
                                          (and has-separator-p
                                               has-node-p)
