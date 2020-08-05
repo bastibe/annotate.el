@@ -1257,7 +1257,7 @@ annotation."
   (with-temp-buffer
     (if (file-exists-p annotate-file)
         (insert-file-contents annotate-file)
-      (signal 'annotate-db-file-not-found annotate-file))
+      (signal 'annotate-db-file-not-found (list annotate-file)))
     (goto-char (point-max))
     (cond ((= (point) 1)
            nil)
@@ -2548,7 +2548,7 @@ annotate minor mode active"
                          annotate-mode))))
       (cl-remove-if-not #'annotate-mode-p all-buffers))))
 
-(cl-defun annotate-switch-db (&optional (force-load nil)  (database-file-path nil))
+(cl-defun annotate-switch-db (&optional (force-load nil) (database-file-path nil))
  "Ask the user for a new annotation database files, load it and
 refresh all the annotations contained in each buffer where
 annotate minor mode is active.
@@ -2586,7 +2586,7 @@ code, always use load files from trusted sources!"
                                 (when (not buffer-was-modified-p)
                                   (set-buffer-modified-p nil)))))))
               (message "Load aborted by the user")))
-        (user-error (format "The file %S does not exists." new-db))))))
+        (signal 'annotate-db-file-not-found (list new-db))))))
 
 ;; end of switching database
 
