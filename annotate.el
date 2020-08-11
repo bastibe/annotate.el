@@ -1247,10 +1247,10 @@ annotation."
     (annotate-dump-annotation-data db)))
 
 (defun annotate-load-annotation-data-ignore-errors ()
-  (condition-case error-message
-      (annotate-load-annotation-data)
-    (annotate-db-file-not-found
-     nil)))
+ "Read and return saved annotations, returns nil if an error
+occurs."
+  (ignore-errors
+    (annotate-load-annotation-data)))
 
 (defun annotate-load-annotation-data ()
   "Read and return saved annotations."
