@@ -1103,7 +1103,7 @@ essentially what you get from:
                                           (= (annotate-beginning-of-annotation a)
                                              (annotate-ending-of-annotation    a)))
                                         (annotate-describe-annotations)))
-        (all-annotations  (annotate-load-annotation-data-ignore-errors))
+        (all-annotations  (annotate-load-annotation-data t))
         (filename         (annotate-guess-filename-for-dump (annotate-actual-file-name))))
     (if (assoc-string filename all-annotations)
         (setcdr (assoc-string filename all-annotations)
@@ -1128,7 +1128,7 @@ essentially what you get from:
   "Load all annotations from disk in old format."
   (interactive)
   (let ((annotations (cdr (assoc-string (annotate-actual-file-name)
-                                        (annotate-load-annotation-data-ignore-errors))))
+                                        (annotate-load-annotation-data t))))
         (modified-p  (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
     (setq annotations (cl-remove-if (lambda (ann) (null (nth 2 ann)))
@@ -1189,7 +1189,7 @@ example:
                             (not (stringp (cl-first (last annotation))))))
     (interactive)
     (let* ((filename             (annotate-actual-file-name))
-           (all-annotations-data (annotate-load-annotation-data-ignore-errors))
+           (all-annotations-data (annotate-load-annotation-data t))
            (annotation-dump      (assoc-string filename all-annotations-data))
            (annotations          (annotate-annotations-from-dump annotation-dump))
            (old-checksum         (annotate-checksum-from-dump annotation-dump))
@@ -1243,27 +1243,25 @@ i.e. the first record is removed."
  "Update database *on disk* removing all the records with empty
 annotation."
   (interactive)
-  (let ((db (annotate-db-clean-records (annotate-load-annotation-data-ignore-errors))))
+  (let ((db (annotate-db-clean-records (annotate-load-annotation-data t))))
     (annotate-dump-annotation-data db)))
 
-(defun annotate-load-annotation-data-ignore-errors ()
- "Read and return saved annotations, returns nil if an error
-occurs."
-  (ignore-errors
-    (annotate-load-annotation-data)))
-
-(defun annotate-load-annotation-data ()
+(defun annotate-load-annotation-data (&optional ignore-errors)
   "Read and return saved annotations."
-  (with-temp-buffer
-    (if (file-exists-p annotate-file)
-        (insert-file-contents annotate-file)
-      (signal 'annotate-db-file-not-found (list annotate-file)))
-    (goto-char (point-max))
-    (cond ((= (point) 1)
-           nil)
-          (t
-           (goto-char (point-min))
-           (read (current-buffer))))))
+  (cl-flet ((%load-annotation-data ()
+              (with-temp-buffer
+                (if (file-exists-p annotate-file)
+                    (insert-file-contents annotate-file)
+                  (signal 'annotate-db-file-not-found (list annotate-file)))
+                (goto-char (point-max))
+                (cond ((= (point) 1)
+                       nil)
+                      (t
+                       (goto-char (point-min))
+                       (read (current-buffer)))))))
+    (if ignore-errors
+        (ignore-errors (%load-annotation-data))
+      (%load-annotation-data))))
 
 (defun annotate-dump-annotation-data (data)
   "Save `data` into annotation file."
@@ -1868,7 +1866,7 @@ sophisticated way than plain text"
          (ending          (button-get button 'ending))
          (begin-of-button (button-get button 'begin-of-button))
          (end-of-button   (button-get button 'end-of-button))
-         (db              (annotate-load-annotation-data-ignore-errors))
+         (db              (annotate-load-annotation-data t))
          (filtered        (annotate-db-remove-annotation db filename beginning ending)))
     (annotate-dump-annotation-data filtered) ; save the new database with entry removed
     (cl-labels ((redraw-summary-window () ; update the summary window
@@ -1897,7 +1895,7 @@ sophisticated way than plain text"
          (annotation-beginning (button-get button 'beginning))
          (annotation-ending    (button-get button 'ending))
          (query                (button-get button 'query))
-         (db                   (annotate-load-annotation-data-ignore-errors))
+         (db                   (annotate-load-annotation-data t))
          (old-annotation       (button-get button 'text))
          (new-annotation-text  (read-from-minibuffer annotate-annotation-prompt old-annotation)))
     (when (not (annotate-string-empty-p new-annotation-text))
@@ -2024,7 +2022,7 @@ results can be filtered with a simple query language: see
                               (t
                                ".*"))))
     (let* ((filter-query (get-query))
-           (dump         (annotate-summary-filter-db (annotate-load-annotation-data-ignore-errors)
+           (dump         (annotate-summary-filter-db (annotate-load-annotation-data t)
                                                      filter-query)))
       (if (db-empty-p dump)
           (when annotate-use-messages
