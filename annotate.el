@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.8.2"
+  :version "0.8.3"
   :group 'text)
 
 ;;;###autoload
@@ -247,9 +247,25 @@ annotation as defined in the database."
 (defconst annotate-summary-replace-button-label "[replace]"
   "The label for the button, in summary window, to replace an annotation")
 
+;;;; custom errors
+
 (define-error 'annotate-error "Annotation error")
 
-(define-error 'annotate-empty-annotation-text-error "Empty annotation text" 'annotate-error)
+(define-error 'annotate-empty-annotation-text-error
+  "Empty annotation text"
+  'annotate-error)
+
+(define-error 'annotate-db-file-not-found
+  "Annotations database file not found"
+  'annotate-error)
+
+(define-error 'annotate-annotate-region-overlaps
+  "Error: the region overlaps with at least an already existing annotation"
+  'annotate-error)
+
+(define-error 'annotate-query-parsing-error
+  "Parsing failed:"
+  'annotate-error)
 
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
@@ -410,7 +426,7 @@ modified (for example a newline is inserted)."
                                              (overlays-in (region-beginning)
                                                           (region-end)))))
           (if annotations
-              (message "Error: the region overlaps with at least an already existing annotation")
+              (signal 'annotate-annotate-region-overlaps annotations)
             (create-new-annotation))))
        (annotation
         (annotate-change-annotation (point))
@@ -1087,7 +1103,7 @@ essentially what you get from:
                                           (= (annotate-beginning-of-annotation a)
                                              (annotate-ending-of-annotation    a)))
                                         (annotate-describe-annotations)))
-        (all-annotations  (annotate-load-annotation-data))
+        (all-annotations  (annotate-load-annotation-data t))
         (filename         (annotate-guess-filename-for-dump (annotate-actual-file-name))))
     (if (assoc-string filename all-annotations)
         (setcdr (assoc-string filename all-annotations)
@@ -1112,7 +1128,7 @@ essentially what you get from:
   "Load all annotations from disk in old format."
   (interactive)
   (let ((annotations (cdr (assoc-string (annotate-actual-file-name)
-                                        (annotate-load-annotation-data))))
+                                        (annotate-load-annotation-data t))))
         (modified-p  (buffer-modified-p)))
     ;; remove empty annotations created by earlier bug:
     (setq annotations (cl-remove-if (lambda (ann) (null (nth 2 ann)))
@@ -1173,7 +1189,7 @@ example:
                             (not (stringp (cl-first (last annotation))))))
     (interactive)
     (let* ((filename             (annotate-actual-file-name))
-           (all-annotations-data (annotate-load-annotation-data))
+           (all-annotations-data (annotate-load-annotation-data t))
            (annotation-dump      (assoc-string filename all-annotations-data))
            (annotations          (annotate-annotations-from-dump annotation-dump))
            (old-checksum         (annotate-checksum-from-dump annotation-dump))
@@ -1227,20 +1243,25 @@ i.e. the first record is removed."
  "Update database *on disk* removing all the records with empty
 annotation."
   (interactive)
-  (let ((db (annotate-db-clean-records (annotate-load-annotation-data))))
+  (let ((db (annotate-db-clean-records (annotate-load-annotation-data t))))
     (annotate-dump-annotation-data db)))
 
-(defun annotate-load-annotation-data ()
+(defun annotate-load-annotation-data (&optional ignore-errors)
   "Read and return saved annotations."
-  (with-temp-buffer
-    (when (file-exists-p annotate-file)
-      (insert-file-contents annotate-file))
-    (goto-char (point-max))
-    (cond ((= (point) 1)
-           nil)
-          (t
-           (goto-char (point-min))
-           (read (current-buffer))))))
+  (cl-flet ((%load-annotation-data ()
+              (with-temp-buffer
+                (if (file-exists-p annotate-file)
+                    (insert-file-contents annotate-file)
+                  (signal 'annotate-db-file-not-found (list annotate-file)))
+                (goto-char (point-max))
+                (cond ((= (point) 1)
+                       nil)
+                      (t
+                       (goto-char (point-min))
+                       (read (current-buffer)))))))
+    (if ignore-errors
+        (ignore-errors (%load-annotation-data))
+      (%load-annotation-data))))
 
 (defun annotate-dump-annotation-data (data)
   "Save `data` into annotation file."
@@ -1794,11 +1815,11 @@ sophisticated way than plain text"
                               ((annotate-info-root-dir-p filename)
                                :info)
                               (t
-                               (let* ((file-contents     (file-contents))
-                                      (has-info-p        (string-match "info" filename))
-                                      (separator-re      "\^L?\^_\^L?\^J")
-                                      (has-separator-p   (string-match separator-re file-contents))
-                                      (has-node-p        (string-match "Node:" file-contents)))
+                               (let* ((file-contents   (file-contents))
+                                      (has-info-p      (string-match "info" filename))
+                                      (separator-re    "\^L?\^_\^L?\^J")
+                                      (has-separator-p (string-match separator-re file-contents))
+                                      (has-node-p      (string-match "Node:" file-contents)))
                                  (if (or (annotate-info-root-dir-p filename)
                                          (and has-separator-p
                                               has-node-p)
@@ -1845,7 +1866,7 @@ sophisticated way than plain text"
          (ending          (button-get button 'ending))
          (begin-of-button (button-get button 'begin-of-button))
          (end-of-button   (button-get button 'end-of-button))
-         (db              (annotate-load-annotation-data))
+         (db              (annotate-load-annotation-data t))
          (filtered        (annotate-db-remove-annotation db filename beginning ending)))
     (annotate-dump-annotation-data filtered) ; save the new database with entry removed
     (cl-labels ((redraw-summary-window () ; update the summary window
@@ -1874,7 +1895,7 @@ sophisticated way than plain text"
          (annotation-beginning (button-get button 'beginning))
          (annotation-ending    (button-get button 'ending))
          (query                (button-get button 'query))
-         (db                   (annotate-load-annotation-data))
+         (db                   (annotate-load-annotation-data t))
          (old-annotation       (button-get button 'text))
          (new-annotation-text  (read-from-minibuffer annotate-annotation-prompt old-annotation)))
     (when (not (annotate-string-empty-p new-annotation-text))
@@ -2001,7 +2022,7 @@ results can be filtered with a simple query language: see
                               (t
                                ".*"))))
     (let* ((filter-query (get-query))
-           (dump         (annotate-summary-filter-db (annotate-load-annotation-data)
+           (dump         (annotate-summary-filter-db (annotate-load-annotation-data t)
                                                      filter-query)))
       (if (db-empty-p dump)
           (when annotate-use-messages
@@ -2232,10 +2253,11 @@ Arguments:
                                                (annotate-summary-query-lexer-string look-ahead)))
                                           (cond
                                            ((not (cl-find look-ahead-symbol '(and or close-par)))
-                                            (error (format (concat "Expecting for operator "
-                                                                   "('and' or 'or') or \")\". "
-                                                                   "found %S instead")
-                                                           look-ahead-string)))
+                                            (signal 'annotate-query-parsing-error
+                                                    (list (format (concat "Expecting for operator "
+                                                                          "('and' or 'or') or \")\". "
+                                                                          "found %S instead")
+                                                                  look-ahead-string))))
                                            (t
                                             ;; found operator, recurse to search for rhs of rule
                                             ;; NOTE OPERATOR NOTE
@@ -2262,7 +2284,7 @@ Arguments:
                 (when (or (annotate-summary-query-parse-end-input-p maybe-close-parens)
                           (not (eq (annotate-summary-query-lexer-symbol maybe-close-parens)
                                    'close-par)))
-                  (error "Unmatched parens"))
+                  (signal 'annotate-query-parsing-error '("Unmatched parens")))
                 ;; continue parsing
                 (annotate-summary-query-parse-note filter-fn annotation matchp))) ; recurse
              ((token-symbol-match-p 'not look-ahead)
@@ -2276,7 +2298,7 @@ Arguments:
                 ;; because, according to the grammar, after a NOT a
                 ;; NOTE is non optional
                 (if (eq :error res)
-                    (error "No more input after 'not'")
+                    (signal 'annotate-query-parsing-error '("No more input after 'not'"))
                   ;; if the last rule (saved in res) is not nil (and
                   ;; is not :error) return nil, return the last
                   ;; annotation otherwise remember that the user asked
@@ -2291,7 +2313,7 @@ Arguments:
               (let ((lhs res)          ; the left side of this rule lhs AND rhs
                     (rhs (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
                 (if (eq :error rhs) ; see the 'not' operator above
-                    (error "No more input after 'and'")
+                    (signal 'annotate-query-parsing-error '("No more input after 'and'"))
                   (and lhs rhs)))) ; both rules must match as this is a logic and
              ;; trying to match the rule:
              ;; NOTE := NOTE OR NOTE
@@ -2300,7 +2322,7 @@ Arguments:
               (let ((lhs res)          ; the left side of this rule (lhs OR rhs)
                     (rhs (annotate-summary-query-parse-note filter-fn annotation :error))) ; recurse
                 (if (eq :error rhs)
-                    (error "No more input after 'or'")
+                    (signal 'annotate-query-parsing-error '("No more input after 'or'"))
                   (or lhs rhs)))) ; either lhs or rhs match as this is a logic or
              ((token-symbol-match-p 'escaped-re look-ahead)
               ;; here we match the rule:
@@ -2402,7 +2424,7 @@ Note: this function return the annotation part of the record, see
                       ;; according to the rule we are trying to match:
                       ;; EXPRESSION := FILE-MASK OR NOTE
                       (if (annotate-summary-query-parse-end-input-p look-ahead)
-                          (error "No more input after 'or'")
+                          (signal 'annotate-query-parsing-error '("No more input after 'or'"))
                         (progn
                           ;; copy the string for note parsing note
                           ;; that annotate-summary-query only contains
@@ -2424,7 +2446,7 @@ Note: this function return the annotation part of the record, see
                     ;; according to the rule we are trying to match:
                     ;; EXPRESSION := FILE-MASK AND NOTE
                     (if (annotate-summary-query-parse-end-input-p look-ahead)
-                        (error "No more input after 'and'")
+                        (signal 'annotate-query-parsing-error '("No more input after 'and'"))
                       (progn
                         ;; copy the string for note parsing note
                         ;; that annotate-summary-query only contains
@@ -2441,8 +2463,9 @@ Note: this function return the annotation part of the record, see
                  (t
                   ;; there is something after the file-mask in the
                   ;; input but it is not an operator
-                  (error (format "Unknown operator: %s is not in '(and, or)"
-                                 (annotate-summary-query-lexer-string operator-token)))))))))))))
+                  (signal 'annotate-query-parsing-error
+                          (list (format "Unknown operator: %s is not in '(and, or)"
+                                        (annotate-summary-query-lexer-string operator-token))))))))))))))
 
 (defun annotate-summary-filter-db (annotations-dump query)
   "Filter an annotation database with a query.
@@ -2523,7 +2546,7 @@ annotate minor mode active"
                          annotate-mode))))
       (cl-remove-if-not #'annotate-mode-p all-buffers))))
 
-(cl-defun annotate-switch-db (&optional (force-load nil)  (database-file-path nil))
+(cl-defun annotate-switch-db (&optional (force-load nil) (database-file-path nil))
  "Ask the user for a new annotation database files, load it and
 refresh all the annotations contained in each buffer where
 annotate minor mode is active.
@@ -2561,7 +2584,7 @@ code, always use load files from trusted sources!"
                                 (when (not buffer-was-modified-p)
                                   (set-buffer-modified-p nil)))))))
               (message "Load aborted by the user")))
-        (user-error (format "The file %S does not exists." new-db))))))
+        (signal 'annotate-db-file-not-found (list new-db))))))
 
 ;; end of switching database
 

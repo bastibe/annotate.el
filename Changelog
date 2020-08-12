@@ -1,3 +1,10 @@
+2020-08-11
+	* annotate.el (annotate-annotate, annotate-load-annotation-data
+	               annotate-create-annotation, annotate-summary-query-parse-note,
+                       annotate-switch-db)
+
+	- Added errors conditions signalling to some functions.
+
 2020-07-01
 	* annotate.el (annotate-change-annotation)
 
