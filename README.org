@@ -78,7 +78,8 @@ can take advantage of its packages generated files management.
     A window with a list of annotated files together with their
     annotations is shown. If ~annotate-summary-ask-query~ is non nil
     (default is ~t~) then a prompt is shown where the user can insert
-    a query to filter the annotation database, see [[Query Language]].
+    a query to filter the annotation database, see "Query Language"
+    below.
 
     The summary window allow editing and removing of annotation using
     the provided buttons.
