@@ -1677,16 +1677,16 @@ The searched interval can be customized setting the variable:
                     (dolist (single-element chain)
                       (annotate-overlay-maybe-set-help-echo single-element annotation-text)
                       (overlay-put single-element 'annotation annotation-text)))))
-    (save-excursion
-      (cond
-       ;; annotation was cancelled:
-       ((null annotation-text))
-       ;; annotation was erased:
-       ((string= "" annotation-text)
-        (delete highlight))
-       ;; annotation was changed:
-       (t
-        (change highlight)))))))
+      (save-excursion
+        (cond
+         ;; annotation was cancelled:
+         ((null annotation-text))
+         ;; annotation was erased:
+         ((string= "" annotation-text)
+          (delete highlight))
+         ;; annotation was changed:
+         (t
+          (change highlight)))))))
 
 (defun annotate-make-prefix ()
   "An empty string from the end of the line upto the annotation."
