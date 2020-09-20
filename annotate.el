@@ -177,6 +177,13 @@ database is not filtered at all."
   :type  'symbol
   :group 'annotate)
 
+(defcustom annotate-use-echo-area nil
+ "Whether annotation text should apperar in the echo area only when mouse
+id positioned over the annotated text instead of positioning them in
+the the buffer (the default)."
+  :type 'boolean
+  :group 'annotate)
+
 (defconst annotate-prop-chain-position
   'position)
 
@@ -381,10 +388,14 @@ modified (for example a newline is inserted)."
   (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t t)
   (add-hook 'before-change-functions          'annotate-before-change-fn t t)
   (add-hook 'Info-selection-hook              'annotate-info-select-fn   t t)
-  (font-lock-add-keywords
-   nil
-   '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
-                                  (1 (annotate--change-guard))))))
+  (if annotate-use-echo-area
+      (font-lock-add-keywords
+       nil
+       '((annotate--font-lock-matcher (2 (annotate--annotation-builder)))))
+    (font-lock-add-keywords
+     nil
+     '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                    (1 (annotate--change-guard)))))))
 
 (defun annotate-shutdown ()
   "Clear annotations and remove save and display hooks."
@@ -393,10 +404,14 @@ modified (for example a newline is inserted)."
   (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t)
   (remove-hook 'before-change-functions          'annotate-before-change-fn t)
   (remove-hook 'Info-selection-hook              'annotate-info-select-fn   t)
-  (font-lock-remove-keywords
-   nil
-   '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
-                                  (1 (annotate--change-guard))))))
+  (if annotate-use-echo-area
+      (font-lock-remove-keywords
+       nil
+       '((annotate--font-lock-matcher (2 (annotate--annotation-builder)))))
+    (font-lock-remove-keywords
+     nil
+     '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                    (1 (annotate--change-guard)))))))
 
 (defun annotate-overlay-filled-p (overlay)
   "Does this overlay contains an 'annotation' property?"
@@ -911,25 +926,27 @@ to 'maximum-width'."
                   (overlay-put ov
                                'face
                                (overlay-get first-in-chain 'face))))
-            (when (annotate-chain-last-p ov)
-              (when position-new-line-p
-                (setf prefix-first " \n"))
-              (dolist (l multiline-annotation)
-                (setq annotation-text
-                      (concat annotation-text
-                              prefix-first
-                              (propertize l 'face face)
-                              annotation-stopper))
-                ;; white space before for all but the first annotation line
-                (if position-new-line-p
-                    (setq prefix-first (concat prefix-first prefix-rest))
-                  (setq prefix-first prefix-rest))))))
-        ;; build facespec with the annotation text as display property
-        (if (string= annotation-text "")
-          ;; annotation has been removed: remove display prop
-          (list 'face 'default 'display nil)
-        ;; annotation has been changed/added: change/add display prop
-        (list 'face 'default 'display annotation-text))))))
+            (when (and (not annotate-use-echo-area)
+                       (annotate-chain-last-p ov))
+                (when position-new-line-p
+                  (setf prefix-first " \n"))
+                (dolist (l multiline-annotation)
+                  (setq annotation-text
+                        (concat annotation-text
+                                prefix-first
+                                (propertize l 'face face)
+                                annotation-stopper))
+                  ;; white space before for all but the first annotation line
+                  (if position-new-line-p
+                      (setq prefix-first (concat prefix-first prefix-rest))
+                    (setq prefix-first prefix-rest))))))
+        (when (not annotate-use-echo-area)
+          ;; build facespec with the annotation text as display property
+          (if (string= annotation-text "")
+              ;; annotation has been removed: remove display prop
+              (list 'face 'default 'display nil)
+            ;; annotation has been changed/added: change/add display prop
+            (list 'face 'default 'display annotation-text)))))))
 
 (defun annotate--remove-annotation-property (begin end)
   "Cleans up annotation properties associated with a region."
@@ -1523,6 +1540,8 @@ The searched interval can be customized setting the variable:
                                     (highlight (make-overlay start end-overlay)))
                                (overlay-put highlight 'face 'annotate-highlight)
                                (overlay-put highlight 'annotation annotation-text)
+                               (annotate-overlay-maybe-set-help-echo highlight
+                                                                     annotation-text)
                                (annotate-annotation-chain-position highlight
                                                                    annotate-prop-chain-pos-marker-last)
                                (push highlight all-overlays))))))
@@ -1629,6 +1648,16 @@ The searched interval can be customized setting the variable:
           (goto-char end)
           (font-lock-fontify-block 1))))))
 
+(defun annotate-overlay-put-echo-help (overlay text)
+  (overlay-put overlay 'help-echo text))
+
+(defun annotate-overlay-get-echo-help (overlay text)
+  (overlay-get overlay 'help-echo))
+
+(defun annotate-overlay-maybe-set-help-echo (overlay annotation-text)
+  (when annotate-use-echo-area
+    (annotate-overlay-put-echo-help overlay annotation-text)))
+
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
   (let* ((highlight       (annotate-annotation-at pos))
@@ -1646,7 +1675,8 @@ The searched interval can be customized setting the variable:
                 (change (annotation)
                   (let ((chain (annotate-find-chain annotation)))
                     (dolist (single-element chain)
-                        (overlay-put single-element 'annotation annotation-text)))))
+                      (annotate-overlay-maybe-set-help-echo single-element annotation-text)
+                      (overlay-put single-element 'annotation annotation-text)))))
     (save-excursion
       (cond
        ;; annotation was cancelled:
