@@ -1360,6 +1360,17 @@ annotation."
              db-records))
        db-records))))
 
+(defun annotate-db-annotations-starts-before-p (a b)
+  "Non nil if  annotation `a' starts before `b'.
+
+In this context annotation means annotation loaded from local
+database not the annotation shown in the buffer (therefore these
+arguments are 'record' as called in the other database-related
+funcions).
+"
+  (< (annotate-beginning-of-annotation a)
+     (annotate-beginning-of-annotation b)))
+
 ;;;; database related procedures ends here
 
 (defun annotate-clear-annotations ()
@@ -1649,12 +1660,18 @@ The searched interval can be customized setting the variable:
           (font-lock-fontify-block 1))))))
 
 (defun annotate-overlay-put-echo-help (overlay text)
+  "Set the property `help-echo' to `text' in overlay `overlay'."
   (overlay-put overlay 'help-echo text))
 
-(defun annotate-overlay-get-echo-help (overlay text)
+(defun annotate-overlay-get-echo-help (overlay)
+  "Set the property `help-echo' from overlay `overlay'."
   (overlay-get overlay 'help-echo))
 
 (defun annotate-overlay-maybe-set-help-echo (overlay annotation-text)
+  "Set the property `help-echo' to `text' in overlay `overlay' if
+the annotations should be shown in a popup fashion.
+
+See the variable: `annotate-use-echo-area'."
   (when annotate-use-echo-area
     (annotate-overlay-put-echo-help overlay annotation-text)))
 
@@ -1937,7 +1954,7 @@ sophisticated way than plain text"
         (annotate-dump-annotation-data replaced-annotation-db)
         (annotate-show-annotation-summary query)))))
 
-(defun annotate-show-annotation-summary (&optional arg-query)
+(defun annotate-show-annotation-summary (&optional arg-query cut-above-point)
  "Show a summary of all the annotations in a temp buffer, the
 results can be filtered with a simple query language: see
 `annotate-summary-filter-db'."
@@ -2053,7 +2070,8 @@ results can be filtered with a simple query language: see
                                ".*"))))
     (let* ((filter-query (get-query))
            (dump         (annotate-summary-filter-db (annotate-load-annotation-data t)
-                                                     filter-query)))
+                                                     filter-query
+                                                     cut-above-point)))
       (if (db-empty-p dump)
           (when annotate-use-messages
             (message "The annotation database is empty"))
@@ -2497,7 +2515,7 @@ Note: this function return the annotation part of the record, see
                           (list (format "Unknown operator: %s is not in '(and, or)"
                                         (annotate-summary-query-lexer-string operator-token))))))))))))))
 
-(defun annotate-summary-filter-db (annotations-dump query)
+(defun annotate-summary-filter-db (annotations-dump query remove-annotations-cutoff-point)
   "Filter an annotation database with a query.
 
 The argument `query' is a string that respect a simple syntax:
@@ -2532,7 +2550,12 @@ annotation, like this:
 
 - .* and \"not\"
  the \" can be used to escape strings
-"
+
+If you want to remove from summary the annotations that appears
+before a position in buffer set `remove-annotations-cutoff-point' to said
+position.
+
+The annotations in each record are sorted by starting point in ascending order."
   (let* ((parser             (annotate-summary-query-parse-expression))
          (filter-file        (lambda (file-mask annotation-dump)
                                (let ((filename
@@ -2544,27 +2567,48 @@ annotation, like this:
                                                     (annotate-annotation-string annotation-dump-2))
                                     annotation-dump-2)))
          (filter             (lambda (single-annotation)
-                                (let ((filtered-annotations (funcall parser
-                                                                     single-annotation
-                                                                     query
-                                                                     filter-file
-                                                                     filter-annotations)))
-                                  (setf filtered-annotations
-                                        (cl-remove-if 'null filtered-annotations))
-                                  (when filtered-annotations
-                                    (let ((filename (annotate-filename-from-dump
-                                                     single-annotation))
-                                          (checksum (annotate-checksum-from-dump
-                                                     single-annotation)))
-                                      (annotate-make-annotation-dump-entry filename
-                                                                           filtered-annotations
-                                                                           checksum))))))
-         (filtered           (mapcar filter annotations-dump)))
-    (cl-remove-if 'null filtered)))
+                               (let ((filtered-annotations (funcall parser
+                                                                    single-annotation
+                                                                    query
+                                                                    filter-file
+                                                                    filter-annotations)))
+                                 (setf filtered-annotations
+                                       (cl-remove-if 'null filtered-annotations))
+                                 (when filtered-annotations
+                                   (let ((filename (annotate-filename-from-dump
+                                                    single-annotation))
+                                         (checksum (annotate-checksum-from-dump
+                                                    single-annotation)))
+                                     (setf filtered-annotations
+                                           (sort filtered-annotations
+                                                 'annotate-db-annotations-starts-before-p))
+                                     (when remove-annotations-cutoff-point
+                                       (setf filtered-annotations
+                                             (cl-remove-if (lambda (a)
+                                                             (< (annotate-ending-of-annotation a)
+                                                                remove-annotations-cutoff-point))
+                                                           filtered-annotations)))
+                                     (annotate-make-annotation-dump-entry filename
+                                                                          filtered-annotations
+                                                                          checksum))))))
+         (filtered           (cl-remove-if 'null (mapcar filter annotations-dump))))
+    filtered))
 
 ;;;; end of filtering: parser, lexer, etc.
 
-;;;; switching database
+;;;; misc commands
+
+(defun annotate-summary-of-file-from-current-pos ()
+ "Shows a summary window that contains only the annotations in
+the current buffer and that starts after the current cursor's
+position."
+  (interactive)
+  (with-current-buffer (current-buffer)
+    (when buffer-file-name
+      (annotate-show-annotation-summary buffer-file-name (point)))))
+
+
+;;; switching database
 
 (defun annotate-buffers-annotate-mode ()
  "Returns a list of all the buffers that have
