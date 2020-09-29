@@ -109,6 +109,46 @@ as comments into the current buffer, like this:
      - ~annotate-integrate-highlight~
      - ~annotate-fallback-comment~
 
+* Alternative visualization of annotations
+
+For typographically difficult scenarios (or just because you prefer
+it), such as variable-width fonts or overlay-heavy modes, the default
+visualization system that renders the annotation into the buffer could
+not properly works.
+
+In this case the users can switch to a "pop-up" style annotation
+setting to a non-nil value the variable ~annotate-use-echo-area~.
+
+When such variable's value is not null, moving the mouse pointer over
+the annotated text will temporary show the annotation.
+
+The actual visuals of this "pop-up" can be different depending of your
+system's setup (see
+[[https://github.com/bastibe/annotate.el/pull/81][this pull request]]
+for a couple of examples.
+
+Another alternative way to show annotations is provided by the command:
+~annotate-summary-of-file-from-current-pos~.
+
+Calling this command will show a summary window that prints all the
+annotations related to annotated text that appears (in the active
+buffer) beyond the current cursor position.
+
+**** related customizable variable
+     - ~annotate-use-echo-area~
+
+* Other commands
+
+** annotate-switch-db
+
+This command will ask the user for a new annotation database files,
+load it and refresh all the annotations contained in each buffer where
+annotate minor mode is active.
+
+See the docstring for more information and
+[[https://github.com/bastibe/annotate.el/issues/68][this thread]]
+for a possible workflow where this command could be useful.
+
 * More documentation
 
  Please check ~M-x customize-group RET annotate~ as there is
@@ -125,7 +165,7 @@ as comments into the current buffer, like this:
 
    - Because   of  a   limitation  in   the  Emacs   display  routines
      ~scroll-down-line~ could get stuck on a annotated line. So no fix
-     can  be  provided by  the  autors  of ~annotate.el~,  a  possible
+     can  be  provided by  the  authors  of ~annotate.el~,  a  possible
      workaround is to call the command with a numeric prefix equals to
      one plus the number of  annotation text lines below the annotated
      text.
