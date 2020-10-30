@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 0.8.3
+;; Version: 0.9.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "0.8.3"
+  :version "0.9.0"
   :group 'text)
 
 ;;;###autoload
@@ -175,6 +175,13 @@ database is not filtered at all."
     otherwise.
 "
   :type  'symbol
+  :group 'annotate)
+
+(defcustom annotate-use-echo-area nil
+ "Whether annotation text should apperar in the echo area only when mouse
+id positioned over the annotated text instead of positioning them in
+the the buffer (the default)."
+  :type 'boolean
   :group 'annotate)
 
 (defconst annotate-prop-chain-position
@@ -381,10 +388,14 @@ modified (for example a newline is inserted)."
   (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t t)
   (add-hook 'before-change-functions          'annotate-before-change-fn t t)
   (add-hook 'Info-selection-hook              'annotate-info-select-fn   t t)
-  (font-lock-add-keywords
-   nil
-   '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
-                                  (1 (annotate--change-guard))))))
+  (if annotate-use-echo-area
+      (font-lock-add-keywords
+       nil
+       '((annotate--font-lock-matcher (2 (annotate--annotation-builder)))))
+    (font-lock-add-keywords
+     nil
+     '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                    (1 (annotate--change-guard)))))))
 
 (defun annotate-shutdown ()
   "Clear annotations and remove save and display hooks."
@@ -393,10 +404,14 @@ modified (for example a newline is inserted)."
   (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t)
   (remove-hook 'before-change-functions          'annotate-before-change-fn t)
   (remove-hook 'Info-selection-hook              'annotate-info-select-fn   t)
-  (font-lock-remove-keywords
-   nil
-   '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
-                                  (1 (annotate--change-guard))))))
+  (if annotate-use-echo-area
+      (font-lock-remove-keywords
+       nil
+       '((annotate--font-lock-matcher (2 (annotate--annotation-builder)))))
+    (font-lock-remove-keywords
+     nil
+     '((annotate--font-lock-matcher (2 (annotate--annotation-builder))
+                                    (1 (annotate--change-guard)))))))
 
 (defun annotate-overlay-filled-p (overlay)
   "Does this overlay contains an 'annotation' property?"
@@ -911,25 +926,27 @@ to 'maximum-width'."
                   (overlay-put ov
                                'face
                                (overlay-get first-in-chain 'face))))
-            (when (annotate-chain-last-p ov)
-              (when position-new-line-p
-                (setf prefix-first " \n"))
-              (dolist (l multiline-annotation)
-                (setq annotation-text
-                      (concat annotation-text
-                              prefix-first
-                              (propertize l 'face face)
-                              annotation-stopper))
-                ;; white space before for all but the first annotation line
-                (if position-new-line-p
-                    (setq prefix-first (concat prefix-first prefix-rest))
-                  (setq prefix-first prefix-rest))))))
-        ;; build facespec with the annotation text as display property
-        (if (string= annotation-text "")
-          ;; annotation has been removed: remove display prop
-          (list 'face 'default 'display nil)
-        ;; annotation has been changed/added: change/add display prop
-        (list 'face 'default 'display annotation-text))))))
+            (when (and (not annotate-use-echo-area)
+                       (annotate-chain-last-p ov))
+                (when position-new-line-p
+                  (setf prefix-first " \n"))
+                (dolist (l multiline-annotation)
+                  (setq annotation-text
+                        (concat annotation-text
+                                prefix-first
+                                (propertize l 'face face)
+                                annotation-stopper))
+                  ;; white space before for all but the first annotation line
+                  (if position-new-line-p
+                      (setq prefix-first (concat prefix-first prefix-rest))
+                    (setq prefix-first prefix-rest))))))
+        (when (not annotate-use-echo-area)
+          ;; build facespec with the annotation text as display property
+          (if (string= annotation-text "")
+              ;; annotation has been removed: remove display prop
+              (list 'face 'default 'display nil)
+            ;; annotation has been changed/added: change/add display prop
+            (list 'face 'default 'display annotation-text)))))))
 
 (defun annotate--remove-annotation-property (begin end)
   "Cleans up annotation properties associated with a region."
@@ -1343,6 +1360,17 @@ annotation."
              db-records))
        db-records))))
 
+(defun annotate-db-annotations-starts-before-p (a b)
+  "Non nil if  annotation `a' starts before `b'.
+
+In this context annotation means annotation loaded from local
+database not the annotation shown in the buffer (therefore these
+arguments are 'record' as called in the other database-related
+funcions).
+"
+  (< (annotate-beginning-of-annotation a)
+     (annotate-beginning-of-annotation b)))
+
 ;;;; database related procedures ends here
 
 (defun annotate-clear-annotations ()
@@ -1523,6 +1551,8 @@ The searched interval can be customized setting the variable:
                                     (highlight (make-overlay start end-overlay)))
                                (overlay-put highlight 'face 'annotate-highlight)
                                (overlay-put highlight 'annotation annotation-text)
+                               (annotate-overlay-maybe-set-help-echo highlight
+                                                                     annotation-text)
                                (annotate-annotation-chain-position highlight
                                                                    annotate-prop-chain-pos-marker-last)
                                (push highlight all-overlays))))))
@@ -1629,6 +1659,22 @@ The searched interval can be customized setting the variable:
           (goto-char end)
           (font-lock-fontify-block 1))))))
 
+(defun annotate-overlay-put-echo-help (overlay text)
+  "Set the property `help-echo' to `text' in overlay `overlay'."
+  (overlay-put overlay 'help-echo text))
+
+(defun annotate-overlay-get-echo-help (overlay)
+  "Set the property `help-echo' from overlay `overlay'."
+  (overlay-get overlay 'help-echo))
+
+(defun annotate-overlay-maybe-set-help-echo (overlay annotation-text)
+  "Set the property `help-echo' to `text' in overlay `overlay' if
+the annotations should be shown in a popup fashion.
+
+See the variable: `annotate-use-echo-area'."
+  (when annotate-use-echo-area
+    (annotate-overlay-put-echo-help overlay annotation-text)))
+
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
   (let* ((highlight       (annotate-annotation-at pos))
@@ -1646,17 +1692,18 @@ The searched interval can be customized setting the variable:
                 (change (annotation)
                   (let ((chain (annotate-find-chain annotation)))
                     (dolist (single-element chain)
-                        (overlay-put single-element 'annotation annotation-text)))))
-    (save-excursion
-      (cond
-       ;; annotation was cancelled:
-       ((null annotation-text))
-       ;; annotation was erased:
-       ((string= "" annotation-text)
-        (delete highlight))
-       ;; annotation was changed:
-       (t
-        (change highlight)))))))
+                      (annotate-overlay-maybe-set-help-echo single-element annotation-text)
+                      (overlay-put single-element 'annotation annotation-text)))))
+      (save-excursion
+        (cond
+         ;; annotation was cancelled:
+         ((null annotation-text))
+         ;; annotation was erased:
+         ((string= "" annotation-text)
+          (delete highlight))
+         ;; annotation was changed:
+         (t
+          (change highlight)))))))
 
 (defun annotate-make-prefix ()
   "An empty string from the end of the line upto the annotation."
@@ -1907,7 +1954,7 @@ sophisticated way than plain text"
         (annotate-dump-annotation-data replaced-annotation-db)
         (annotate-show-annotation-summary query)))))
 
-(defun annotate-show-annotation-summary (&optional arg-query)
+(defun annotate-show-annotation-summary (&optional arg-query cut-above-point)
  "Show a summary of all the annotations in a temp buffer, the
 results can be filtered with a simple query language: see
 `annotate-summary-filter-db'."
@@ -2023,7 +2070,8 @@ results can be filtered with a simple query language: see
                                ".*"))))
     (let* ((filter-query (get-query))
            (dump         (annotate-summary-filter-db (annotate-load-annotation-data t)
-                                                     filter-query)))
+                                                     filter-query
+                                                     cut-above-point)))
       (if (db-empty-p dump)
           (when annotate-use-messages
             (message "The annotation database is empty"))
@@ -2467,7 +2515,7 @@ Note: this function return the annotation part of the record, see
                           (list (format "Unknown operator: %s is not in '(and, or)"
                                         (annotate-summary-query-lexer-string operator-token))))))))))))))
 
-(defun annotate-summary-filter-db (annotations-dump query)
+(defun annotate-summary-filter-db (annotations-dump query remove-annotations-cutoff-point)
   "Filter an annotation database with a query.
 
 The argument `query' is a string that respect a simple syntax:
@@ -2502,7 +2550,12 @@ annotation, like this:
 
 - .* and \"not\"
  the \" can be used to escape strings
-"
+
+If you want to remove from summary the annotations that appears
+before a position in buffer set `remove-annotations-cutoff-point' to said
+position.
+
+The annotations in each record are sorted by starting point in ascending order."
   (let* ((parser             (annotate-summary-query-parse-expression))
          (filter-file        (lambda (file-mask annotation-dump)
                                (let ((filename
@@ -2514,27 +2567,48 @@ annotation, like this:
                                                     (annotate-annotation-string annotation-dump-2))
                                     annotation-dump-2)))
          (filter             (lambda (single-annotation)
-                                (let ((filtered-annotations (funcall parser
-                                                                     single-annotation
-                                                                     query
-                                                                     filter-file
-                                                                     filter-annotations)))
-                                  (setf filtered-annotations
-                                        (cl-remove-if 'null filtered-annotations))
-                                  (when filtered-annotations
-                                    (let ((filename (annotate-filename-from-dump
-                                                     single-annotation))
-                                          (checksum (annotate-checksum-from-dump
-                                                     single-annotation)))
-                                      (annotate-make-annotation-dump-entry filename
-                                                                           filtered-annotations
-                                                                           checksum))))))
-         (filtered           (mapcar filter annotations-dump)))
-    (cl-remove-if 'null filtered)))
+                               (let ((filtered-annotations (funcall parser
+                                                                    single-annotation
+                                                                    query
+                                                                    filter-file
+                                                                    filter-annotations)))
+                                 (setf filtered-annotations
+                                       (cl-remove-if 'null filtered-annotations))
+                                 (when filtered-annotations
+                                   (let ((filename (annotate-filename-from-dump
+                                                    single-annotation))
+                                         (checksum (annotate-checksum-from-dump
+                                                    single-annotation)))
+                                     (setf filtered-annotations
+                                           (sort filtered-annotations
+                                                 'annotate-db-annotations-starts-before-p))
+                                     (when remove-annotations-cutoff-point
+                                       (setf filtered-annotations
+                                             (cl-remove-if (lambda (a)
+                                                             (< (annotate-ending-of-annotation a)
+                                                                remove-annotations-cutoff-point))
+                                                           filtered-annotations)))
+                                     (annotate-make-annotation-dump-entry filename
+                                                                          filtered-annotations
+                                                                          checksum))))))
+         (filtered           (cl-remove-if 'null (mapcar filter annotations-dump))))
+    filtered))
 
 ;;;; end of filtering: parser, lexer, etc.
 
-;;;; switching database
+;;;; misc commands
+
+(defun annotate-summary-of-file-from-current-pos ()
+ "Shows a summary window that contains only the annotations in
+the current buffer and that starts after the current cursor's
+position."
+  (interactive)
+  (with-current-buffer (current-buffer)
+    (when buffer-file-name
+      (annotate-show-annotation-summary buffer-file-name (point)))))
+
+
+;;; switching database
 
 (defun annotate-buffers-annotate-mode ()
  "Returns a list of all the buffers that have

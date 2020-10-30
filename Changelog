@@ -1,3 +1,31 @@
+2020-09-29
+        * README.org, annotate.el
+	- updated README;
+	- increased version;
+	- updated NEWS and Changelog.
+
+2020-09-22
+        * annotate.el
+	- added   command   'annotate-summary-of-file-from-current-pos';
+	this command shows a summary window that contains the annotation
+	in the  active buffer  that appears after  the cursor  position;
+	- added docstrings.
+
+2020-09-20
+        * annotate.el
+	- fixed indentation.
+
+2020-09-20
+        * annotate.el
+	- Using "help-echo" to print annotations instead of render it on the
+        buffer.
+	This feature is optional and can be activated using the
+        customizable variable 'annotate-use-echo-area'
+
+2020-09-20
+        * README.org
+	- Removed internal link because of issue #79.
+
 2020-08-11
 	* annotate.el (annotate-annotate, annotate-load-annotation-data
 	               annotate-create-annotation, annotate-summary-query-parse-note,

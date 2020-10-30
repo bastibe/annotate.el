@@ -126,3 +126,7 @@
 
 - 2020-08-11 V0.8.3 Bastian Bechtold, cage ::
   Some function now signal errors where appropriate.
+
+- 2020-09-29 V0.9.0 Bastian Bechtold, cage ::
+  Added two new styles to render the annotation: using "pop-up" style
+  or via a specializated summary window.
