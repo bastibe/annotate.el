@@ -341,6 +341,24 @@ position (so that it is unchanged after this function is called)."
 (defun annotate-annotation-newline-policy-forced-p (annotation)
   (overlay-get annotation 'force-newline-policy))
 
+(defun annotate--remap-chain-pos (annotations)
+  (cond
+   ((< (length annotations)
+       1)
+    annotations)
+   ((= (length annotations)
+       1)
+    (annotate-annotation-set-chain-last (cl-first annotations)))
+   (t
+    (let ((all-but-last (butlast annotations))
+          (last-element (car (last annotations))))
+      (cl-loop for annotation in all-but-last
+               for i from annotate-prop-chain-pos-marker-first
+               do
+               (annotate-annotation-chain-position annotation i))
+      (when last-element
+        (annotate-annotation-set-chain-last last-element))))))
+
 (defun annotate-before-change-fn (a b)
   "This function is added to 'before-change-functions' hook and
 it is called any time the buffer content is changed (so, for
@@ -356,24 +374,17 @@ modified (for example a newline is inserted)."
        (dolist (overlay ov)
          (annotate--remove-annotation-property (overlay-start overlay)
                                                (overlay-end   overlay))
-         ;; move the overlay if we are breaking it
+         ;; check if we are breaking the overlay
          (when (<= (overlay-start overlay)
                    a
                    (overlay-end overlay))
-           (move-overlay overlay (overlay-start overlay) a)
-           ;; delete overlay if there is no more annotated text
-           (when (annotate-annotated-text-empty-p overlay)
-             ;; we  are  deleting  the  last element  of  a  chain  (a
-             ;; stopper)...
-             (when (annotate-chain-last-p overlay)
-               ;; move 'stopper' to the previous chain element
-               (let ((annot-before (annotate-previous-annotation-ends (overlay-start overlay))))
-                 ;; ...if such element exists
-                 (when annot-before
-                   (annotate-annotation-chain-position annot-before
-                                                       annotate-prop-chain-pos-marker-last))))
-             (delete-overlay overlay)
-             (font-lock-fontify-buffer))))))))
+           (let ((start-overlay (overlay-start overlay)))
+             ;; delete overlay if there is no more annotated text
+             (when (<= a start-overlay)
+               (let ((chain (cl-remove overlay (annotate-find-chain overlay))))
+                 (delete-overlay overlay)
+                 (annotate--remap-chain-pos chain)
+                 (font-lock-fontify-buffer))))))))))
 
 (defun annotate-info-select-fn ()
   "The function to be called when an info buffer is updated"
@@ -423,6 +434,12 @@ modified (for example a newline is inserted)."
   "Is 'overlay' an annotation?"
   (annotate-overlay-filled-p overlay))
 
+(defun annotate--position-inside-annotated-text-p (pos)
+  (let ((annotation (annotate-annotation-at pos)))
+    (if annotation
+        t
+      (annotate-position-inside-chain-p pos))))
+
 (defun annotate-annotate ()
   "Create, modify, or delete annotation."
   (interactive)
@@ -437,17 +454,26 @@ modified (for example a newline is inserted)."
     (let ((annotation (annotate-annotation-at (point))))
       (cond
        ((use-region-p)
-        (let ((annotations (cl-remove-if-not #'annotationp
-                                             (overlays-in (region-beginning)
-                                                          (region-end)))))
-          (if annotations
-              (signal 'annotate-annotate-region-overlaps annotations)
-            (create-new-annotation))))
+        (let* ((region-beg  (region-beginning))
+               (region-stop (region-end))
+               (annotations (cl-remove-if-not #'annotationp
+                                             (overlays-in region-beg
+                                                          region-stop))))
+          (cond
+           (annotations
+            (signal 'annotate-annotate-region-overlaps annotations))
+           ((or (annotate--position-inside-annotated-text-p region-beg)
+                (annotate--position-inside-annotated-text-p region-stop))
+            (signal 'annotate-annotate-region-overlaps nil))
+           (t
+            (create-new-annotation)))))
        (annotation
         (annotate-change-annotation (point))
         (font-lock-fontify-buffer nil))
        (t
-        (create-new-annotation)))
+        (if (annotate--position-inside-annotated-text-p (point))
+            (signal 'annotate-annotate-region-overlaps nil)
+          (create-new-annotation))))
       (set-buffer-modified-p t))))
 
 (cl-defun annotate-goto-next-annotation (&key (startingp t))
@@ -1472,6 +1498,37 @@ of a chain of annotations"
     (annotate-ensure-annotation (annotation)
       (annotate-chain-last annotation))))
 
+(defun annotate-annotation-set-chain-first (annotation)
+  "Set property's value that  define position of this annotation
+in a chain of annotations as first"
+  (annotate-annotation-chain-position annotation annotate-prop-chain-pos-marker-first))
+
+(defun annotate-annotation-set-chain-last (annotation)
+  "Set property's value that  define position of this annotation
+in a chain of annotations as last"
+  (annotate-annotation-chain-position annotation annotate-prop-chain-pos-marker-last))
+
+(defun annotate-position-inside-chain-p (pos)
+  "Returns non nil if `pos' is a position in a buffer inside a chain."
+  (let ((chain-first (annotate-chain-first-at pos))
+        (chain-last  (annotate-chain-last-at pos)))
+    (if (and chain-first ;; pos belongs to a chain
+             chain-last)
+        t
+      ;; there is a chance  that a point do not belong  to a chain but
+      ;; it is surrounded by two annotations that are part of the same
+      ;; chain
+      (let* ((previous-annotation (annotate-previous-annotation-ends pos))
+             (next-annotation     (annotate-next-annotation-starts   pos))
+             (previous-chain      (annotate-chain-first previous-annotation))
+             (next-chain          (annotate-chain-first next-annotation)))
+        (if (and previous-chain
+                 next-chain
+                 (eq previous-chain
+                     next-chain))
+            t
+          nil)))))
+
 (defun annotate-find-chain (annotation)
   "Find all annotation that are parts of the chain where `annotation' belongs"
   (annotate-ensure-annotation (annotation)
@@ -1524,16 +1581,7 @@ interval and, if found, the buffer is annotated right there.
 The searched interval can be customized setting the variable:
 'annotate-search-region-lines-delta'.
 "
-  (cl-labels ((remap-chain-pos (annotations)
-               (if (<= (length annotations)
-                       1)
-                   annotations
-                 (let* ((all-but-last (butlast annotations)))
-                     (cl-loop for annotation in all-but-last
-                              for i from annotate-prop-chain-pos-marker-first
-                              do
-                              (annotate-annotation-chain-position annotation i)))))
-              (create-annotation (start end annotation-text)
+  (cl-labels ((create-annotation (start end annotation-text)
                (save-excursion
                  (let ((chain-pos 0)
                        (all-overlays ()))
@@ -1557,8 +1605,8 @@ The searched interval can be customized setting the variable:
                                                                    annotate-prop-chain-pos-marker-last)
                                (push highlight all-overlays))))))
                      (setf start (point)))
-                   (remap-chain-pos (reverse (mapcar #'maybe-force-newline-policy
-                                                     all-overlays))))))
+                   (annotate--remap-chain-pos (reverse (mapcar #'maybe-force-newline-policy
+                                                               all-overlays))))))
               (beginning-of-nth-line (start line-count)
                  (save-excursion
                    (goto-char start)
