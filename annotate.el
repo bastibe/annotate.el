@@ -178,7 +178,7 @@ database is not filtered at all."
   :group 'annotate)
 
 (defcustom annotate-use-echo-area nil
- "Whether annotation text should apperar in the echo area only when mouse
+ "Whether annotation text should appear in the echo area only when mouse
 id positioned over the annotated text instead of positioning them in
 the the buffer (the default)."
   :type 'boolean
@@ -309,7 +309,7 @@ annotation as defined in the database."
          (setf inhibit-modification-hooks ,old-mode)))))
 
 (cl-defmacro annotate-with-restore-modified-bit (&rest body)
-  "Save the value of `buffer-modified-p' before `body' is exectuted
+  "Save the value of `buffer-modified-p' before `body' is executed
   and restore the saved value just after the end of `body'."
   (let ((modifiedp (gensym)))
     `(let ((,modifiedp (buffer-modified-p)))
@@ -434,11 +434,59 @@ modified (for example a newline is inserted)."
   "Is 'overlay' an annotation?"
   (annotate-overlay-filled-p overlay))
 
-(defun annotate--position-inside-annotated-text-p (pos)
+(defun annotate--position-on-annotated-text-p (pos)
+  "Does `pos' (as buffer position) corresponds to a character
+that belong to some annotated text?"
   (let ((annotation (annotate-annotation-at pos)))
     (if annotation
         t
-      (annotate-position-inside-chain-p pos))))
+      ;; there is a chance that a point do not belong text rendered as
+      ;; annotated but belong to a chain anyway
+      ;; example:
+      ;;
+      ;; legend:
+      ;; a = annotated text
+      ;; * = non annotated text
+      ;; # = annotation
+      ;;
+      ;; Create a multiline annotation using region.
+      ;;
+      ;; aaaa
+      ;; aaaa
+      ;; aaaa
+      ;;
+      ;;
+      ;; aaaa
+      ;; aaaa
+      ;; aaaa    ####
+      ;;
+      ;; place the cursor here:
+      ;;
+      ;; aaaa
+      ;; aaaa
+      ;; ^ cursor
+      ;; aaaa    ####
+      ;;
+      ;; type some text
+      ;;
+      ;; aaaa
+      ;; *****
+      ;; aaaa    ####
+      ;;
+      ;; the text (the asterisks) is not rendered as annotated but as
+      ;; annotations can not have gaps so we enforce this limitation
+      ;; and consider it still parts of a chain formed by the
+      ;; surrounding annotated text.
+      (let* ((previous-annotation (annotate-previous-annotation-ends pos))
+             (next-annotation     (annotate-next-annotation-starts   pos))
+             (previous-chain      (annotate-chain-first previous-annotation))
+             (next-chain          (annotate-chain-first next-annotation)))
+        (if (and previous-chain
+                 next-chain
+                 (eq previous-chain
+                     next-chain))
+            t
+          nil)))))
 
 (defun annotate-annotate ()
   "Create, modify, or delete annotation."
@@ -462,8 +510,8 @@ modified (for example a newline is inserted)."
           (cond
            (annotations
             (signal 'annotate-annotate-region-overlaps annotations))
-           ((or (annotate--position-inside-annotated-text-p region-beg)
-                (annotate--position-inside-annotated-text-p region-stop))
+           ((or (annotate--position-on-annotated-text-p region-beg)
+                (annotate--position-on-annotated-text-p region-stop))
             (signal 'annotate-annotate-region-overlaps nil))
            (t
             (create-new-annotation)))))
@@ -471,7 +519,7 @@ modified (for example a newline is inserted)."
         (annotate-change-annotation (point))
         (font-lock-fontify-buffer nil))
        (t
-        (if (annotate--position-inside-annotated-text-p (point))
+        (if (annotate--position-on-annotated-text-p (point))
             (signal 'annotate-annotate-region-overlaps nil)
           (create-new-annotation))))
       (set-buffer-modified-p t))))
@@ -1392,7 +1440,7 @@ annotation."
 In this context annotation means annotation loaded from local
 database not the annotation shown in the buffer (therefore these
 arguments are 'record' as called in the other database-related
-funcions).
+functions).
 "
   (< (annotate-beginning-of-annotation a)
      (annotate-beginning-of-annotation b)))
@@ -1507,27 +1555,6 @@ in a chain of annotations as first"
   "Set property's value that  define position of this annotation
 in a chain of annotations as last"
   (annotate-annotation-chain-position annotation annotate-prop-chain-pos-marker-last))
-
-(defun annotate-position-inside-chain-p (pos)
-  "Returns non nil if `pos' is a position in a buffer inside a chain."
-  (let ((chain-first (annotate-chain-first-at pos))
-        (chain-last  (annotate-chain-last-at pos)))
-    (if (and chain-first ;; pos belongs to a chain
-             chain-last)
-        t
-      ;; there is a chance  that a point do not belong  to a chain but
-      ;; it is surrounded by two annotations that are part of the same
-      ;; chain
-      (let* ((previous-annotation (annotate-previous-annotation-ends pos))
-             (next-annotation     (annotate-next-annotation-starts   pos))
-             (previous-chain      (annotate-chain-first previous-annotation))
-             (next-chain          (annotate-chain-first next-annotation)))
-        (if (and previous-chain
-                 next-chain
-                 (eq previous-chain
-                     next-chain))
-            t
-          nil)))))
 
 (defun annotate-find-chain (annotation)
   "Find all annotation that are parts of the chain where `annotation' belongs"
