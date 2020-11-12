@@ -1340,16 +1340,19 @@ annotation."
 (defun annotate-load-annotation-data (&optional ignore-errors)
   "Read and return saved annotations."
   (cl-flet ((%load-annotation-data ()
-              (with-temp-buffer
-                (if (file-exists-p annotate-file)
-                    (insert-file-contents annotate-file)
-                  (signal 'annotate-db-file-not-found (list annotate-file)))
-                (goto-char (point-max))
-                (cond ((= (point) 1)
-                       nil)
-                      (t
-                       (goto-char (point-min))
-                       (read (current-buffer)))))))
+              (let ((annotations-file annotate-file))
+                (with-temp-buffer
+                  (let* ((annotate-file annotations-file)
+                         (attributes    (file-attributes annotate-file)))
+                    (cond
+                     ((not (file-exists-p annotate-file))
+                      (signal 'annotate-db-file-not-found (list annotate-file)))
+                     ((= (file-attribute-size attributes)
+                         0)
+                      nil)
+                     (t
+                      (insert-file-contents annotate-file)
+                      (read (current-buffer)))))))))
     (if ignore-errors
         (ignore-errors (%load-annotation-data))
       (%load-annotation-data))))
