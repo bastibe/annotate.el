@@ -336,12 +336,38 @@ position (so that it is unchanged after this function is called)."
      (overlay-end   annotation)))
 
 (defun annotate-annotation-force-newline-policy (annotation)
+  "Force annotate to place `annotation' on the line after the annotated text.
+
+See: `annotate-annotation-position-policy'
+"
   (overlay-put annotation 'force-newline-policy t))
 
 (defun annotate-annotation-newline-policy-forced-p (annotation)
+  "Is `annotation' forced  to place annotation on the  line after the
+annoateted text?
+
+See: `annotate-annotation-position-policy'"
   (overlay-get annotation 'force-newline-policy))
 
 (defun annotate--remap-chain-pos (annotations)
+  "Remap an annotation 'chain'
+
+An annotation is a collection of one or more overlays that
+contains the property `annotate-prop-chain-position'.
+
+The value of `annotate-prop-chain-position' in each chain is an
+integer starting from:
+
+`annotate-prop-chain-pos-marker-first' and *always* ending with
+
+`annotate-prop-chain-pos-marker-last'
+
+This means that a value of said property for a chain that
+contains only an element is equal to
+`annotate-prop-chain-pos-marker-last'.
+
+This function ensure this constrains for the chain `annotation'
+belong."
   (cond
    ((< (length annotations)
        1)
@@ -1894,6 +1920,9 @@ NOTE this assumes that annotations never overlaps"
           (right-ends))))
 
 (defun annotate-make-annotation (beginning ending annotation annotated-text)
+ "Make an annotation record that represent an annotation
+starting at `beginning', terminate at `ending' with annotation
+content `annotation' and annotated text `annotated-text'."
   (list beginning ending annotation annotated-text))
 
 (defun annotate-all-annotations ()
@@ -1986,6 +2015,8 @@ sophisticated way than plain text"
           (goto-char (button-get button 'go-to))))))))
 
 (defun annotate-summary-delete-annotation-button-pressed (button)
+ "Callback for summary window fired when a 'delete' button is
+pressed."
   (let* ((filename        (button-get button 'file))
          (beginning       (button-get button 'beginning))
          (ending          (button-get button 'ending))
@@ -2016,6 +2047,8 @@ sophisticated way than plain text"
       (update-visited-buffer-maybe))))
 
 (defun annotate-summary-replace-annotation-button-pressed (button)
+   "Callback for summary window fired when a 'replace' button is
+pressed."
   (let* ((filename             (button-get button 'file))
          (annotation-beginning (button-get button 'beginning))
          (annotation-ending    (button-get button 'ending))
