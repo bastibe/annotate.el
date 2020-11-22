@@ -344,7 +344,7 @@ See: `annotate-annotation-position-policy'
 
 (defun annotate-annotation-newline-policy-forced-p (annotation)
   "Is `annotation' forced  to place annotation on the  line after the
-annoateted text?
+annotated text?
 
 See: `annotate-annotation-position-policy'"
   (overlay-get annotation 'force-newline-policy))

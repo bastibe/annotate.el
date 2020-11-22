@@ -1,3 +1,9 @@
+2020-11-22  cage
+
+        * annotate.el:
+
+	- added more docstrings.
+
 2020-11-12  cage
 
         * annotate.el:
