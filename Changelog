@@ -1,3 +1,123 @@
+2020-11-22  cage
+
+        * annotate.el:
+
+	- added more docstrings.
+
+2020-11-12  cage
+
+        * annotate.el:
+
+	- prevented getting shared value for 'annotate-file' in
+        '%load-annotation-data'.
+
+	This  way  we can  ensure  that  'annotate-file' can  be  declared
+	buffer-local and  different annotation  databases can be  used from
+	different buffers.
+
+2020-11-11  cage
+
+        * annotate.el:
+	- fitted 'annotate-position-inside-chain-p' into   'annotate--position-inside-annotated-text-p';
+	- fixed some typos.
+
+2020-11-06  cage
+
+        * annotate.el:
+
+	- Fixed a regression  and some bugs related to
+        incorrect calculation of of multiline annotations.
+
+	To reproduce the bugs:
+
+	legend:
+
+	a = annotated text
+	* = non annotated text
+
+	- First bug
+
+	Create a multiline annotation using region.
+
+	aaaa
+	aaaa
+	aaaa    ####
+
+	Place the cursor as below.
+
+	aaaa
+	^ cursor
+	aaaa
+	aaaa    ####
+
+	type a character
+
+	a****
+	aaaa
+	aaaa    ####
+
+	The annotated text has a "gap"
+
+	Fix proposed: revert to the old (correct behaviour)
+
+	Second bug
+
+	aaaa
+	aaaa
+	aaaa    ####
+
+	Place the cursor as below.
+
+	aaaa
+	^ cursor on the first column
+	aaaa
+	aaaa    ####
+
+	type some text
+
+	***
+	aaa
+	aaa    ####
+
+	Save (C-x C-s)
+
+	you  get an  error  on  the echo  area:  "let*:  Wrong type  argument:
+	overlayp, nil" and the annotations are not correctly saved.
+
+	Fix proposed: remove the offending code.
+
+	Third bug
+
+	a multiline bug as before
+
+	aaaa
+	aaaa
+	aaaa    ####
+
+	place the cursor here:
+
+	aaaa
+	aaaa
+	^ cursor
+	aaaa    ####
+
+	type some text
+
+	aaaa
+	*****
+	aaaa    ####
+
+	Then annotate the same line (C-c C-a):
+
+	aaaa
+	aaaa    ####
+	aaaa    ####
+
+	we  introduced  a  annotation  in  the gap  of  the  already  existing
+	multiline annotation.
+
+	Fix proposed: prevents annotating text inside an annotation.
+
 2020-09-29
         * README.org, annotate.el
 	- updated README;
