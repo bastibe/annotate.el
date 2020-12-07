@@ -37,7 +37,7 @@ the  command ~annotate-switch-db~.   This  command will  take care  to
 refresh/redraw   all   annotations   in    the   buffers   that   uses
 ~annotate-mode~.
 
-The database holds the hash of each  annoatated file so it can print a
+The database holds the hash of each  annotated file so it can print a
 warning if the file has been modified outside Emacs (for example).
 
 Warning     can     be     suppressed     setting     the     variable

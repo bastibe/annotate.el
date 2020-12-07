@@ -1687,7 +1687,7 @@ of a chain of annotations"
       (annotate-chain-last annotation))))
 
 (defun annotate-chain-at (pos)
-  "Find last the chain of annotations that overlap point `pos'"
+  "Find the chain of overlays where point `pos' belongs."
   (let ((annotation (annotate-annotation-at pos)))
     (annotate-ensure-annotation (annotation)
       (annotate-find-chain annotation))))
