@@ -1,3 +1,38 @@
+2020-12-16 cage
+
+	* Changelog, NEWS.org, annotate.el:
+
+	Updated version and documentations.
+
+2020-12-07  cage
+
+        * README.org, annotate.el:
+
+	- fixed more typos.
+
+2020-12-01  cage
+
+        * README.org, annotate.el:
+
+	- allow overwriting (even partial)  of annotations.  That is, user
+	can place an annotation on top of an already existing one. The new
+	will  delete  overlapped  portion  of the  old  annotation.   This
+	feature    should   not    allow   to    break   an    annotation,
+	though. Annotations can not overlaps.
+
+	- added a new customizable variable:
+
+        'annotate-warn-if-hash-mismatch'  when  nil  prevent  printing  of
+	warning  when annotation  database's'  hash and  file  has do  not
+	match;
+
+	- fixed bug  in alternating coloring of  annotation and underlined
+	text;
+
+	- updated README;
+
+	- fixed some typos.
+
 2020-11-22  cage
 
         * annotate.el:
