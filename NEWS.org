@@ -141,9 +141,21 @@
   The 'annotate-file' can be now  safely declared buffer-local so that
   multiple databases of annotations can be used on a per-buffer basis.
 
-  For pratical applications see:
+  For practical applications see:
 
   https://github.com/bastibe/annotate.el/issues/68
 
   Many thanks to gopar for spotting  this elusive bug and help testing
   the patch! :)
+
+- 2020-12-16 V1.0.0 Bastian Bechtold, cage ::
+
+  This version  allow overwrite of notes.  That is, user can  place an
+  annotation on  top of an already  existing one. The new  will delete
+  overlapped portion of the old annotation.
+
+  Also a new  customizable variable ('annotate-warn-if-hash-mismatch')
+  has  been  added.   When  nil   prevent  printing  of  warning  when
+  annotation database's' hash and file has do not match;
+
+  Also a problem with adjacent annotation's coloring has been fixed.

@@ -37,9 +37,21 @@ the  command ~annotate-switch-db~.   This  command will  take care  to
 refresh/redraw   all   annotations   in    the   buffers   that   uses
 ~annotate-mode~.
 
+The database holds the hash of each  annotated file so it can print a
+warning if the file has been modified outside Emacs (for example).
+
+Warning     can     be     suppressed     setting     the     variable
+~annotate-warn-if-hash-mismatch~ to nil.
+
 Please note that switching database,  in this context, means rebinding
 the  aforementioned variable  (~annotate-file~).  This  means than  no
 more than a single database can be active for each Emacs session.
+
+To use multiple database in the same Emacs session ~annotate-file~ should be made
+[[https://www.gnu.org/software/emacs/manual/html_node/elisp/Buffer_002dLocal-Variables.html][buffer-local]],
+see:
+[[https://github.com/bastibe/annotate.el/issues/68][this thread]] and, in particular
+[[https://github.com/bastibe/annotate.el/issues/68#issuecomment-728218022][this message]].
 
 Users of
 [[https://github.com/emacscollective/no-littering][no-littering]]
@@ -47,6 +59,9 @@ can take advantage of its packages generated files management.
 
 **** related customizable variable
      - ~annotate-file~
+
+**** related customizable variable
+     - ~annotate-warn-if-hash-mismatch~
 
 ** keybindings
 
