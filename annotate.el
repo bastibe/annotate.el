@@ -1376,7 +1376,7 @@ essentially what you get from:
         (message "Annotations loaded."))))
 
 (defun annotate-load-annotations ()
-  "Load all annotations from disk.
+  "Load all annotations from disk and redraw the buffer to render the annotations.
 
 The format of the database is:
 
@@ -1476,20 +1476,27 @@ annotation."
 
 (defun annotate-load-annotation-data (&optional ignore-errors)
   "Read and returns saved annotations."
-  (cl-flet ((%load-annotation-data ()
-              (let ((annotations-file annotate-file))
-                (with-temp-buffer
-                  (let* ((annotate-file annotations-file)
-                         (attributes    (file-attributes annotate-file)))
-                    (cond
-                     ((not (file-exists-p annotate-file))
-                      (signal 'annotate-db-file-not-found (list annotate-file)))
-                     ((= (file-attribute-size attributes)
-                         0)
-                      nil)
-                     (t
-                      (insert-file-contents annotate-file)
-                      (read (current-buffer)))))))))
+  (cl-labels ((%load-annotation-data ()
+                (let ((annotations-file annotate-file)
+                      (%expand-filename (lambda (record)
+                                          (let ((short-filename (annotate-filename-from-dump    record))
+                                                (annotations    (annotate-annotations-from-dump record))
+                                                (file-checksum  (annotate-checksum-from-dump    record)))
+                                            (annotate-make-record (expand-file-name short-filename)
+                                                                  annotations
+                                                                  file-checksum)))))
+                  (with-temp-buffer
+                    (let* ((annotate-file annotations-file)
+                           (attributes    (file-attributes annotate-file)))
+                      (cond
+                       ((not (file-exists-p annotate-file))
+                        (signal 'annotate-db-file-not-found (list annotate-file)))
+                       ((= (file-attribute-size attributes)
+                           0)
+                        nil)
+                       (t
+                        (insert-file-contents annotate-file)
+                        (mapcar %expand-filename (read (current-buffer))))))))))
     (if ignore-errors
         (ignore-errors (%load-annotation-data))
       (%load-annotation-data))))
@@ -1497,8 +1504,16 @@ annotation."
 (defun annotate-dump-annotation-data (data)
   "Save `data` into annotation file."
   (with-temp-file annotate-file
-    (let ((print-length nil))
-      (prin1 data (current-buffer)))))
+    (let* ((print-length nil)
+           (%abbreviate-filename (lambda (record)
+                                   (let ((full-filename (annotate-filename-from-dump    record))
+                                         (annotations   (annotate-annotations-from-dump record))
+                                         (file-checksum (annotate-checksum-from-dump    record)))
+                                     (annotate-make-record (abbreviate-file-name full-filename)
+                                                           annotations
+                                                           file-checksum))))
+           (actual-data (mapcar %abbreviate-filename data)))
+      (prin1 actual-data (current-buffer)))))
 
 (cl-defmacro with-matching-annotation-fns ((filename
                                             beginning
