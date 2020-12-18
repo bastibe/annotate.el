@@ -1474,17 +1474,23 @@ annotation."
   (let ((db (annotate-db-clean-records (annotate-load-annotation-data t))))
     (annotate-dump-annotation-data db)))
 
+(defun annotate--expand-record-path (record)
+  (let* ((short-filename  (annotate-filename-from-dump    record))
+         (annotations     (annotate-annotations-from-dump record))
+         (file-checksum   (annotate-checksum-from-dump    record))
+         (expand-p        (not (eq (ignore-errors (annotate-guess-file-format short-filename))
+                                   :info)))
+         (actual-filename (if expand-p
+                              (expand-file-name short-filename)
+                            short-filename)))
+    (annotate-make-record actual-filename
+                          annotations
+                          file-checksum)))
+
 (defun annotate-load-annotation-data (&optional ignore-errors)
   "Read and returns saved annotations."
   (cl-labels ((%load-annotation-data ()
-                (let ((annotations-file annotate-file)
-                      (%expand-filename (lambda (record)
-                                          (let ((short-filename (annotate-filename-from-dump    record))
-                                                (annotations    (annotate-annotations-from-dump record))
-                                                (file-checksum  (annotate-checksum-from-dump    record)))
-                                            (annotate-make-record (expand-file-name short-filename)
-                                                                  annotations
-                                                                  file-checksum)))))
+                (let ((annotations-file annotate-file))
                   (with-temp-buffer
                     (let* ((annotate-file annotations-file)
                            (attributes    (file-attributes annotate-file)))
@@ -1496,7 +1502,7 @@ annotation."
                         nil)
                        (t
                         (insert-file-contents annotate-file)
-                        (mapcar %expand-filename (read (current-buffer))))))))))
+                        (mapcar 'annotate--expand-record-path (read (current-buffer))))))))))
     (if ignore-errors
         (ignore-errors (%load-annotation-data))
       (%load-annotation-data))))
