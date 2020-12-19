@@ -1051,30 +1051,31 @@ aaa      aaa
 aa   ->  aa*
 a        a**
 "
-  (let ((annotation-text (overlay-get annotation-overlay 'annotation)))
-    (cl-labels ((boxify-multiline ()
-                  (let* ((lines         (annotate--split-lines annotation-text))
-                         (lines-widths  (mapcar 'string-width lines))
-                         (max-width     (cl-reduce (lambda (a b) (if (> a b)
-                                                                     a
-                                                                   b))
-                                                   lines-widths
-                                                   :initial-value -1))
-                         (padding-sizes (mapcar (lambda (a) (max (- max-width
-                                                                    (string-width a)
-                                                                    1)
-                                                                 0))
-                                                lines))
-                         (paddings      (mapcar (lambda (a) (make-string a ? ))
-                                                padding-sizes))
-                         (box-lines     (cl-mapcar (lambda (a b) (concat a b))
-                                                   lines paddings)))
-                    (cl-reduce (lambda (a b) (concat a "\n" b))
-                               box-lines))))
+  (save-match-data
+    (let ((annotation-text (overlay-get annotation-overlay 'annotation)))
+      (cl-labels ((boxify-multiline ()
+                    (let* ((lines         (annotate--split-lines annotation-text))
+                           (lines-widths  (mapcar 'string-width lines))
+                           (max-width     (cl-reduce (lambda (a b) (if (> a b)
+                                                                       a
+                                                                     b))
+                                                     lines-widths
+                                                     :initial-value -1))
+                           (padding-sizes (mapcar (lambda (a) (max (- max-width
+                                                                      (string-width a)
+                                                                      1)
+                                                                   0))
+                                                  lines))
+                           (paddings      (mapcar (lambda (a) (make-string a ? ))
+                                                  padding-sizes))
+                           (box-lines     (cl-mapcar (lambda (a b) (concat a b))
+                                                     lines paddings)))
+                      (cl-reduce (lambda (a b) (concat a "\n" b))
+                                 box-lines))))
 
-      (if annotation-on-is-own-line-p
-          (list (boxify-multiline))
-        (save-match-data
+        (if annotation-on-is-own-line-p
+            (list (boxify-multiline))
+
           (annotate--split-lines (annotate-lineate annotation-text
                                                    (- end-of-line begin-of-line))))))))
 
