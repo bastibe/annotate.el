@@ -1029,6 +1029,55 @@ to 'maximum-width'."
              (append lineated
                      (list (pad last-line max-width nil)))))))
 
+(cl-defun annotate--split-lines (text &optional (separator "\n"))
+  "Returns text splitted by `separator' (default: \"\n\")"
+  (split-string text "\n"))
+
+(defun annotate-wrap-annotation-in-box (annotation-overlay
+                                        begin-of-line
+                                        end-of-line
+                                        annotation-on-is-own-line-p)
+  "Pads   or    breaks   annotation   text   (as    property   of
+   `annotation-overlay' so that all lines have the same width.
+
+If annotation is a  placed on the margin of a window (that is  `annotation-on-is-own-line-p' is
+nil) the text is broken (regardless  of words) to fit on the side
+of the window using `begin-of-line' `end-of-line'.
+
+If annotation is a note that is placed in its own line the text is padded with spaces so that
+a 'box' surround the text without seams, e.g:
+
+aaa      aaa
+aa   ->  aa*
+a        a**
+"
+  (let ((annotation-text (overlay-get annotation-overlay 'annotation)))
+    (cl-labels ((boxify-multiline ()
+                  (let* ((lines         (annotate--split-lines annotation-text))
+                         (lines-widths  (mapcar 'string-width lines))
+                         (max-width     (cl-reduce (lambda (a b) (if (> a b)
+                                                                     a
+                                                                   b))
+                                                   lines-widths
+                                                   :initial-value -1))
+                         (padding-sizes (mapcar (lambda (a) (max (- max-width
+                                                                    (string-width a)
+                                                                    1)
+                                                                 0))
+                                                lines))
+                         (paddings      (mapcar (lambda (a) (make-string a ? ))
+                                                padding-sizes))
+                         (box-lines     (cl-mapcar (lambda (a b) (concat a b))
+                                                   lines paddings)))
+                    (cl-reduce (lambda (a b) (concat a "\n" b))
+                               box-lines))))
+
+      (if annotation-on-is-own-line-p
+          (list (boxify-multiline))
+        (save-match-data
+          (annotate--split-lines (annotate-lineate annotation-text
+                                                   (- end-of-line begin-of-line))))))))
+
 (defun annotate--annotation-builder ()
   "Searches the line before point for annotations, and returns a
 `facespec` with the annotation in its `display` property."
@@ -1088,13 +1137,10 @@ to 'maximum-width'."
                                              annotation-long-p))
                                         (otherwise
                                          nil)))
-                 (multiline-annotation (if position-new-line-p
-                                           (list (overlay-get ov 'annotation))
-                                         (save-match-data
-                                           (split-string (annotate-lineate (overlay-get ov
-                                                                                        'annotation)
-                                                                           (- eol bol))
-                                                         "\n"))))
+                 (multiline-annotation (annotate-wrap-annotation-in-box ov
+                                                                        bol
+                                                                        eol
+                                                                        position-new-line-p))
                  (annotation-stopper   (if position-new-line-p
                                            (if (= annotation-counter
                                                   (length overlays))
