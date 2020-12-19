@@ -1061,21 +1061,18 @@ a        a**
                                                                      b))
                                                      lines-widths
                                                      :initial-value -1))
-                           (padding-sizes (mapcar (lambda (a) (max (- max-width
-                                                                      (string-width a)
-                                                                      1)
-                                                                   0))
+                           (padding-sizes (mapcar (lambda (a) (- max-width
+                                                                 (string-width a)))
                                                   lines))
                            (paddings      (mapcar (lambda (a) (make-string a ? ))
                                                   padding-sizes))
                            (box-lines     (cl-mapcar (lambda (a b) (concat a b))
-                                                     lines paddings)))
-                      (cl-reduce (lambda (a b) (concat a "\n" b))
-                                 box-lines))))
-
+                                                     lines paddings))
+                           (almost-boxed  (cl-reduce (lambda (a b) (concat a "\n" b))
+                                                     box-lines)))
+                      (concat almost-boxed " "))))
         (if annotation-on-is-own-line-p
             (list (boxify-multiline))
-
           (annotate--split-lines (annotate-lineate annotation-text
                                                    (- end-of-line begin-of-line))))))))
 
