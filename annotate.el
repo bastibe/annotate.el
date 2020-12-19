@@ -1031,7 +1031,8 @@ to 'maximum-width'."
 
 (cl-defun annotate--split-lines (text &optional (separator "\n"))
   "Returns text splitted by `separator' (default: \"\n\")"
-  (split-string text "\n"))
+  (save-match-data
+    (split-string text "\n")))
 
 (defun annotate-wrap-annotation-in-box (annotation-overlay
                                         begin-of-line
@@ -1051,30 +1052,29 @@ aaa      aaa
 aa   ->  aa*
 a        a**
 "
-  (save-match-data
-    (let ((annotation-text (overlay-get annotation-overlay 'annotation)))
-      (cl-labels ((boxify-multiline ()
-                    (let* ((lines         (annotate--split-lines annotation-text))
-                           (lines-widths  (mapcar 'string-width lines))
-                           (max-width     (cl-reduce (lambda (a b) (if (> a b)
-                                                                       a
-                                                                     b))
-                                                     lines-widths
-                                                     :initial-value -1))
-                           (padding-sizes (mapcar (lambda (a) (- max-width
-                                                                 (string-width a)))
-                                                  lines))
-                           (paddings      (mapcar (lambda (a) (make-string a ? ))
-                                                  padding-sizes))
-                           (box-lines     (cl-mapcar (lambda (a b) (concat a b))
-                                                     lines paddings))
-                           (almost-boxed  (cl-reduce (lambda (a b) (concat a "\n" b))
-                                                     box-lines)))
-                      (concat almost-boxed " "))))
-        (if annotation-on-is-own-line-p
-            (list (boxify-multiline))
-          (annotate--split-lines (annotate-lineate annotation-text
-                                                   (- end-of-line begin-of-line))))))))
+  (let ((annotation-text (overlay-get annotation-overlay 'annotation)))
+    (cl-labels ((boxify-multiline ()
+                  (let* ((lines         (annotate--split-lines annotation-text))
+                         (lines-widths  (mapcar 'string-width lines))
+                         (max-width     (cl-reduce (lambda (a b) (if (> a b)
+                                                                     a
+                                                                   b))
+                                                   lines-widths
+                                                   :initial-value -1))
+                         (padding-sizes (mapcar (lambda (a) (- max-width
+                                                               (string-width a)))
+                                                lines))
+                         (paddings      (mapcar (lambda (a) (make-string a ? ))
+                                                padding-sizes))
+                         (box-lines     (cl-mapcar (lambda (a b) (concat a b))
+                                                   lines paddings))
+                         (almost-boxed  (cl-reduce (lambda (a b) (concat a "\n" b))
+                                                   box-lines)))
+                    (concat almost-boxed " "))))
+      (if annotation-on-is-own-line-p
+          (list (boxify-multiline))
+        (annotate--split-lines (annotate-lineate annotation-text
+                                                 (- end-of-line begin-of-line)))))))
 
 (defun annotate--annotation-builder ()
   "Searches the line before point for annotations, and returns a
