@@ -1,3 +1,43 @@
+2020-12-19  cage
+
+        * annotate.el:
+
+	-   moved  'save-match-data'   from   the   function  that   calls
+	'annotate--split-lines' inside  the body of the  latter; to remove
+	any side-effect.
+
+2020-12-19  cage
+
+        * annotate.el:
+
+	- fixed the width of the last row of the box
+
+2020-12-19  cage
+
+        * annotate.el:
+
+	- wrapped 'annotate-wrap-annotation-in-box' with 'save-match-data.
+
+2020-12-19  cage
+
+        * annotate.el:
+
+	- added procedures to pad multiline annotation text.
+
+2020-12-18  cage
+
+        * annotate.el:
+
+	- extracted  local function  and taken  into account  info node
+        names (that should not be expanded).
+
+2020-12-18  cage
+
+        * annotate.el:
+
+	-  stored abbreviated  filenames for  the path  component of  each
+	record of the annotations database; - improved a docstring.
+
 2020-12-16 cage
 
 	* Changelog, NEWS.org, annotate.el:
