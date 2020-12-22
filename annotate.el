@@ -699,87 +699,95 @@ annotate-actual-comment-end"
   "Write all annotations into the file as comments below the annotated line.
 An example might look like this:"
   (interactive)
-  (save-excursion
-    (dolist (ov (sort (annotate-all-annotations)
-                      (lambda (o1 o2)
-                        (< (overlay-start o1)
-                           (overlay-start o2)))))
-      (goto-char (overlay-start ov))
-      (cond
-       ;; overlay spans more than one line
-       ((string-match "\n" (buffer-substring (overlay-start ov)
-                                             (overlay-end ov)))
-        ;; partially underline first line
-        (let ((ov-start (point))
-              (bol (progn (beginning-of-line)
-                          (point)))
-              (eol (progn (end-of-line)
-                          (point))))
-          (end-of-line)
-          (insert "\n"
-                  (annotate-wrap-in-comment (make-string (max 0
-                                                              (- ov-start
-                                                                 bol
-                                                                 (annotate-comments-length)))
-                                                         ? )
-                                            (make-string (max 0 (- eol ov-start))
-                                                         annotate-integrate-higlight))))
-        ;; fully underline second to second-to-last line
-        (while (< (progn (forward-line)
-                         (end-of-line)
-                         (point))
-                  (overlay-end ov))
-          (let ((bol (progn (beginning-of-line)
+  (cl-labels ((wrap-annotation-text (text)
+                (let* ((lines           (annotate--split-lines text))
+                       (commented-lines (mapcar 'annotate-wrap-in-comment
+                                                (append (list annotate-integrate-marker)
+                                                        lines))))
+                  (annotate--join-with-string commented-lines "\n"))))
+    (save-excursion
+      (dolist (ov (sort (annotate-all-annotations)
+                        (lambda (o1 o2)
+                          (< (overlay-start o1)
+                             (overlay-start o2)))))
+        (goto-char (overlay-start ov))
+        (cond
+         ;; overlay spans more than one line
+         ;; IMPORTANT NOTE:
+         ;; this branch is vestigial: a single annotation
+         ;; overlay can *not* spans for more that one line after
+         ;; chains has been introduced, therefore this code branch
+         ;; never runs and should be removed
+         ((string-match "\n" (buffer-substring (overlay-start ov)
+                                               (overlay-end ov)))
+          ;; partially underline first line
+          (let ((ov-start (point))
+                (bol (progn (beginning-of-line)
                             (point)))
                 (eol (progn (end-of-line)
                             (point))))
             (end-of-line)
             (insert "\n"
                     (annotate-wrap-in-comment (make-string (max 0
-                                                                (- eol
+                                                                (- ov-start
                                                                    bol
                                                                    (annotate-comments-length)))
-                                                           annotate-integrate-higlight)))))
-        ;; partially underline last line
-        (let ((bol (progn (beginning-of-line)
-                          (point)))
-              (ov-end (overlay-end ov)))
-          (end-of-line)
-          (insert "\n"
-                  (annotate-wrap-in-comment (make-string (max 0
-                                                              (- ov-end
-                                                                 bol
-                                                                 (annotate-comments-length)))
-                                                         annotate-integrate-higlight))))
-        ;; insert actual annotation text
-        (insert "\n"
-                (annotate-wrap-in-comment annotate-integrate-marker
-                                          (overlay-get ov 'annotation))))
-       ;; overlay is within one line
-       (t
-        (let* ((ov-start         (overlay-start ov))
-               (ov-end           (overlay-end ov))
-               (bol              (progn (beginning-of-line)
-                                        (point)))
-               (underline-marker (if (= bol ov-start)
-                                     (make-string (max 0 (- ov-end ov-start 1))
-                                                  annotate-integrate-higlight)
-                                   (make-string (max 0 (- ov-end ov-start))
-                                                annotate-integrate-higlight))))
-          (end-of-line)
-          (insert "\n"
-                  (annotate-wrap-in-comment (make-string (max 0
-                                                              (- ov-start
-                                                                 bol
-                                                                 (annotate-comments-length)))
-                                                         ? )
-                                            underline-marker)
-                  "\n")
-          (when (annotate-chain-last-p ov)
-            (let ((annotation-integrated-text (annotate-wrap-in-comment annotate-integrate-marker
-                                                                        (overlay-get ov 'annotation))))
-              (insert annotation-integrated-text)))))))
-    (annotate-clear-annotations)))
+                                                           ? )
+                                              (make-string (max 0 (- eol ov-start))
+                                                           annotate-integrate-higlight))))
+          ;; fully underline second to second-to-last line
+          (while (< (progn (forward-line)
+                           (end-of-line)
+                           (point))
+                    (overlay-end ov))
+            (let ((bol (progn (beginning-of-line)
+                              (point)))
+                  (eol (progn (end-of-line)
+                              (point))))
+              (end-of-line)
+              (insert "\n"
+                      (annotate-wrap-in-comment (make-string (max 0
+                                                                  (- eol
+                                                                     bol
+                                                                     (annotate-comments-length)))
+                                                             annotate-integrate-higlight)))))
+          ;; partially underline last line
+          (let ((bol (progn (beginning-of-line)
+                            (point)))
+                (ov-end (overlay-end ov)))
+            (end-of-line)
+            (insert "\n"
+                    (annotate-wrap-in-comment (make-string (max 0
+                                                                (- ov-end
+                                                                   bol
+                                                                   (annotate-comments-length)))
+                                                           annotate-integrate-higlight))))
+          ;; insert actual annotation text
+          (insert (wrap-annotation-text (overlay-get ov 'annotation))))
+         ;; overlay is within one line
+         (t
+          (let* ((ov-start         (overlay-start ov))
+                 (ov-end           (overlay-end ov))
+                 (bol              (progn (beginning-of-line)
+                                          (point)))
+                 (underline-marker (if (= bol ov-start)
+                                       (make-string (max 0 (- ov-end ov-start 1))
+                                                    annotate-integrate-higlight)
+                                     (make-string (max 0 (- ov-end ov-start))
+                                                  annotate-integrate-higlight))))
+            (end-of-line)
+            (insert "\n"
+                    (annotate-wrap-in-comment (make-string (max 0
+                                                                (- ov-start
+                                                                   bol
+                                                                   (annotate-comments-length)))
+                                                           ? )
+                                              underline-marker))
+            (when (annotate-chain-last-p ov)
+              (let ((annotation-integrated-text (wrap-annotation-text (overlay-get ov
+                                                                                   'annotation))))
+                (insert "\n" annotation-integrated-text)))))))
+      (annotate-clear-annotations))))
 
 (defun annotate-export-annotations ()
   "Export all annotations as a unified diff file.
@@ -1034,6 +1042,10 @@ to 'maximum-width'."
   (save-match-data
     (split-string text "\n")))
 
+(defun annotate--join-with-string (strings junction)
+  (cl-reduce (lambda (a b) (concat a junction b))
+             strings))
+
 (defun annotate-wrap-annotation-in-box (annotation-overlay
                                         begin-of-line
                                         end-of-line
@@ -1068,8 +1080,7 @@ a        a**
                                                 padding-sizes))
                          (box-lines     (cl-mapcar (lambda (a b) (concat a b))
                                                    lines paddings))
-                         (almost-boxed  (cl-reduce (lambda (a b) (concat a "\n" b))
-                                                   box-lines)))
+                         (almost-boxed  (annotate--join-with-string box-lines "\n")))
                     (concat almost-boxed " "))))
       (if annotation-on-is-own-line-p
           (list (boxify-multiline))
