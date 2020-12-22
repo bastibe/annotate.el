@@ -711,62 +711,7 @@ An example might look like this:"
                           (< (overlay-start o1)
                              (overlay-start o2)))))
         (goto-char (overlay-start ov))
-        (cond
-         ;; overlay spans more than one line
-         ;; IMPORTANT NOTE:
-         ;; this branch is vestigial: a single annotation
-         ;; overlay can *not* spans for more that one line after
-         ;; chains has been introduced, therefore this code branch
-         ;; never runs and should be removed
-         ((string-match "\n" (buffer-substring (overlay-start ov)
-                                               (overlay-end ov)))
-          ;; partially underline first line
-          (let ((ov-start (point))
-                (bol (progn (beginning-of-line)
-                            (point)))
-                (eol (progn (end-of-line)
-                            (point))))
-            (end-of-line)
-            (insert "\n"
-                    (annotate-wrap-in-comment (make-string (max 0
-                                                                (- ov-start
-                                                                   bol
-                                                                   (annotate-comments-length)))
-                                                           ? )
-                                              (make-string (max 0 (- eol ov-start))
-                                                           annotate-integrate-higlight))))
-          ;; fully underline second to second-to-last line
-          (while (< (progn (forward-line)
-                           (end-of-line)
-                           (point))
-                    (overlay-end ov))
-            (let ((bol (progn (beginning-of-line)
-                              (point)))
-                  (eol (progn (end-of-line)
-                              (point))))
-              (end-of-line)
-              (insert "\n"
-                      (annotate-wrap-in-comment (make-string (max 0
-                                                                  (- eol
-                                                                     bol
-                                                                     (annotate-comments-length)))
-                                                             annotate-integrate-higlight)))))
-          ;; partially underline last line
-          (let ((bol (progn (beginning-of-line)
-                            (point)))
-                (ov-end (overlay-end ov)))
-            (end-of-line)
-            (insert "\n"
-                    (annotate-wrap-in-comment (make-string (max 0
-                                                                (- ov-end
-                                                                   bol
-                                                                   (annotate-comments-length)))
-                                                           annotate-integrate-higlight))))
-          ;; insert actual annotation text
-          (insert (wrap-annotation-text (overlay-get ov 'annotation))))
-         ;; overlay is within one line
-         (t
-          (let* ((ov-start         (overlay-start ov))
+        (let* ((ov-start         (overlay-start ov))
                  (ov-end           (overlay-end ov))
                  (bol              (progn (beginning-of-line)
                                           (point)))
@@ -786,8 +731,8 @@ An example might look like this:"
             (when (annotate-chain-last-p ov)
               (let ((annotation-integrated-text (wrap-annotation-text (overlay-get ov
                                                                                    'annotation))))
-                (insert "\n" annotation-integrated-text)))))))
-      (annotate-clear-annotations))))
+                (insert "\n" annotation-integrated-text))))))
+    (annotate-clear-annotations)))
 
 (defun annotate-export-annotations ()
   "Export all annotations as a unified diff file.
