@@ -115,9 +115,11 @@ text lines and annotation text)."
   :type 'number
   :group 'annotate)
 
-(defcustom annotate-diff-export-context 8
-  "How many lines of context to include in diff export."
-  :type 'number
+(defcustom annotate-diff-export-options ""
+ "Other options for diffing between a buffer with and without integrated annotations.
+Note that thre is an oimplicit -u at the end of default options
+that Emacs passes to the diff program"
+  :type 'string
   :group 'annotate)
 
 (defcustom annotate-use-messages t
@@ -814,7 +816,7 @@ This diff does not contain any changes, but highlights the
 annotation, and can be conveniently viewed in diff-mode."
   (interactive)
   (let ((buffer (annotate--integrate-annotations :switch-to-new-buffer nil)))
-    (diff-buffers (current-buffer) buffer "-u")))
+    (diff-buffers (current-buffer) buffer annotate-diff-export-options)))
 
 (defun annotate--font-lock-matcher (limit)
   "Finds the next annotation. Matches two areas:
