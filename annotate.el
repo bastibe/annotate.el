@@ -695,44 +695,104 @@ annotate-actual-comment-end"
                           strings
                           (list (annotate-actual-comment-end)))))
 
+(cl-defstruct annotate-overlay-lines
+  overlay
+  line
+  relative-start
+  relative-end)
+
+(cl-defun annotate--integrate-annotations (&key (use-annotation-marker t)
+                                                (as-new-buffer         t)
+                                                (switch-to-new-buffer  t))
+  "Export all annotations, This function is not part of the public API"
+  (cl-labels ((build-input-text-line ()
+               (save-excursion
+                 (annotate--split-lines (buffer-substring-no-properties (point-min)
+                                                                        (point-max))))))
+
+    (let* ((filename               (annotate-actual-file-name))
+           (export-buffer          (generate-new-buffer (concat filename ".annotated.diff")))
+           (annotations-overlays   (sort (annotate-all-annotations)
+                                         (lambda (a b)
+                                           (< (overlay-start a)
+                                              (overlay-start b)))))
+           (lines-count            (count-lines (point-min) (point-max)))
+           (buffer-lines           (build-input-text-line))
+           (ov-line-pos            (mapcar (lambda (ov)
+                                             (line-number-at-pos (overlay-start ov)))
+                                           annotations-overlays))
+           (ov-start-pos-in-line   (mapcar (lambda (ov)
+                                             (save-excursion
+                                               (goto-char (overlay-start ov))
+                                               (let ((bol (annotate-beginning-of-line-pos)))
+                                                 (- (overlay-start ov) bol))))
+                                           annotations-overlays))
+           (ov-end-pos-in-line     (mapcar (lambda (ov)
+                                             (save-excursion
+                                               (goto-char (overlay-start ov))
+                                               (let ((bol (annotate-beginning-of-line-pos)))
+                                                 (- (overlay-end ov) bol))))
+                                           annotations-overlays))
+           (overlay-relative-pos   (cl-mapcar (lambda (ov line start end)
+                                                (make-annotate-overlay-lines :overlay        ov
+                                                                             :line           line
+                                                                             :relative-start start
+                                                                             :relative-end   end))
+                                              annotations-overlays
+                                              ov-line-pos
+                                              ov-start-pos-in-line
+                                              ov-end-pos-in-line))
+           (parent-buffer-mode     major-mode)
+           (output-buffer          (if as-new-buffer
+                                       export-buffer
+                                     (current-buffer))))
+      (with-current-buffer output-buffer
+        (when as-new-buffer
+          (erase-buffer)
+          (funcall parent-buffer-mode))
+        (cl-loop
+         for buffer-line in buffer-lines
+         for line-number from 1  do
+         (let ((overlays-in-line (remove-if-not (lambda (a) (= (annotate-overlay-lines-line a)
+                                                               line-number))
+                                                overlay-relative-pos)))
+           (when (or (/= (1- line-number)
+                         lines-count)
+                     (not (annotate-string-empty-p buffer-line)))
+             (insert buffer-line "\n")
+             (cl-loop for ov-line-pos in overlays-in-line do
+                      (let* ((overlay         (annotate-overlay-lines-overlay ov-line-pos))
+                             (relative-start  (annotate-overlay-lines-relative-start ov-line-pos))
+                             (relative-end    (annotate-overlay-lines-relative-end ov-line-pos))
+                             (padding         (if (<= (1- relative-start) 0)
+                                                  ""
+                                                (make-string (1- relative-start) ? )))
+                             (annotated-lines (annotate--split-lines (overlay-get overlay
+                                                                                  'annotation)))
+                             (ov-length       (- relative-end relative-start))
+                             (underline       (make-string (1- ov-length)
+                                                           annotate-integrate-higlight)))
+                        (insert (annotate-wrap-in-comment padding underline) "\n")
+                        (when (annotate-chain-last-p overlay)
+                          (when use-annotation-marker
+                            (insert (annotate-wrap-in-comment annotate-integrate-marker) "\n"))
+                          (cl-loop for line in annotated-lines do
+                                   (insert (annotate-wrap-in-comment line) "\n")))))))))
+      (when (and as-new-buffer
+                 switch-to-new-buffer)
+        (switch-to-buffer output-buffer))
+      (when (not as-new-buffer)
+        (delete-region (point) (point-max)))
+      output-buffer)))
+
 (defun annotate-integrate-annotations ()
   "Write all annotations into the file as comments below the annotated line.
 An example might look like this:"
   (interactive)
-  (cl-labels ((wrap-annotation-text (text)
-                (let* ((lines           (annotate--split-lines text))
-                       (commented-lines (mapcar 'annotate-wrap-in-comment
-                                                (append (list annotate-integrate-marker)
-                                                        lines))))
-                  (annotate--join-with-string commented-lines "\n"))))
-    (save-excursion
-      (dolist (ov (sort (annotate-all-annotations)
-                        (lambda (o1 o2)
-                          (< (overlay-start o1)
-                             (overlay-start o2)))))
-        (goto-char (overlay-start ov))
-        (let* ((ov-start         (overlay-start ov))
-                 (ov-end           (overlay-end ov))
-                 (bol              (progn (beginning-of-line)
-                                          (point)))
-                 (underline-marker (if (= bol ov-start)
-                                       (make-string (max 0 (- ov-end ov-start 1))
-                                                    annotate-integrate-higlight)
-                                     (make-string (max 0 (- ov-end ov-start))
-                                                  annotate-integrate-higlight))))
-            (end-of-line)
-            (insert "\n"
-                    (annotate-wrap-in-comment (make-string (max 0
-                                                                (- ov-start
-                                                                   bol
-                                                                   (annotate-comments-length)))
-                                                           ? )
-                                              underline-marker))
-            (when (annotate-chain-last-p ov)
-              (let ((annotation-integrated-text (wrap-annotation-text (overlay-get ov
-                                                                                   'annotation))))
-                (insert "\n" annotation-integrated-text))))))
-    (annotate-clear-annotations)))
+  (annotate--integrate-annotations :use-annotation-marker t
+                                   :as-new-buffer         nil
+                                   :switch-to-new-buffer  nil)
+  (annotate-clear-annotations))
 
 (defun annotate-export-annotations ()
   "Export all annotations as a unified diff file.
@@ -753,92 +813,8 @@ An example might look like this:
 This diff does not contain any changes, but highlights the
 annotation, and can be conveniently viewed in diff-mode."
   (interactive)
-  (cl-labels ((build-annotation-text-lines (text)
-                (let* ((lines           (annotate--split-lines text))
-                       (commented-lines (mapcar (lambda (a) (concat "+"
-                                                                    (annotate-wrap-in-comment a)))
-                                                lines)))
-                  (annotate--join-with-string commented-lines "\n"))))
-
-    (let* ((filename      (annotate-actual-file-name))
-           (export-buffer (generate-new-buffer (concat filename
-                                                       ".annotations.diff")))
-           (annotations   (sort (annotate-all-annotations)
-                                (lambda (a b)
-                                  (< (overlay-start a)
-                                     (overlay-start b)))))
-           (parent-buffer-mode major-mode))
-      ;; write the diff file description
-      (with-current-buffer export-buffer
-        (funcall parent-buffer-mode)
-        (let ((time-string
-               (format-time-string "%F %H:%M:%S.%N %z"
-                                   (nth 5 (file-attributes filename 'integer)))))
-          (insert "--- " filename "\t" time-string "\n")
-          (insert "+++ " filename "\t" time-string "\n")))
-      ;; write diff, highlight, and comment for each annotation
-      (save-excursion
-        ;; sorted annotations by location in the file
-        (dolist (ann annotations)
-          (let* ((start                 (overlay-start ann))
-                 (end                   (overlay-end ann))
-                 (text                  (overlay-get ann 'annotation))
-                 ;; beginning of first annotated line
-                 (bol                   (progn (goto-char start)
-                                               (beginning-of-line)
-                                               (point)))
-                 ;; end of last annotated line
-                 (eol                   (progn (goto-char end)
-                                               (end-of-line)
-                                               (point)))
-                 ;; all lines that contain annotations
-                 (annotated-lines       (buffer-substring bol eol))
-                 ;; context lines before the annotation
-                 (previous-lines        (annotate-context-before start))
-                 ;; context lines after the annotation
-                 (following-lines       (annotate-context-after end))
-                 (chain-last-p          (annotate-chain-last-p ann))
-                 (annotation-line-list  (butlast (split-string
-                                                  (annotate-prefix-lines "+" annotated-lines)
-                                                  "\n")))
-                 (integration-padding   (if (and (> (1- start) 0)
-                                                 (> (1- start) bol))
-                                            (make-string (- (1- start) bol) ? )
-                                          ""))
-                 (added-lines-text      (build-annotation-text-lines (concat integration-padding
-                                                                             text)))
-                 ;; line header for diff chunk
-                 (diff-range            (annotate-diff-line-range start end
-                                                                  added-lines-text
-                                                                  chain-last-p)))
-            (with-current-buffer export-buffer
-              (insert "@@ " diff-range " @@\n")
-              (when previous-lines
-                (insert (annotate-prefix-lines " " previous-lines)))
-              (insert (annotate-prefix-lines "-" annotated-lines))
-              ;; loop over annotation lines and insert with highlight
-              ;; and annotation text
-              (let ((annotation-line-list (butlast (split-string
-                                                    (annotate-prefix-lines "+" annotated-lines)
-                                                    "\n")))
-                    (integration-padding   (if (and (> (1- start) 0)
-                                                    (> (1- start) bol))
-                                               (make-string (- (1- start) bol) ? )
-                                             "")))
-                (insert (car annotation-line-list) "\n")
-                (unless (string= (car annotation-line-list) "+")
-                  (insert "+"
-                          (annotate-wrap-in-comment integration-padding
-                                                    (make-string (- end start)
-                                                                 annotate-integrate-higlight))
-                          "\n"))
-                (when (annotate-chain-last-p ann)
-                  (insert (build-annotation-text-lines (concat integration-padding text))
-                          "\n")))
-              (insert (annotate-prefix-lines " " following-lines t))))))
-      (switch-to-buffer export-buffer)
-      (diff-mode)
-      (view-mode))))
+  (let ((buffer (annotate--integrate-annotations :switch-to-new-buffer nil)))
+    (diff-buffers (current-buffer) buffer "-u")))
 
 (defun annotate--font-lock-matcher (limit)
   "Finds the next annotation. Matches two areas:
