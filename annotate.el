@@ -753,60 +753,78 @@ An example might look like this:
 This diff does not contain any changes, but highlights the
 annotation, and can be conveniently viewed in diff-mode."
   (interactive)
-  (let* ((filename      (annotate-actual-file-name))
-         (export-buffer (generate-new-buffer (concat filename
-                                                     ".annotations.diff")))
-         (annotations   (sort (annotate-all-annotations)
-                              (lambda (a b)
-                                (< (overlay-start a)
-                                   (overlay-start b)))))
-         (parent-buffer-mode major-mode))
-    ;; write the diff file description
-    (with-current-buffer export-buffer
-      (funcall parent-buffer-mode)
-      (let ((time-string
-             (format-time-string "%F %H:%M:%S.%N %z"
-                                 (nth 5 (file-attributes filename 'integer)))))
-        (insert "--- " filename "\t" time-string "\n")
-        (insert "+++ " filename "\t" time-string "\n")))
-    ;; write diff, highlight, and comment for each annotation
-    (save-excursion
-      ;; sort annotations by location in the file
-      (dolist (ann annotations)
-        (let* ((start (overlay-start ann))
-               (end   (overlay-end ann))
-               (text  (overlay-get ann 'annotation))
-               ;; beginning of first annotated line
-               (bol (progn (goto-char start)
-                           (beginning-of-line)
-                           (point)))
-               ;; end of last annotated line
-               (eol (progn (goto-char end)
-                           (end-of-line)
-                           (point)))
-               ;; all lines that contain annotations
-               (annotated-lines (buffer-substring bol eol))
-               ;; context lines before the annotation
-               (previous-lines  (annotate-context-before start))
-               ;; context lines after the annotation
-               (following-lines (annotate-context-after end))
-               (chain-last-p    (annotate-chain-last-p ann))
-               ;; line header for diff chunk
-               (diff-range      (annotate-diff-line-range start end chain-last-p)))
-          (with-current-buffer export-buffer
-            (insert "@@ " diff-range " @@\n")
-            (when previous-lines
-              (insert (annotate-prefix-lines " " previous-lines)))
-            (insert (annotate-prefix-lines "-" annotated-lines))
-            ;; loop over annotation lines and insert with highlight
-            ;; and annotation text
-            (let ((annotation-line-list (butlast (split-string
+  (cl-labels ((build-annotation-text-lines (text)
+                (let* ((lines           (annotate--split-lines text))
+                       (commented-lines (mapcar (lambda (a) (concat "+"
+                                                                    (annotate-wrap-in-comment a)))
+                                                lines)))
+                  (annotate--join-with-string commented-lines "\n"))))
+
+    (let* ((filename      (annotate-actual-file-name))
+           (export-buffer (generate-new-buffer (concat filename
+                                                       ".annotations.diff")))
+           (annotations   (sort (annotate-all-annotations)
+                                (lambda (a b)
+                                  (< (overlay-start a)
+                                     (overlay-start b)))))
+           (parent-buffer-mode major-mode))
+      ;; write the diff file description
+      (with-current-buffer export-buffer
+        (funcall parent-buffer-mode)
+        (let ((time-string
+               (format-time-string "%F %H:%M:%S.%N %z"
+                                   (nth 5 (file-attributes filename 'integer)))))
+          (insert "--- " filename "\t" time-string "\n")
+          (insert "+++ " filename "\t" time-string "\n")))
+      ;; write diff, highlight, and comment for each annotation
+      (save-excursion
+        ;; sorted annotations by location in the file
+        (dolist (ann annotations)
+          (let* ((start                 (overlay-start ann))
+                 (end                   (overlay-end ann))
+                 (text                  (overlay-get ann 'annotation))
+                 ;; beginning of first annotated line
+                 (bol                   (progn (goto-char start)
+                                               (beginning-of-line)
+                                               (point)))
+                 ;; end of last annotated line
+                 (eol                   (progn (goto-char end)
+                                               (end-of-line)
+                                               (point)))
+                 ;; all lines that contain annotations
+                 (annotated-lines       (buffer-substring bol eol))
+                 ;; context lines before the annotation
+                 (previous-lines        (annotate-context-before start))
+                 ;; context lines after the annotation
+                 (following-lines       (annotate-context-after end))
+                 (chain-last-p          (annotate-chain-last-p ann))
+                 (annotation-line-list  (butlast (split-string
                                                   (annotate-prefix-lines "+" annotated-lines)
                                                   "\n")))
-                  (integration-padding   (if (and (> (1- start) 0)
-                                                  (> (1- start) bol))
-                                             (make-string (- (1- start) bol) ? )
-                                           "")))
+                 (integration-padding   (if (and (> (1- start) 0)
+                                                 (> (1- start) bol))
+                                            (make-string (- (1- start) bol) ? )
+                                          ""))
+                 (added-lines-text      (build-annotation-text-lines (concat integration-padding
+                                                                             text)))
+                 ;; line header for diff chunk
+                 (diff-range            (annotate-diff-line-range start end
+                                                                  added-lines-text
+                                                                  chain-last-p)))
+            (with-current-buffer export-buffer
+              (insert "@@ " diff-range " @@\n")
+              (when previous-lines
+                (insert (annotate-prefix-lines " " previous-lines)))
+              (insert (annotate-prefix-lines "-" annotated-lines))
+              ;; loop over annotation lines and insert with highlight
+              ;; and annotation text
+              (let ((annotation-line-list (butlast (split-string
+                                                    (annotate-prefix-lines "+" annotated-lines)
+                                                    "\n")))
+                    (integration-padding   (if (and (> (1- start) 0)
+                                                    (> (1- start) bol))
+                                               (make-string (- (1- start) bol) ? )
+                                             "")))
                 (insert (car annotation-line-list) "\n")
                 (unless (string= (car annotation-line-list) "+")
                   (insert "+"
@@ -815,13 +833,12 @@ annotation, and can be conveniently viewed in diff-mode."
                                                                  annotate-integrate-higlight))
                           "\n"))
                 (when (annotate-chain-last-p ann)
-                  (insert "+"
-                          (annotate-wrap-in-comment integration-padding text)
+                  (insert (build-annotation-text-lines (concat integration-padding text))
                           "\n")))
-            (insert (annotate-prefix-lines " " following-lines))))))
-          (switch-to-buffer export-buffer)
-          (diff-mode)
-          (view-mode)))
+              (insert (annotate-prefix-lines " " following-lines t))))))
+      (switch-to-buffer export-buffer)
+      (diff-mode)
+      (view-mode))))
 
 (defun annotate--font-lock-matcher (limit)
   "Finds the next annotation. Matches two areas:
@@ -985,7 +1002,7 @@ to 'maximum-width'."
 (cl-defun annotate--split-lines (text &optional (separator "\n"))
   "Returns text splitted by `separator' (default: \"\n\")"
   (save-match-data
-    (split-string text "\n")))
+    (split-string text separator)))
 
 (defun annotate--join-with-string (strings junction)
   (cl-reduce (lambda (a b) (concat a junction b))
@@ -1209,32 +1226,39 @@ first line of the buffer"
       (end-of-line (1+ annotate-diff-export-context))
       (buffer-substring-no-properties (1+ eol) (point)))))
 
-(defun annotate-prefix-lines (prefix text)
+(defun annotate-prefix-lines (prefix text &optional omit-trailing-null)
   "Prepend PREFIX to each line in TEXT."
-  (let ((lines (split-string text "\n")))
+  (let ((lines (annotate--split-lines text "\n")))
+    (when omit-trailing-null
+      (let ((last-not-empty (cl-position-if-not 'annotate-string-empty-p
+                                                lines
+                                                :from-end t)))
+        (setf lines (subseq lines 0 (1+ last-not-empty)))))
     (apply 'concat (mapcar (lambda (l) (concat prefix l "\n")) lines))))
 
-(defun annotate-diff-line-range (start end chain-last-p)
+(defun annotate-diff-line-range (start end lines-annotation-text chain-last-p)
   "Calculate diff-like line range for annotation."
   (save-excursion
-    (let* ((lines-before      (- (- annotate-diff-export-context)
-                                 (forward-line (- annotate-diff-export-context)))) ; this move point, too!
+    (let* ((lines-count       (count-lines (point-min) (point-max)))
+           ;; forward-line move the point, too!
+           (lines-before      (- (- annotate-diff-export-context)
+                                 (forward-line (- annotate-diff-export-context))))
+           ;; because  of  forward-line  above point  has  been  moved
+           ;; 'annotate-diff-export-context'  lines  or at  the  first
+           ;; line of the buffer
            (start-line        (line-number-at-pos (point)))
-           (diff-offset-start (+ 1
-                                 (- lines-before)
-                                 annotate-diff-export-context))
+           (diff-offset-start (- (line-number-at-pos start)
+                                 start-line))
+           (diff-offset-end   (min annotate-diff-export-context
+                                   (- lines-count (line-number-at-pos start))))
            (end-increment     (if chain-last-p
-                                  2
-                                1))
-           (diff-offset-end   (+ diff-offset-start
-                                 end-increment
-                                 (- (line-number-at-pos end)
-                                    (line-number-at-pos start)))))
+                                  (+ 2 (length (annotate--split-lines lines-annotation-text)))
+                                2)))
       (format "-%i,%i +%i,%i"
               start-line
-              diff-offset-start
+              (+ diff-offset-start diff-offset-end 1)
               start-line
-              diff-offset-end))))
+              (+ diff-offset-start diff-offset-end end-increment)))))
 
 ;;; database related procedures
 
