@@ -1,3 +1,43 @@
+2020-12-23  cage
+
+        * annotate.el:
+
+	- changed customizable  variable related to exporting.   As we are
+	using  diff-mode   could  instruct   the  executable   to  operate
+	accordingly to a command line.
+
+2020-12-23  cage
+
+        * annotate.el:
+
+	- rewritten export and integrate of annotations export use now the
+	Emacs diff functions to generate a buffer containing the patch.
+
+2020-12-23  cage
+
+        * annotate.el:
+
+	- fixed export for annotated text made from a single line.
+
+2020-12-22  cage
+
+        * annotate.el:
+
+	- removed code, in integration procedures, that should never runs.
+
+2020-12-22  cage
+
+        * annotate.el:
+
+	- fixed integration of multiline annotated text.
+
+2020-12-20  cage
+
+        * Changelog, NEWS.org, annotate.el:
+
+	- updated version;
+	- updated NEWS and Changelog (also fixed grammar for the former).
+
 2020-12-19  cage
 
         * annotate.el:

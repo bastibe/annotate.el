@@ -160,7 +160,7 @@
 
   Also a problem with adjacent annotation's coloring has been fixed.
 
-- 2020-12-20 V1.1.0 Bastian Bechtold, cage ::
+- 2020-12-24 V1.1.0 Bastian Bechtold, cage ::
 
   This version  improves the  visual style of  annotated text  that if
   formed by more than one line.
@@ -172,3 +172,8 @@
 
   This  improvements has  been suggested  by  the user  Ran that  also
   helped testing this new version of the package. Thank you!
+
+  Finally import and export of annotation has been fixed.
+
+  Related to the last  fix the variable ~annotate-diff-export-context~
+  has been removed.
