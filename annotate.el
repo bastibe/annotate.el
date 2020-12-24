@@ -117,7 +117,7 @@ text lines and annotation text)."
 
 (defcustom annotate-diff-export-options ""
  "Other options for diffing between a buffer with and without integrated annotations.
-Note that thre is an oimplicit -u at the end of default options
+Note that there is an implicit -u at the end of default options
 that Emacs passes to the diff program"
   :type 'string
   :group 'annotate)
