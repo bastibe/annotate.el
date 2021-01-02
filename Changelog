@@ -1,3 +1,83 @@
+2020-12-23  cage
+
+        * annotate.el:
+
+	- changed customizable  variable related to exporting.   As we are
+	using  diff-mode   could  instruct   the  executable   to  operate
+	accordingly to a command line.
+
+2020-12-23  cage
+
+        * annotate.el:
+
+	- rewritten export and integrate of annotations export use now the
+	Emacs diff functions to generate a buffer containing the patch.
+
+2020-12-23  cage
+
+        * annotate.el:
+
+	- fixed export for annotated text made from a single line.
+
+2020-12-22  cage
+
+        * annotate.el:
+
+	- removed code, in integration procedures, that should never runs.
+
+2020-12-22  cage
+
+        * annotate.el:
+
+	- fixed integration of multiline annotated text.
+
+2020-12-20  cage
+
+        * Changelog, NEWS.org, annotate.el:
+
+	- updated version;
+	- updated NEWS and Changelog (also fixed grammar for the former).
+
+2020-12-19  cage
+
+        * annotate.el:
+
+	-   moved  'save-match-data'   from   the   function  that   calls
+	'annotate--split-lines' inside  the body of the  latter; to remove
+	any side-effect.
+
+2020-12-19  cage
+
+        * annotate.el:
+
+	- fixed the width of the last row of the box
+
+2020-12-19  cage
+
+        * annotate.el:
+
+	- wrapped 'annotate-wrap-annotation-in-box' with 'save-match-data.
+
+2020-12-19  cage
+
+        * annotate.el:
+
+	- added procedures to pad multiline annotation text.
+
+2020-12-18  cage
+
+        * annotate.el:
+
+	- extracted  local function  and taken  into account  info node
+        names (that should not be expanded).
+
+2020-12-18  cage
+
+        * annotate.el:
+
+	-  stored abbreviated  filenames for  the path  component of  each
+	record of the annotations database; - improved a docstring.
+
 2020-12-16 cage
 
 	* Changelog, NEWS.org, annotate.el:

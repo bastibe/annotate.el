@@ -99,7 +99,7 @@
   - when an user delete an annotation for a file using a button from
     summary window force refresh of a buffer that is visiting said
     file, if exists, to reflect the changes;
-  - fixed flowings of annotatinons when window's width is changed.
+  - fixed flowings of annotations when window's width is changed.
 
 - 2020-03-06 V0.6.0 Bastian Bechtold, cage ::
   Fixed bugs of multiline annotations, diff exports and integration.
@@ -129,7 +129,7 @@
 
 - 2020-09-29 V0.9.0 Bastian Bechtold, cage ::
   Added two new styles to render the annotation: using "pop-up" style
-  or via a specializated summary window.
+  or via a specialized summary window.
 
 - 2020-11-20 V0.9.2 Bastian Bechtold, cage ::
 
@@ -159,3 +159,21 @@
   annotation database's' hash and file has do not match;
 
   Also a problem with adjacent annotation's coloring has been fixed.
+
+- 2020-12-24 V1.1.0 Bastian Bechtold, cage ::
+
+  This version  improves the  visual style of  annotated text  that if
+  formed by more than one line.
+
+  Also  the file  path  of each  annotated file  (in  the database  of
+  annotation)     is    saved     so    called     abbreviated    form
+  (e.g. '/home/user/foo' is saved as  '~/foo', this could be useful if
+  the database is migrated from one machine to another.
+
+  This  improvements has  been suggested  by  the user  Ran that  also
+  helped testing this new version of the package. Thank you!
+
+  Finally import and export of annotation has been fixed.
+
+  Related to the last  fix the variable ~annotate-diff-export-context~
+  has been removed.

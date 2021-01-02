@@ -120,7 +120,7 @@ as comments into the current buffer, like this:
 
 **** related customizable variable
      - ~annotate-integrate-marker~
-     - ~annotate-diff-export-context~
+     - ~annotate-diff-export-options~
      - ~annotate-integrate-highlight~
      - ~annotate-fallback-comment~
 
