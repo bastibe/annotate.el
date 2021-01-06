@@ -920,10 +920,12 @@ to 'maximum-width'."
                           (%group (append (list suffix)
                                           (cl-rest rest-words))
                                   (append (list prefix)
-                                          so-far)))))))
+                                          so-far))))))
+              (%split-words (text)
+                (save-match-data (split-string text " " t))))
     (if (< maximum-width 1)
         nil
-      (let* ((words   (split-string text " " t))
+      (let* ((words   (%split-words text))
              (grouped (reverse (%group words '()))))
         grouped))))
 
