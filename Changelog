@@ -1,3 +1,9 @@
+2021-01-14 cage
+
+        * annotate.el:
+
+	- added padding also for notes placed on the margin of the window.
+
 2021-01-06  cage
 
         * annotate.el:
