@@ -922,7 +922,7 @@ to 'maximum-width'."
                                   (append (list prefix)
                                           so-far))))))
               (%split-words (text)
-                (save-match-data (split-string text " " t))))
+                (save-match-data (split-string text "[[:space:]]" t))))
     (if (< maximum-width 1)
         nil
       (let* ((words   (%split-words text))
@@ -1007,8 +1007,8 @@ aa   ->  aa*
 a        a**
 "
   (let ((annotation-text (overlay-get annotation-overlay 'annotation)))
-    (cl-labels ((boxify-multiline ()
-                  (let* ((lines         (annotate--split-lines annotation-text))
+    (cl-labels ((boxify-multiline (raw-annotation-text &optional add-space-at-end)
+                  (let* ((lines         (annotate--split-lines raw-annotation-text))
                          (lines-widths  (mapcar 'string-width lines))
                          (max-width     (cl-reduce (lambda (a b) (if (> a b)
                                                                      a
@@ -1023,11 +1023,15 @@ a        a**
                          (box-lines     (cl-mapcar (lambda (a b) (concat a b))
                                                    lines paddings))
                          (almost-boxed  (annotate--join-with-string box-lines "\n")))
-                    (concat almost-boxed " "))))
+                    (if add-space-at-end
+                        (concat almost-boxed " ")
+                      almost-boxed))))
       (if annotation-on-is-own-line-p
-          (list (boxify-multiline))
-        (annotate--split-lines (annotate-lineate annotation-text
-                                                 (- end-of-line begin-of-line)))))))
+          (list (boxify-multiline annotation-text t))
+        (let* ((lineated         (annotate-lineate annotation-text
+                                                   (- end-of-line begin-of-line)))
+               (boxed            (boxify-multiline lineated nil)))
+          (annotate--split-lines boxed))))))
 
 (defun annotate--annotation-builder ()
   "Searches the line before point for annotations, and returns a
