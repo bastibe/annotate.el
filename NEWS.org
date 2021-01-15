@@ -178,7 +178,12 @@
   Related to the last  fix the variable ~annotate-diff-export-context~
   has been removed.
 
-* 2021-01-06 V1.1.1 Bastian Bechtold, cage ::
+- 2021-01-06 V1.1.1 Bastian Bechtold, cage ::
 
   This version  fix an old bug  that causes many types  of issues with
   rendering of annotations on the margin of the window.
+
+- 2021-01-06 V1.1.2 Bastian Bechtold, cage ::
+
+  This  version improves  visual  of multilined  notes  placed on  the
+  window margins.
