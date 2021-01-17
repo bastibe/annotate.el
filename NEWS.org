@@ -187,3 +187,8 @@
 
   This  version improves  visual  of multilined  notes  placed on  the
   window margins.
+
+- 2021-01-06 V1.1.3 Bastian Bechtold, cage ::
+
+  Optimized the code to speedup  reading and saving of encrypted (with
+  GPG) annotated files.
