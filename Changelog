@@ -1,3 +1,22 @@
+2021-01-15  cage
+
+        * annotate.el:
+
+	- added checking encrypted (GPG) file format.
+
+	In many parts  of the code we  use 'annotate-guess-file-format', a
+	function that  try to guess the  format of the file  that produced
+	the  contents of  a buffer.
+
+	Sometimes (for example  buffers that shows info  nodes) this check
+	is  very   expensive  because   involves  reading   (and  possibly
+	decompress  or even  decrypt) the  file contents  and check  for a
+	regular expression.
+
+	If  we  could know  in  advance  that  the file  is  symmetrically
+	encrypted with GPG we could  skip other, more expensive checks for
+	guessing file format (like info files).
+
 2021-01-14 cage
 
         * annotate.el:

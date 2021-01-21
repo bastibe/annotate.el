@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.1.2
+;; Version: 1.1.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.1.2"
+  :version "1.1.3"
   :group 'text)
 
 ;;;###autoload
@@ -2212,8 +2212,31 @@ sophisticated way than plain text"
                                          (and has-separator-p
                                               has-info-p))
                                      :info
-                                   nil))))))
-    (info-format-p)))
+                                   nil)))))
+              (gpg-format-p ()
+                            (with-temp-buffer
+                              (let* ((magic-0    #x8c)
+                                     (magic-1    #x0d)
+                                     (magic-4    #x03)
+                                     (magic-5    #x02)
+                                     (attributes (file-attributes filename))
+                                     (file-size  (file-attribute-size attributes)))
+                                (when (> file-size 6)
+                                  (let* ((bytes      (insert-file-contents-literally filename
+                                                                                     nil
+                                                                                     0
+                                                                                     7)))
+                                    (setf bytes
+                                          (cl-loop for i from 1 to 6 collect
+                                                   (elt (buffer-substring-no-properties i (1+ i))
+                                                        0)))
+                                    (when (and (= (logand (elt bytes 0) #x0000ff) magic-0)
+                                               (= (logand (elt bytes 1) #x0000ff) magic-1)
+                                               (= (logand (elt bytes 4) #x0000ff) magic-4)
+                                               (= (logand (elt bytes 5) #x0000ff) magic-5))
+                                      :encrypted-symmetric)))))))
+    (or (gpg-format-p)
+        (info-format-p)))) ;; keep this one for last as it is the slowest
 
 ;;;; summary window procedures
 
