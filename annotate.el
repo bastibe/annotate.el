@@ -2058,7 +2058,7 @@ was found.
 NOTE this assumes that annotations never overlaps"
   (cl-labels ((previous-annotation-ends (start)
                 (let ((annotation (annotate-annotation-at start)))
-                  (while (and (/= start
+                  (while (and (> start
                                   (point-min))
                               (null annotation))
                     (setf start (previous-overlay-change start))
