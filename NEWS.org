@@ -196,4 +196,4 @@
 - 2021-02-05 V1.1.4 Bastian Bechtold, cage ::
 
   Fixed highlight color  of annotated text that starts  from the first
-  character of the buffer'sconten.
+  character of the buffer's content.
