@@ -192,3 +192,8 @@
 
   Optimized the code to speedup  reading and saving of encrypted (with
   GPG) annotated files.
+
+- 2021-02-05 V1.1.4 Bastian Bechtold, cage ::
+
+  Fixed highlight color  of annotated text that starts  from the first
+  character of the buffer'sconten.
