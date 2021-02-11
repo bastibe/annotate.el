@@ -1,3 +1,76 @@
+2021-02-05  cage
+
+        * annotate.el:
+
+	- fixed 'annotate-previous-annotation-ends'
+
+	'annotate-previous-annotation-ends'  scans   the  buffer  contents
+	backward looking for an annotation before a buffer position
+        (let's' call this position 'POS').
+
+	If an annotation exists on 'POS' the backward search starts from a
+	position less than the starts of said annotation.
+
+	But unfortunately in the local function
+	'annotate-previous-annotation-ends' the test to stop the searching
+	is wrong.
+
+	This is the code for the local function:
+
+	----
+
+	(cl-labels ((previous-annotation-ends (start)
+	  (let ((annotation (annotate-annotation-at start)))
+	    (while (and (/= start (point-min))
+                        (null annotation))
+              (setf start (previous-overlay-change start))
+	      (setf annotation (annotate-annotation-at start)))
+            annotation))))
+
+	----
+
+	Let's   assume  that   the  annotation   under  'POS'   starts  at
+	(point-min), of course this is  the first annotation of the buffer
+	and the function should returns nil.
+
+	Then the initial value of  'start' (argument of the local function
+	above) is one less the starting  of the annotation under 'POS' and
+	-in  this  case-  values  0   (when  '(point-min)'  values  1)  no
+	annotations can exist  at 0 and, moreover,  (/= start (point-min))
+	is  non nil;  therefore the  test passes  and the  results of  the
+	function  is  the  annotation  under the  position  'start'  where
+	'start' get the value of (previous-overlay-change start)).
+
+	The latter expression '(previous-overlay-change start)' return the
+	position in  the buffer where there  is a change in  an overlay or
+	(point-min)  if no  change in  overlay exists;  in the  case under
+	examination the  expression returns (point-min) as  the annotation
+	under 'POS' is the first in the buffer.
+
+	In conclusion, the function returns  the annotation under 'POS' as
+	the annotation that supposed to starts before the annotation under
+	'POS', instead of nil!
+
+	To reproduce the bug:
+
+	buffer contents
+	****
+	****
+	^^^
+	annotate this portion of the buffer
+
+	****
+	*aaa
+
+	then annotate all the non-annotated text.
+
+	AAAA
+	Aaaa
+
+	The coloring  of the highlight of  the two annotation will  be the
+	same (wrong) while the background  color of the annotation text is
+	not (which is correct).
+
 2021-01-15  cage
 
         * annotate.el:
