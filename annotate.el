@@ -474,6 +474,11 @@ modified (for example a newline is inserted)."
   "Is 'overlay' an annotation?"
   (annotate-overlay-filled-p overlay))
 
+(cl-defmacro annotate-ensure-annotation ((overlay) &body body)
+  "Runs body only if overlay is an annotation (i.e. passes annotationp)"
+  `(and (annotationp ,overlay)
+        (progn ,@body)))
+
 (defun annotate--position-on-annotated-text-p (pos)
   "Does `pos' (as buffer position) corresponds to a character
 that belong to some annotated text?"
@@ -1420,9 +1425,9 @@ example:
 '(\"/foo/bar\" ((0 9 \"note\" \"annotated\")) hash-as-hex-string)
 
 "
+  (interactive)
   (cl-labels ((old-format-p (annotation)
                             (not (stringp (cl-first (last annotation))))))
-    (interactive)
     (let* ((filename             (annotate-actual-file-name))
            (all-annotations-data (annotate-load-annotation-data t))
            (annotation-dump      (assoc-string filename all-annotations-data))
@@ -1636,11 +1641,6 @@ functions).
   "Is the arg an empty string or null?"
   (or (null a)
       (string= "" a)))
-
-(cl-defmacro annotate-ensure-annotation ((overlay) &body body)
-  "Runs body only if overlay is an annotation (i.e. passes annotationp)"
-  `(and (annotationp ,overlay)
-        (progn ,@body)))
 
 (defun annotate-annotation-prop-get (annotation property)
   "Get  property  `property'  from  annotation  `annotation'.  If
