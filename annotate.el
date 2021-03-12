@@ -1338,7 +1338,7 @@ essentially what you get from:
           (let ((start              (annotate-beginning-of-annotation annotation))
                 (end                (annotate-ending-of-annotation    annotation))
                 (annotation-string  (annotate-annotation-string       annotation)))
-            (annotate-create-annotation start end annotation-string)))))
+            (annotate-create-annotation start end annotation-string nil)))))
     (set-buffer-modified-p modified-p)
     (font-lock-ensure)
     (if annotate-use-messages
