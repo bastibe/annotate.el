@@ -1195,26 +1195,6 @@ an overlay and it's annotation."
         'insert-in-front-hooks
         '(annotate--remove-annotation-property)))
 
-(defun annotate-context-before (pos)
- "Context lines before POS. Returns nil if we reach a line before
-first line of the buffer"
-  (save-excursion
-    (goto-char pos)
-    (beginning-of-line)
-    (let ((bol (point)))
-      (when (> (1- bol) 0)
-        (beginning-of-line (- (1- annotate-diff-export-context)))
-        (buffer-substring-no-properties (point) (max 1 (1- bol)))))))
-
-(defun annotate-context-after (pos)
-  "Context lines after POS."
-  (save-excursion
-    (goto-char pos)
-    (end-of-line)
-    (let ((eol (point)))
-      (end-of-line (1+ annotate-diff-export-context))
-      (buffer-substring-no-properties (1+ eol) (point)))))
-
 (defun annotate-prefix-lines (prefix text &optional omit-trailing-null)
   "Prepend PREFIX to each line in TEXT."
   (let ((lines (annotate--split-lines text "\n")))
@@ -1224,30 +1204,6 @@ first line of the buffer"
                                                 :from-end t)))
         (setf lines (subseq lines 0 (1+ last-not-empty)))))
     (apply 'concat (mapcar (lambda (l) (concat prefix l "\n")) lines))))
-
-(defun annotate-diff-line-range (start end lines-annotation-text chain-last-p)
-  "Calculate diff-like line range for annotation."
-  (save-excursion
-    (let* ((lines-count       (count-lines (point-min) (point-max)))
-           ;; forward-line move the point, too!
-           (lines-before      (- (- annotate-diff-export-context)
-                                 (forward-line (- annotate-diff-export-context))))
-           ;; because  of  forward-line  above point  has  been  moved
-           ;; 'annotate-diff-export-context'  lines  or at  the  first
-           ;; line of the buffer
-           (start-line        (line-number-at-pos (point)))
-           (diff-offset-start (- (line-number-at-pos start)
-                                 start-line))
-           (diff-offset-end   (min annotate-diff-export-context
-                                   (- lines-count (line-number-at-pos start))))
-           (end-increment     (if chain-last-p
-                                  (+ 2 (length (annotate--split-lines lines-annotation-text)))
-                                2)))
-      (format "-%i,%i +%i,%i"
-              start-line
-              (+ diff-offset-start diff-offset-end 1)
-              start-line
-              (+ diff-offset-start diff-offset-end end-increment)))))
 
 ;;; database related procedures
 
