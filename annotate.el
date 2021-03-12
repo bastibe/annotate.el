@@ -424,19 +424,19 @@ modified (for example a newline is inserted)."
                (let ((chain (cl-remove overlay (annotate-find-chain overlay))))
                  (delete-overlay overlay)
                  (annotate--remap-chain-pos chain)
-                 (font-lock-ensure))))))))))
+                 (font-lock-flush))))))))))
 
 (defun annotate-info-select-fn ()
   "The function to be called when an info buffer is updated"
   (annotate-clear-annotations)
   (annotate-load-annotations)
-  (font-lock-ensure nil))
+  (font-lock-flush nil))
 
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
   (add-hook 'after-save-hook                  'annotate-save-annotations t t)
-  (add-hook 'window-configuration-change-hook 'font-lock-ensure  t t)
+  (add-hook 'window-configuration-change-hook 'font-lock-flush  t t)
   (add-hook 'before-change-functions          'annotate-before-change-fn t t)
   (add-hook 'Info-selection-hook              'annotate-info-select-fn   t t)
   (if annotate-use-echo-area
@@ -452,7 +452,7 @@ modified (for example a newline is inserted)."
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
   (remove-hook 'after-save-hook                  'annotate-save-annotations t)
-  (remove-hook 'window-configuration-change-hook 'font-lock-ensure  t)
+  (remove-hook 'window-configuration-change-hook 'font-lock-flush  t)
   (remove-hook 'before-change-functions          'annotate-before-change-fn t)
   (remove-hook 'Info-selection-hook              'annotate-info-select-fn   t)
   (if annotate-use-echo-area
@@ -626,7 +626,7 @@ specified by `from' and `to'."
             (create-new-annotation)))))
        (annotation
         (annotate-change-annotation (point))
-        (font-lock-ensure nil))
+        (font-lock-flush nil))
        (t
         (if (annotate--position-on-annotated-text-p (point))
             (signal 'annotate-annotate-region-overlaps nil)
@@ -1341,7 +1341,7 @@ essentially what you get from:
                 (annotation-string  (annotate-annotation-string       annotation)))
             (annotate-create-annotation start end annotation-string nil)))))
     (set-buffer-modified-p modified-p)
-    (font-lock-ensure)
+    (font-lock-flush)
     (if annotate-use-messages
         (message "Annotations loaded."))))
 
@@ -1419,7 +1419,7 @@ example:
                                            annotation-string
                                            annotated-text))))))
         (set-buffer-modified-p modified-p)
-        (font-lock-ensure)
+        (font-lock-flush)
         (when annotate-use-messages
           (message "Annotations loaded."))))))
 
@@ -1960,7 +1960,7 @@ This function is not part of the public API."
           (progn ; delete just the last element of the chain
             (annotate-delete-chain-element last-annotation)
             (when refontify-buffer
-              (font-lock-ensure)))))
+              (font-lock-flush)))))
        (t
         (move-overlay last-annotation last-annotation-starting-pos new-ending-pos))))))
 
