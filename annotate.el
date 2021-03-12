@@ -760,9 +760,10 @@ annotate-actual-comment-end"
         (cl-loop
          for buffer-line in buffer-lines
          for line-number from 1  do
-         (let ((overlays-in-line (remove-if-not (lambda (a) (= (annotate-overlay-lines-line a)
-                                                               line-number))
-                                                overlay-relative-pos)))
+         (let ((overlays-in-line (cl-remove-if-not (lambda (a)
+                                                     (= (annotate-overlay-lines-line a)
+                                                        line-number))
+                                                   overlay-relative-pos)))
            (when (or (/= (1- line-number)
                          lines-count)
                      (not (annotate-string-empty-p buffer-line)))
@@ -1202,7 +1203,7 @@ an overlay and it's annotation."
       (let ((last-not-empty (cl-position-if-not 'annotate-string-empty-p
                                                 lines
                                                 :from-end t)))
-        (setf lines (subseq lines 0 (1+ last-not-empty)))))
+        (setf lines (cl-subseq lines 0 (1+ last-not-empty)))))
     (apply 'concat (mapcar (lambda (l) (concat prefix l "\n")) lines))))
 
 ;;; database related procedures
