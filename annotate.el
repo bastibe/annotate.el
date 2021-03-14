@@ -1888,13 +1888,21 @@ See the variable: `annotate-use-echo-area'."
 This function is not part of the public API."
   (annotate-ensure-annotation (annotation)
     (save-excursion
-      (let ((chain (annotate-find-chain annotation)))
-        (dolist (single-element chain)
-          (goto-char (overlay-end single-element))
-          (move-end-of-line nil)
-          (annotate--remove-annotation-property (overlay-start single-element)
-                                                (overlay-end   single-element))
-          (delete-overlay single-element))))))
+      (with-current-buffer (current-buffer)
+        (let* ((chain         (annotate-find-chain annotation))
+               (filename      (annotate-actual-file-name))
+               (info-format-p (eq (annotate-guess-file-format filename)
+                                  :info)))
+          (dolist (single-element chain)
+            (goto-char (overlay-end single-element))
+            (move-end-of-line nil)
+            (when info-format-p
+              (read-only-mode -1))
+            (annotate--remove-annotation-property (overlay-start single-element)
+                                                  (overlay-end   single-element))
+            (delete-overlay single-element)
+            (when info-format-p
+              (read-only-mode 1))))))))
 
 (defun annotate--delete-annotation-chain-ring (annotation-ring)
   "Delete overlay of `annotation-ring' from a buffer.
