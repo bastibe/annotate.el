@@ -626,7 +626,7 @@ specified by `from' and `to'."
             (create-new-annotation)))))
        (annotation
         (annotate-change-annotation (point))
-        (font-lock-flush nil))
+        (font-lock-flush))
        (t
         (if (annotate--position-on-annotated-text-p (point))
             (signal 'annotate-annotate-region-overlaps nil)
