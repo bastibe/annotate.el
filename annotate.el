@@ -430,7 +430,7 @@ modified (for example a newline is inserted)."
   "The function to be called when an info buffer is updated"
   (annotate-clear-annotations)
   (annotate-load-annotations)
-  (font-lock-flush nil))
+  (font-lock-flush))
 
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
