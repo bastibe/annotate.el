@@ -1,3 +1,29 @@
+2021-03-14  cage
+
+        * annotate.el:
+
+	- allowed deleting of annotations for info files;
+	- removed useless argument for 'font-lock-flush'.
+
+2021-03-12  cage
+
+        * annotate.el:
+
+	- changed function from 'font-lock-fontify-buffer' to
+	'font-lock-flush';
+	- changed function calls from 'cl' package to the 'cl-lib'
+	equivalents;
+	- added missing argument to 'annotate-create-annotation';
+	- removed unused functions.
+
+2021-03-11  cage
+
+        * annotate.el:
+
+	- removed warning related to misplaced '(interactive)';
+	- removed warning because of expanding a macro that was defined
+	later in the code.
+
 2021-02-05  cage
 
         * annotate.el:
