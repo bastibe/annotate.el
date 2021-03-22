@@ -197,3 +197,14 @@
 
   Fixed highlight color  of annotated text that starts  from the first
   character of the buffer's content.
+
+- 2021-02-05 V1.1.5 Bastian Bechtold, cage ::
+
+  Removed compilation  warnings, one of  the problem highlighted  by a
+  warning was actually preventing this package working on Doom Emacs.
+
+  Also a  bug that prevented  annotations placed  on info files  to be
+  deleted has been fixed.
+
+  Many thanks  to many people  that helped discovering  and suggesting
+  fix for these problems!

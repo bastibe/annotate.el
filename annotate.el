@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.1.4
+;; Version: 1.1.5
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.1.4"
+  :version "1.1.5"
   :group 'text)
 
 ;;;###autoload
@@ -424,19 +424,19 @@ modified (for example a newline is inserted)."
                (let ((chain (cl-remove overlay (annotate-find-chain overlay))))
                  (delete-overlay overlay)
                  (annotate--remap-chain-pos chain)
-                 (font-lock-fontify-buffer))))))))))
+                 (font-lock-flush))))))))))
 
 (defun annotate-info-select-fn ()
   "The function to be called when an info buffer is updated"
   (annotate-clear-annotations)
   (annotate-load-annotations)
-  (font-lock-fontify-buffer nil))
+  (font-lock-flush))
 
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
   (add-hook 'after-save-hook                  'annotate-save-annotations t t)
-  (add-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t t)
+  (add-hook 'window-configuration-change-hook 'font-lock-flush  t t)
   (add-hook 'before-change-functions          'annotate-before-change-fn t t)
   (add-hook 'Info-selection-hook              'annotate-info-select-fn   t t)
   (if annotate-use-echo-area
@@ -452,7 +452,7 @@ modified (for example a newline is inserted)."
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
   (remove-hook 'after-save-hook                  'annotate-save-annotations t)
-  (remove-hook 'window-configuration-change-hook 'font-lock-fontify-buffer  t)
+  (remove-hook 'window-configuration-change-hook 'font-lock-flush  t)
   (remove-hook 'before-change-functions          'annotate-before-change-fn t)
   (remove-hook 'Info-selection-hook              'annotate-info-select-fn   t)
   (if annotate-use-echo-area
@@ -473,6 +473,11 @@ modified (for example a newline is inserted)."
 (defun annotationp (overlay)
   "Is 'overlay' an annotation?"
   (annotate-overlay-filled-p overlay))
+
+(cl-defmacro annotate-ensure-annotation ((overlay) &body body)
+  "Runs body only if overlay is an annotation (i.e. passes annotationp)"
+  `(and (annotationp ,overlay)
+        (progn ,@body)))
 
 (defun annotate--position-on-annotated-text-p (pos)
   "Does `pos' (as buffer position) corresponds to a character
@@ -621,7 +626,7 @@ specified by `from' and `to'."
             (create-new-annotation)))))
        (annotation
         (annotate-change-annotation (point))
-        (font-lock-fontify-buffer nil))
+        (font-lock-flush))
        (t
         (if (annotate--position-on-annotated-text-p (point))
             (signal 'annotate-annotate-region-overlaps nil)
@@ -755,9 +760,10 @@ annotate-actual-comment-end"
         (cl-loop
          for buffer-line in buffer-lines
          for line-number from 1  do
-         (let ((overlays-in-line (remove-if-not (lambda (a) (= (annotate-overlay-lines-line a)
-                                                               line-number))
-                                                overlay-relative-pos)))
+         (let ((overlays-in-line (cl-remove-if-not (lambda (a)
+                                                     (= (annotate-overlay-lines-line a)
+                                                        line-number))
+                                                   overlay-relative-pos)))
            (when (or (/= (1- line-number)
                          lines-count)
                      (not (annotate-string-empty-p buffer-line)))
@@ -1190,26 +1196,6 @@ an overlay and it's annotation."
         'insert-in-front-hooks
         '(annotate--remove-annotation-property)))
 
-(defun annotate-context-before (pos)
- "Context lines before POS. Returns nil if we reach a line before
-first line of the buffer"
-  (save-excursion
-    (goto-char pos)
-    (beginning-of-line)
-    (let ((bol (point)))
-      (when (> (1- bol) 0)
-        (beginning-of-line (- (1- annotate-diff-export-context)))
-        (buffer-substring-no-properties (point) (max 1 (1- bol)))))))
-
-(defun annotate-context-after (pos)
-  "Context lines after POS."
-  (save-excursion
-    (goto-char pos)
-    (end-of-line)
-    (let ((eol (point)))
-      (end-of-line (1+ annotate-diff-export-context))
-      (buffer-substring-no-properties (1+ eol) (point)))))
-
 (defun annotate-prefix-lines (prefix text &optional omit-trailing-null)
   "Prepend PREFIX to each line in TEXT."
   (let ((lines (annotate--split-lines text "\n")))
@@ -1217,32 +1203,8 @@ first line of the buffer"
       (let ((last-not-empty (cl-position-if-not 'annotate-string-empty-p
                                                 lines
                                                 :from-end t)))
-        (setf lines (subseq lines 0 (1+ last-not-empty)))))
+        (setf lines (cl-subseq lines 0 (1+ last-not-empty)))))
     (apply 'concat (mapcar (lambda (l) (concat prefix l "\n")) lines))))
-
-(defun annotate-diff-line-range (start end lines-annotation-text chain-last-p)
-  "Calculate diff-like line range for annotation."
-  (save-excursion
-    (let* ((lines-count       (count-lines (point-min) (point-max)))
-           ;; forward-line move the point, too!
-           (lines-before      (- (- annotate-diff-export-context)
-                                 (forward-line (- annotate-diff-export-context))))
-           ;; because  of  forward-line  above point  has  been  moved
-           ;; 'annotate-diff-export-context'  lines  or at  the  first
-           ;; line of the buffer
-           (start-line        (line-number-at-pos (point)))
-           (diff-offset-start (- (line-number-at-pos start)
-                                 start-line))
-           (diff-offset-end   (min annotate-diff-export-context
-                                   (- lines-count (line-number-at-pos start))))
-           (end-increment     (if chain-last-p
-                                  (+ 2 (length (annotate--split-lines lines-annotation-text)))
-                                2)))
-      (format "-%i,%i +%i,%i"
-              start-line
-              (+ diff-offset-start diff-offset-end 1)
-              start-line
-              (+ diff-offset-start diff-offset-end end-increment)))))
 
 ;;; database related procedures
 
@@ -1377,9 +1339,9 @@ essentially what you get from:
           (let ((start              (annotate-beginning-of-annotation annotation))
                 (end                (annotate-ending-of-annotation    annotation))
                 (annotation-string  (annotate-annotation-string       annotation)))
-            (annotate-create-annotation start end annotation-string)))))
+            (annotate-create-annotation start end annotation-string nil)))))
     (set-buffer-modified-p modified-p)
-    (font-lock-fontify-buffer)
+    (font-lock-flush)
     (if annotate-use-messages
         (message "Annotations loaded."))))
 
@@ -1420,9 +1382,9 @@ example:
 '(\"/foo/bar\" ((0 9 \"note\" \"annotated\")) hash-as-hex-string)
 
 "
+  (interactive)
   (cl-labels ((old-format-p (annotation)
                             (not (stringp (cl-first (last annotation))))))
-    (interactive)
     (let* ((filename             (annotate-actual-file-name))
            (all-annotations-data (annotate-load-annotation-data t))
            (annotation-dump      (assoc-string filename all-annotations-data))
@@ -1457,7 +1419,7 @@ example:
                                            annotation-string
                                            annotated-text))))))
         (set-buffer-modified-p modified-p)
-        (font-lock-fontify-buffer)
+        (font-lock-flush)
         (when annotate-use-messages
           (message "Annotations loaded."))))))
 
@@ -1636,11 +1598,6 @@ functions).
   "Is the arg an empty string or null?"
   (or (null a)
       (string= "" a)))
-
-(cl-defmacro annotate-ensure-annotation ((overlay) &body body)
-  "Runs body only if overlay is an annotation (i.e. passes annotationp)"
-  `(and (annotationp ,overlay)
-        (progn ,@body)))
 
 (defun annotate-annotation-prop-get (annotation property)
   "Get  property  `property'  from  annotation  `annotation'.  If
@@ -1931,13 +1888,21 @@ See the variable: `annotate-use-echo-area'."
 This function is not part of the public API."
   (annotate-ensure-annotation (annotation)
     (save-excursion
-      (let ((chain (annotate-find-chain annotation)))
-        (dolist (single-element chain)
-          (goto-char (overlay-end single-element))
-          (move-end-of-line nil)
-          (annotate--remove-annotation-property (overlay-start single-element)
-                                                (overlay-end   single-element))
-          (delete-overlay single-element))))))
+      (with-current-buffer (current-buffer)
+        (let* ((chain         (annotate-find-chain annotation))
+               (filename      (annotate-actual-file-name))
+               (info-format-p (eq (annotate-guess-file-format filename)
+                                  :info)))
+          (dolist (single-element chain)
+            (goto-char (overlay-end single-element))
+            (move-end-of-line nil)
+            (when info-format-p
+              (read-only-mode -1))
+            (annotate--remove-annotation-property (overlay-start single-element)
+                                                  (overlay-end   single-element))
+            (delete-overlay single-element)
+            (when info-format-p
+              (read-only-mode 1))))))))
 
 (defun annotate--delete-annotation-chain-ring (annotation-ring)
   "Delete overlay of `annotation-ring' from a buffer.
@@ -2003,7 +1968,7 @@ This function is not part of the public API."
           (progn ; delete just the last element of the chain
             (annotate-delete-chain-element last-annotation)
             (when refontify-buffer
-              (font-lock-fontify-buffer)))))
+              (font-lock-flush)))))
        (t
         (move-overlay last-annotation last-annotation-starting-pos new-ending-pos))))))
 
