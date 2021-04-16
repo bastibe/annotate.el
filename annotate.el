@@ -630,7 +630,9 @@ specified by `from' and `to'."
        (t
         (if (annotate--position-on-annotated-text-p (point))
             (signal 'annotate-annotate-region-overlaps nil)
-          (create-new-annotation))))
+          (let ((char-maybe-newline (char-after)))
+            (when (not (char-equal char-maybe-newline ?\n))
+              (create-new-annotation))))))
       (set-buffer-modified-p t))))
 
 (cl-defun annotate-goto-next-annotation (&key (startingp t))
