@@ -198,6 +198,13 @@ has been modified outside Emacs."
   :type 'boolean
   :group 'annotate)
 
+(defcustom annotate-endline-annotate-whole-line t
+ "Whether trying to annotate the end of line character will
+annotate the whole line before (or after if the line is composed
+by the newline character only) instead."
+  :type 'boolean
+  :group 'annotate)
+
 (defconst annotate-prop-chain-position
   'position)
 
@@ -586,7 +593,13 @@ specified by `from' and `to'."
                     (when (annotate-annotation-at (1- chain-end))
                       (annotate--cut-left-annotation last-of-chain-to-cut)))
                   (when delete-enclosed
-                    (annotate-delete-chains-in-region chain-end region-stop)))))
+                    (annotate-delete-chains-in-region chain-end region-stop))))
+              (annotate-line (eol)
+                (let* ((bol (annotate-beginning-of-line-pos)))
+                  (goto-char bol)
+                  (set-mark (point))
+                  (goto-char eol)
+                  (annotate-annotate))))
     (let ((annotation (annotate-annotation-at (point))))
       (cond
        ((use-region-p)
@@ -631,8 +644,21 @@ specified by `from' and `to'."
         (if (annotate--position-on-annotated-text-p (point))
             (signal 'annotate-annotate-region-overlaps nil)
           (let ((char-maybe-newline (char-after)))
-            (when (not (char-equal char-maybe-newline ?\n))
-              (create-new-annotation))))))
+            (when char-maybe-newline
+              (cond
+               ((not (char-equal char-maybe-newline ?\n))
+                (create-new-annotation))
+               ((null annotate-endline-annotate-whole-line)
+                (user-error "The end of line can not be annotated"))
+               (t ;; annotate the whole line before or after
+                (save-excursion
+                  (let* ((bol (annotate-beginning-of-line-pos))
+                         (eol (point)))
+                    (if (/= eol bol)
+                        (annotate-line eol)
+                      (progn
+                        (goto-char (1+ eol))
+                        (annotate-annotate))))))))))))
       (set-buffer-modified-p t))))
 
 (cl-defun annotate-goto-next-annotation (&key (startingp t))
