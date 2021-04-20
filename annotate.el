@@ -595,11 +595,23 @@ specified by `from' and `to'."
                   (when delete-enclosed
                     (annotate-delete-chains-in-region chain-end region-stop))))
               (annotate-line (eol)
-                (let* ((bol (annotate-beginning-of-line-pos)))
-                  (goto-char bol)
-                  (set-mark (point))
-                  (goto-char eol)
-                  (annotate-annotate))))
+                (let* ((bol                     (annotate-beginning-of-line-pos))
+                       (annotations-on-the-line (annotate-annotations-overlay-in-range bol
+                                                                                       eol)))
+                  (if (= (length annotations-on-the-line)
+                         1)
+                      (let* ((annotation    (cl-first annotations-on-the-line))
+                             (start-overlay (overlay-start annotation))
+                             (end-overlay   (overlay-end   annotation)))
+                        (goto-char end-overlay)
+                        (push-mark start-overlay t t)
+                        (annotate-change-annotation (overlay-start annotation))
+                        (pop-mark))
+                    (progn
+                      (goto-char bol)
+                      (push-mark (point) t t)
+                      (goto-char eol)
+                      (annotate-annotate))))))
     (let ((annotation (annotate-annotation-at (point))))
       (cond
        ((use-region-p)
@@ -657,7 +669,8 @@ specified by `from' and `to'."
                     (if (/= eol bol)
                         (annotate-line eol)
                       (progn
-                        (goto-char (1+ eol))
+                        (forward-line 1)
+                        (goto-char (annotate-end-of-line-pos))
                         (annotate-annotate))))))))))))
       (set-buffer-modified-p t))))
 
