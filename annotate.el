@@ -1368,7 +1368,7 @@ essentially what you get from:
       (delete-dups entry))
     ;; skip files with no annotations
     (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
-                                                   (null (cdr entry)))
+                                                   (null (annotate-annotations-from-dump entry)))
                                                  all-annotations))
     (if annotate-use-messages
         (message "Annotations saved."))))
