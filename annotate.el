@@ -295,6 +295,16 @@ annotation as defined in the database."
   "Parsing failed:"
   'annotate-error)
 
+(cl-defmacro annotate-with-disable-read-only (&body body)
+  `(let ((read-mode-p (if buffer-read-only
+                          1
+                        -1)))
+     (when (= read-mode-p 1)
+       (read-only-mode -1))
+     ,@body
+     (when (= read-mode-p 1)
+       (read-only-mode 1))))
+
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
   (cl-find-if 'annotationp
@@ -1184,21 +1194,22 @@ a        a**
   (when (> (buffer-size)
            0)
     (annotate-with-inhibit-modification-hooks
-     ;; copy undo list
-     (let ((saved-undo-list (copy-tree buffer-undo-list t)))
-       ;; inhibit property removal to the undo list (and empty it too)
-       (buffer-disable-undo)
-       (save-excursion
-         (goto-char end)
-         ;; go to the EOL where the
-         ;; annotated newline used to be
-         (end-of-line)
-         ;; strip dangling display property
-         (remove-text-properties
-          (point) (1+ (point)) '(display nil)))
-       ;; restore undo list
-       (setf buffer-undo-list saved-undo-list)
-       (buffer-enable-undo)))))
+     (annotate-with-disable-read-only
+      ;; copy undo list
+      (let ((saved-undo-list (copy-tree buffer-undo-list t)))
+        ;; inhibit property removal to the undo list (and empty it too)
+        (buffer-disable-undo)
+        (save-excursion
+          (goto-char end)
+          ;; go to the EOL where the
+          ;; annotated newline used to be
+          (end-of-line)
+          ;; strip dangling display property
+          (remove-text-properties
+           (point) (1+ (point)) '(display nil)))
+        ;; restore undo list
+        (setf buffer-undo-list saved-undo-list)
+        (buffer-enable-undo))))))
 
 (defun annotate-annotations-overlay-in-range (from-position to-position)
   "Returns the annotations overlays that are enclosed in the range
@@ -1928,22 +1939,18 @@ See the variable: `annotate-use-echo-area'."
 
 This function is not part of the public API."
   (annotate-ensure-annotation (annotation)
-    (save-excursion
-      (with-current-buffer (current-buffer)
-        (let* ((chain         (annotate-find-chain annotation))
-               (filename      (annotate-actual-file-name))
-               (info-format-p (eq (annotate-guess-file-format filename)
-                                  :info)))
-          (dolist (single-element chain)
-            (goto-char (overlay-end single-element))
-            (move-end-of-line nil)
-            (when info-format-p
-              (read-only-mode -1))
-            (annotate--remove-annotation-property (overlay-start single-element)
-                                                  (overlay-end   single-element))
-            (delete-overlay single-element)
-            (when info-format-p
-              (read-only-mode 1))))))))
+   (save-excursion
+     (with-current-buffer (current-buffer)
+       (let* ((chain         (annotate-find-chain annotation))
+              (filename      (annotate-actual-file-name))
+              (info-format-p (eq (annotate-guess-file-format filename)
+                                 :info)))
+         (dolist (single-element chain)
+           (goto-char (overlay-end single-element))
+           (move-end-of-line nil)
+           (annotate--remove-annotation-property (overlay-start single-element)
+                                                 (overlay-end   single-element))
+           (delete-overlay single-element)))))))
 
 (defun annotate--delete-annotation-chain-ring (annotation-ring)
   "Delete overlay of `annotation-ring' from a buffer.
@@ -2978,7 +2985,6 @@ position."
   (with-current-buffer (current-buffer)
     (when buffer-file-name
       (annotate-show-annotation-summary buffer-file-name (point)))))
-
 
 ;;; switching database
 
