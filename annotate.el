@@ -604,24 +604,30 @@ specified by `from' and `to'."
                       (annotate--cut-left-annotation last-of-chain-to-cut)))
                   (when delete-enclosed
                     (annotate-delete-chains-in-region chain-end region-stop))))
+              (annotate-overwrite-line (eol bol)
+                 (goto-char bol)
+                 (push-mark (point) t t)
+                 (goto-char eol)
+                 (annotate-annotate))
               (annotate-line (eol)
                 (let* ((bol                     (annotate-beginning-of-line-pos))
                        (annotations-on-the-line (annotate-annotations-overlay-in-range bol
                                                                                        eol)))
                   (if (= (length annotations-on-the-line)
                          1)
-                      (let* ((annotation    (cl-first annotations-on-the-line))
-                             (start-overlay (overlay-start annotation))
-                             (end-overlay   (overlay-end   annotation)))
-                        (goto-char end-overlay)
-                        (push-mark start-overlay t t)
-                        (annotate-change-annotation (overlay-start annotation))
-                        (pop-mark))
-                    (progn
-                      (goto-char bol)
-                      (push-mark (point) t t)
-                      (goto-char eol)
-                      (annotate-annotate))))))
+                      (let* ((annotation                    (cl-first annotations-on-the-line))
+                             (start-overlay                 (overlay-start annotation))
+                             (end-overlay                   (overlay-end   annotation))
+                             (annotation-spans-whole-line-p (and (= start-overlay bol)
+                                                                 (= end-overlay   eol))))
+                        (if annotation-spans-whole-line-p
+                            (progn
+                              (goto-char end-overlay)
+                              (push-mark start-overlay t t)
+                              (annotate-change-annotation (overlay-start annotation))
+                              (pop-mark))
+                          (annotate-overwrite-line bol eol)))
+                    (annotate-overwrite-line bol eol)))))
     (let ((annotation (annotate-annotation-at (point))))
       (cond
        ((use-region-p)
@@ -676,9 +682,11 @@ specified by `from' and `to'."
                 (save-excursion
                   (let* ((bol (annotate-beginning-of-line-pos))
                          (eol (point)))
-                    (if (/= eol bol)
+                    (if (/=  eol bol)       ; text before the newline, annotate it
                         (annotate-line eol)
-                      (progn
+                      (progn                ; no text before  the new
+                                            ; line, annotate next line
+                                            ; with proper text
                         (forward-line 1)
                         (goto-char (annotate-end-of-line-pos))
                         (annotate-annotate))))))))))))
