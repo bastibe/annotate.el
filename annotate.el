@@ -567,6 +567,7 @@ specified by `from' and `to'."
   "Create, modify, or delete annotation."
   (interactive)
   (cl-labels ((create-new-annotation ()
+               ;; create a new annotation in the region returned by `annotate-bound'
                (cl-destructuring-bind (start end)
                    (annotate-bounds)
                  (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
@@ -575,6 +576,12 @@ specified by `from' and `to'."
                      (annotate-empty-annotation-text-error
                       (user-error "Annotation text is empty."))))))
               (cut-right (region-beg region-stop &optional delete-enclosed)
+                ;; This function will trim on the right one or more
+                ;; existing chains of overlays that compose an
+                ;; annotation (i.e. the overlays applied on the
+                ;; annotated text). After this function is called the
+                ;; text staring from `region-beg' end ending on
+                ;; `region-stop' will be cleared of all annotations.
                 (let* ((last-of-chain-to-cut  (annotate-chain-last-at region-beg))
                        (first-of-chain-to-cut (annotate-chain-first-at region-beg))
                        (chain-start           (overlay-start first-of-chain-to-cut))
@@ -590,6 +597,12 @@ specified by `from' and `to'."
                   (when delete-enclosed
                     (annotate-delete-chains-in-region chain-end region-stop))))
               (cut-left (region-beg region-stop &optional delete-enclosed)
+                ;; This function will trim on the left one or more
+                ;; existing chains of overlays that compose an
+                ;; annotation (i.e. the overlays applied on the
+                ;; annotated text). After this function is called the
+                ;; text staring from `region-beg' end ending on
+                ;; `region-stop' will be cleared of all annotations.
                 (let* ((last-of-chain-to-cut  (annotate-chain-last-at region-stop))
                        (first-of-chain-to-cut (annotate-chain-first-at region-stop))
                        (chain-start           (overlay-start first-of-chain-to-cut))
@@ -604,12 +617,25 @@ specified by `from' and `to'."
                       (annotate--cut-left-annotation last-of-chain-to-cut)))
                   (when delete-enclosed
                     (annotate-delete-chains-in-region chain-end region-stop))))
-              (annotate-overwrite-line (eol bol)
-                 (goto-char bol)
+              (annotate-overwrite-range (start end)
+                ;; annotate  text starting  from  `start'  and ending  on
+                ;; `end', overwriting any other annotation existing in
+                ;; that range
+                 (goto-char end)
                  (push-mark (point) t t)
-                 (goto-char eol)
+                 (goto-char start)
                  (annotate-annotate))
               (annotate-line (eol)
+                ;; annotate a line that terminate at `eol'
+                ;;
+                ;; if  the line  contains no  text before  the newline
+                ;; annotate the next line with text, if any
+                ;;
+                ;; if the line contains a single annotation that spans
+                ;; the whole line update the existing annotation
+                ;;
+                ;; if  the line  contains no  annotation annotate  the
+                ;; whole line that terminate at `eol'
                 (let* ((bol                     (annotate-beginning-of-line-pos))
                        (annotations-on-the-line (annotate-annotations-overlay-in-range bol
                                                                                        eol)))
@@ -626,8 +652,8 @@ specified by `from' and `to'."
                               (push-mark start-overlay t t)
                               (annotate-change-annotation (overlay-start annotation))
                               (pop-mark))
-                          (annotate-overwrite-line bol eol)))
-                    (annotate-overwrite-line bol eol)))))
+                          (annotate-overwrite-range bol eol)))
+                    (annotate-overwrite-range bol eol)))))
     (let ((annotation (annotate-annotation-at (point))))
       (cond
        ((use-region-p)
@@ -682,7 +708,7 @@ specified by `from' and `to'."
                 (save-excursion
                   (let* ((bol (annotate-beginning-of-line-pos))
                          (eol (point)))
-                    (if (/=  eol bol)       ; text before the newline, annotate it
+                    (if (/= eol bol)       ; text before the newline, annotate it
                         (annotate-line eol)
                       (progn                ; no text before  the new
                                             ; line, annotate next line
