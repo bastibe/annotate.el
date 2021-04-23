@@ -2490,35 +2490,35 @@ results can be filtered with a simple query language: see
           (when annotate-use-messages
             (message "The annotation database is empty"))
         (with-current-buffer-window
-         annotate-summary-buffer-name nil nil
-         (display-buffer annotate-summary-buffer-name)
-         (select-window (get-buffer-window annotate-summary-buffer-name t))
-         (outline-mode)
-         (use-local-map nil)
-         (local-set-key "q" (lambda ()
-                              (interactive)
-                              (kill-buffer annotate-summary-buffer-name)))
-         (dolist (annotation dump)
-           (let* ((all-annotations (annotate-annotations-from-dump annotation))
-                  (db-filename     (annotate-filename-from-dump annotation)))
-             (when (not (null all-annotations))
-               (insert (format (concat annotate-summary-list-prefix-file "%s\n\n")
-                               db-filename))
-               (dolist (annotation-field all-annotations)
-                 (let* ((button-text      (format "%s"
-                                                  (annotate-annotation-string annotation-field)))
-                        (annotation-begin (annotate-beginning-of-annotation annotation-field))
-                        (annotation-end   (annotate-ending-of-annotation    annotation-field))
-                        (snippet-text     (build-snippet db-filename
-                                                         annotation-begin
-                                                         annotation-end)))
-                   (insert-item-summary db-filename
-                                        snippet-text
-                                        button-text
-                                        annotation-begin
-                                        annotation-end
-                                        filter-query))))))
-         (read-only-mode 1))))))
+            annotate-summary-buffer-name nil nil
+          (display-buffer annotate-summary-buffer-name)
+          (select-window (get-buffer-window annotate-summary-buffer-name t))
+          (outline-mode)
+          (use-local-map nil)
+          (local-set-key "q" (lambda ()
+                               (interactive)
+                               (kill-buffer annotate-summary-buffer-name)))
+          (dolist (annotation dump)
+            (let* ((all-annotations (annotate-annotations-from-dump annotation))
+                   (db-filename     (annotate-filename-from-dump annotation)))
+              (when (not (null all-annotations))
+                (insert (format (concat annotate-summary-list-prefix-file "%s\n\n")
+                                db-filename))
+                (dolist (annotation-field all-annotations)
+                  (let* ((button-text      (format "%s"
+                                                   (annotate-annotation-string annotation-field)))
+                         (annotation-begin (annotate-beginning-of-annotation annotation-field))
+                         (annotation-end   (annotate-ending-of-annotation    annotation-field))
+                         (snippet-text     (build-snippet db-filename
+                                                          annotation-begin
+                                                          annotation-end)))
+                    (insert-item-summary db-filename
+                                         snippet-text
+                                         button-text
+                                         annotation-begin
+                                         annotation-end
+                                         filter-query))))))
+          (read-only-mode 1))))))
 
 ;;;; end summary window procedures
 
