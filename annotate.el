@@ -2482,6 +2482,7 @@ results can be filtered with a simple query language: see
                                (read-from-minibuffer "Query: "))
                               (t
                                ".*"))))
+    (annotate-save-annotations)
     (let* ((filter-query (get-query))
            (dump         (annotate-summary-filter-db (annotate-load-annotation-data t)
                                                      filter-query
