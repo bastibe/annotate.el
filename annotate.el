@@ -1405,8 +1405,8 @@ essentially what you get from:
     (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
                                                    (null (annotate-annotations-from-dump entry)))
                                                  all-annotations))
-    (if annotate-use-messages
-        (message "Annotations saved."))))
+    (when annotate-use-messages
+      (message "Annotations saved."))))
 
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
@@ -1429,8 +1429,8 @@ essentially what you get from:
             (annotate-create-annotation start end annotation-string nil)))))
     (set-buffer-modified-p modified-p)
     (font-lock-flush)
-    (if annotate-use-messages
-        (message "Annotations loaded."))))
+    (when annotate-use-messages
+      (message "Annotations loaded."))))
 
 (defun annotate-load-annotations ()
   "Load all annotations from disk and redraw the buffer to render the annotations.
