@@ -629,13 +629,14 @@ specified by `from' and `to'."
                 ;; annotate a line that terminate at `eol'
                 ;;
                 ;; if  the line  contains no  text before  the newline
-                ;; annotate the next line with text, if any
+                ;; annotate the next line with text, if any.
                 ;;
                 ;; if the line contains a single annotation that spans
                 ;; the whole line update the existing annotation
                 ;;
-                ;; if  the line  contains no  annotation annotate  the
-                ;; whole line that terminate at `eol'
+                ;; if the  line contains  no annotation, or  more than
+                ;; one  annotation,  annotate   the  whole  line  that
+                ;; terminate at `eol'
                 (let* ((bol                     (annotate-beginning-of-line-pos))
                        (annotations-on-the-line (annotate-annotations-overlay-in-range bol
                                                                                        eol)))
@@ -2702,29 +2703,29 @@ Arguments:
               ;; filter-fn     see the docstring
               ;; matchp        non nil if (funcall filter-fn previous-token) is not nil
               (operator             (previous-token filter-fn annotation matchp)
-                                    (let ((look-ahead        (annotate-summary-lexer t)))
-                                      (if (annotate-summary-query-parse-end-input-p look-ahead)
-                                          ;; end of input, recurse one more time
-                                          (annotate-summary-query-parse-note filter-fn
-                                                                             annotation
-                                                                             matchp)
-                                        (let ((look-ahead-symbol
-                                               (annotate-summary-query-lexer-symbol look-ahead))
-                                              (look-ahead-string
-                                               (annotate-summary-query-lexer-string look-ahead)))
-                                          (cond
-                                           ((not (cl-find look-ahead-symbol '(and or close-par)))
-                                            (signal 'annotate-query-parsing-error
-                                                    (list (format (concat "Expecting for operator "
-                                                                          "('and' or 'or') or \")\". "
-                                                                          "found %S instead")
-                                                                  look-ahead-string))))
-                                           (t
-                                            ;; found operator, recurse to search for rhs of rule
-                                            ;; NOTE OPERATOR NOTE
-                                            (annotate-summary-query-parse-note filter-fn
-                                                                               annotation
-                                                                               matchp))))))))
+               (let ((look-ahead        (annotate-summary-lexer t)))
+                 (if (annotate-summary-query-parse-end-input-p look-ahead)
+                     ;; end of input, recurse one more time
+                     (annotate-summary-query-parse-note filter-fn
+                                                        annotation
+                                                        matchp)
+                   (let ((look-ahead-symbol
+                          (annotate-summary-query-lexer-symbol look-ahead))
+                         (look-ahead-string
+                          (annotate-summary-query-lexer-string look-ahead)))
+                     (cond
+                      ((not (cl-find look-ahead-symbol '(and or close-par)))
+                       (signal 'annotate-query-parsing-error
+                               (list (format (concat "Expecting for operator "
+                                                     "('and' or 'or') or \")\". "
+                                                     "found %S instead")
+                                             look-ahead-string))))
+                      (t
+                       ;; found operator, recurse to search for rhs of rule
+                       ;; NOTE OPERATOR NOTE
+                       (annotate-summary-query-parse-note filter-fn
+                                                          annotation
+                                                          matchp))))))))
     (let* ((look-ahead (annotate-summary-lexer t))) ; the next token that the lexer *will* consume
                                                     ; note the second arg is non nil
       (if (not (annotate-summary-query-parse-end-input-p look-ahead))
