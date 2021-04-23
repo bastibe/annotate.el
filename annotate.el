@@ -732,7 +732,8 @@ specified by `from' and `to'."
                   (progn
                     (goto-char annotation-last-end)
                     (annotate-goto-next-annotation :startingp nil))
-                (message "This is the last annotation.")))
+                (when annotate-use-messages
+                  (message "This is the last annotation."))))
           (let ((next-annotation (annotate-next-annotation-starts (point))))
             (when next-annotation
               (goto-char (overlay-start next-annotation)))))
@@ -754,7 +755,8 @@ specified by `from' and `to'."
                   (progn
                     (goto-char (1- annotation-first-start))
                     (annotate-goto-previous-annotation :startingp nil))
-                (message "This is the first annotation.")))
+                (when annotate-use-messages
+                  (message "This is the first annotation."))))
           (let ((previous-annotation (annotate-previous-annotation-ends (point))))
             (when previous-annotation
               (goto-char (1- (overlay-end previous-annotation))))))
@@ -3071,7 +3073,8 @@ code, always use load files from trusted sources!"
                                 (annotate-mode  1)
                                 (when (not buffer-was-modified-p)
                                   (set-buffer-modified-p nil)))))))
-              (message "Load aborted by the user")))
+              (when annotate-use-messages
+                (message "Load aborted by the user"))))
         (signal 'annotate-db-file-not-found (list new-db))))))
 
 ;; end of switching database
