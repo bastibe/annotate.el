@@ -198,7 +198,7 @@
   Fixed highlight color  of annotated text that starts  from the first
   character of the buffer's content.
 
-- 2021-02-05 V1.1.5 Bastian Bechtold, cage ::
+- 2021-03-17 V1.1.5 Bastian Bechtold, cage ::
 
   Removed compilation  warnings, one of  the problem highlighted  by a
   warning was actually preventing this package working on Doom Emacs.
@@ -208,3 +208,21 @@
 
   Many thanks  to many people  that helped discovering  and suggesting
   fix for these problems!
+
+- 2021-04-27 V1.2 Bastian Bechtold, cage ::
+
+  New feature. When the customizable variable
+  `annotate-endline-annotate-whole-line' is not nil (default t), and
+  and the user try to annotate a newline the whole line is annotated
+  instead (or the next if the line is empty).
+
+  If the line contains a single annotation that cover all the line
+  annotating the newline Will ask to edit the annotation. If
+  `annotate-endline-annotate-whole-line' is nil annotating a newline
+  will signal an error.
+
+  Also this version generates smaller database as files left with no
+  annotations will not be saved on disk.
+
+  Finally   annotating   read-only    buffers   (especially   deleting
+  annotations) should works without problems.
