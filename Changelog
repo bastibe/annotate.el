@@ -1,3 +1,51 @@
+2021-04-23  cage
+
+        * annotate.el:
+	- added checks for 'annotate-use-messages' value when trying to
+        print a message;
+        - replaced 'if' with 'when' when no 'else' branch exists;
+        - ensured all annotations are saved before showing summary window.
+        - fixed indentation;
+        - improved documentation and fixed indentation for a couple of local
+        functions.
+
+
+2021-04-21  cage
+
+        * annotate.el:
+	- added comments to local functions of 'annotate-annotate';
+        - changed behaviour  when user is annotation  a newline character;
+	update an existing annotation on  the line that terminate with the
+	newline the  user is  annotation only  if the  existing annotation
+	spans the whole line.
+
+2021-04-20  cage
+
+        * annotate.el:
+	- skipped saving to database a file with no annotations;
+        - allowed removing (or cutting) annotations when buffer is in
+        read-only mode;
+        - when annotating  a newline, replace annotation if  a single one
+	exists on the line that is going to be annotated.
+
+2021-04-19  cage
+
+        * annotate.el:
+
+	- added feature; when the customizable variable
+	`annotate-endline-annotate-whole-line' is not nil (default t), and
+	the user try to annotate a newline the whole line is annotated
+	instead (or the next if the line is empty).
+	If `annotate-endline-annotate-whole-line' is nil annotating a newline
+	will signal an error.
+
+2021-04-16  cage
+
+        * annotate.el:
+
+	- prevented asking for annotation when trying to annotate a newline
+        character.
+
 2021-03-14  cage
 
         * annotate.el:
