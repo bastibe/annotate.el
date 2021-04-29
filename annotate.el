@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.1.5
+;; Version: 1.2.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.1.5"
+  :version "1.2.0"
   :group 'text)
 
 ;;;###autoload
@@ -198,6 +198,13 @@ has been modified outside Emacs."
   :type 'boolean
   :group 'annotate)
 
+(defcustom annotate-endline-annotate-whole-line t
+ "Whether trying to annotate the end of line character will
+annotate the whole line before (or after if the line is composed
+by the newline character only) instead."
+  :type 'boolean
+  :group 'annotate)
+
 (defconst annotate-prop-chain-position
   'position)
 
@@ -287,6 +294,16 @@ annotation as defined in the database."
 (define-error 'annotate-query-parsing-error
   "Parsing failed:"
   'annotate-error)
+
+(cl-defmacro annotate-with-disable-read-only (&body body)
+  `(let ((read-mode-p (if buffer-read-only
+                          1
+                        -1)))
+     (when (= read-mode-p 1)
+       (read-only-mode -1))
+     ,@body
+     (when (= read-mode-p 1)
+       (read-only-mode 1))))
 
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
@@ -550,6 +567,7 @@ specified by `from' and `to'."
   "Create, modify, or delete annotation."
   (interactive)
   (cl-labels ((create-new-annotation ()
+               ;; create a new annotation in the region returned by `annotate-bound'
                (cl-destructuring-bind (start end)
                    (annotate-bounds)
                  (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
@@ -558,6 +576,12 @@ specified by `from' and `to'."
                      (annotate-empty-annotation-text-error
                       (user-error "Annotation text is empty."))))))
               (cut-right (region-beg region-stop &optional delete-enclosed)
+                ;; This function will trim on the right one or more
+                ;; existing chains of overlays that compose an
+                ;; annotation (i.e. the overlays applied on the
+                ;; annotated text). After this function is called the
+                ;; text staring from `region-beg' end ending on
+                ;; `region-stop' will be cleared of all annotations.
                 (let* ((last-of-chain-to-cut  (annotate-chain-last-at region-beg))
                        (first-of-chain-to-cut (annotate-chain-first-at region-beg))
                        (chain-start           (overlay-start first-of-chain-to-cut))
@@ -573,6 +597,12 @@ specified by `from' and `to'."
                   (when delete-enclosed
                     (annotate-delete-chains-in-region chain-end region-stop))))
               (cut-left (region-beg region-stop &optional delete-enclosed)
+                ;; This function will trim on the left one or more
+                ;; existing chains of overlays that compose an
+                ;; annotation (i.e. the overlays applied on the
+                ;; annotated text). After this function is called the
+                ;; text staring from `region-beg' end ending on
+                ;; `region-stop' will be cleared of all annotations.
                 (let* ((last-of-chain-to-cut  (annotate-chain-last-at region-stop))
                        (first-of-chain-to-cut (annotate-chain-first-at region-stop))
                        (chain-start           (overlay-start first-of-chain-to-cut))
@@ -586,7 +616,45 @@ specified by `from' and `to'."
                     (when (annotate-annotation-at (1- chain-end))
                       (annotate--cut-left-annotation last-of-chain-to-cut)))
                   (when delete-enclosed
-                    (annotate-delete-chains-in-region chain-end region-stop)))))
+                    (annotate-delete-chains-in-region chain-end region-stop))))
+              (annotate-overwrite-range (start end)
+                ;; annotate  text starting  from  `start'  and ending  on
+                ;; `end', overwriting any other annotation existing in
+                ;; that range
+                 (goto-char end)
+                 (push-mark (point) t t)
+                 (goto-char start)
+                 (annotate-annotate))
+              (annotate-line (eol)
+                ;; annotate a line that terminate at `eol'
+                ;;
+                ;; if  the line  contains no  text before  the newline
+                ;; annotate the next line with text, if any.
+                ;;
+                ;; if the line contains a single annotation that spans
+                ;; the whole line update the existing annotation
+                ;;
+                ;; if the  line contains  no annotation, or  more than
+                ;; one  annotation,  annotate   the  whole  line  that
+                ;; terminate at `eol'
+                (let* ((bol                     (annotate-beginning-of-line-pos))
+                       (annotations-on-the-line (annotate-annotations-overlay-in-range bol
+                                                                                       eol)))
+                  (if (= (length annotations-on-the-line)
+                         1)
+                      (let* ((annotation                    (cl-first annotations-on-the-line))
+                             (start-overlay                 (overlay-start annotation))
+                             (end-overlay                   (overlay-end   annotation))
+                             (annotation-spans-whole-line-p (and (= start-overlay bol)
+                                                                 (= end-overlay   eol))))
+                        (if annotation-spans-whole-line-p
+                            (progn
+                              (goto-char end-overlay)
+                              (push-mark start-overlay t t)
+                              (annotate-change-annotation (overlay-start annotation))
+                              (pop-mark))
+                          (annotate-overwrite-range bol eol)))
+                    (annotate-overwrite-range bol eol)))))
     (let ((annotation (annotate-annotation-at (point))))
       (cond
        ((use-region-p)
@@ -630,7 +698,25 @@ specified by `from' and `to'."
        (t
         (if (annotate--position-on-annotated-text-p (point))
             (signal 'annotate-annotate-region-overlaps nil)
-          (create-new-annotation))))
+          (let ((char-maybe-newline (char-after)))
+            (when char-maybe-newline
+              (cond
+               ((not (char-equal char-maybe-newline ?\n))
+                (create-new-annotation))
+               ((null annotate-endline-annotate-whole-line)
+                (user-error "The end of line can not be annotated"))
+               (t ;; annotate the whole line before or after
+                (save-excursion
+                  (let* ((bol (annotate-beginning-of-line-pos))
+                         (eol (point)))
+                    (if (/= eol bol)       ; text before the newline, annotate it
+                        (annotate-line eol)
+                      (progn                ; no text before  the new
+                                            ; line, annotate next line
+                                            ; with proper text
+                        (forward-line 1)
+                        (goto-char (annotate-end-of-line-pos))
+                        (annotate-annotate))))))))))))
       (set-buffer-modified-p t))))
 
 (cl-defun annotate-goto-next-annotation (&key (startingp t))
@@ -646,7 +732,8 @@ specified by `from' and `to'."
                   (progn
                     (goto-char annotation-last-end)
                     (annotate-goto-next-annotation :startingp nil))
-                (message "This is the last annotation.")))
+                (when annotate-use-messages
+                  (message "This is the last annotation."))))
           (let ((next-annotation (annotate-next-annotation-starts (point))))
             (when next-annotation
               (goto-char (overlay-start next-annotation)))))
@@ -668,7 +755,8 @@ specified by `from' and `to'."
                   (progn
                     (goto-char (1- annotation-first-start))
                     (annotate-goto-previous-annotation :startingp nil))
-                (message "This is the first annotation.")))
+                (when annotate-use-messages
+                  (message "This is the first annotation."))))
           (let ((previous-annotation (annotate-previous-annotation-ends (point))))
             (when previous-annotation
               (goto-char (1- (overlay-end previous-annotation))))))
@@ -1143,21 +1231,22 @@ a        a**
   (when (> (buffer-size)
            0)
     (annotate-with-inhibit-modification-hooks
-     ;; copy undo list
-     (let ((saved-undo-list (copy-tree buffer-undo-list t)))
-       ;; inhibit property removal to the undo list (and empty it too)
-       (buffer-disable-undo)
-       (save-excursion
-         (goto-char end)
-         ;; go to the EOL where the
-         ;; annotated newline used to be
-         (end-of-line)
-         ;; strip dangling display property
-         (remove-text-properties
-          (point) (1+ (point)) '(display nil)))
-       ;; restore undo list
-       (setf buffer-undo-list saved-undo-list)
-       (buffer-enable-undo)))))
+     (annotate-with-disable-read-only
+      ;; copy undo list
+      (let ((saved-undo-list (copy-tree buffer-undo-list t)))
+        ;; inhibit property removal to the undo list (and empty it too)
+        (buffer-disable-undo)
+        (save-excursion
+          (goto-char end)
+          ;; go to the EOL where the
+          ;; annotated newline used to be
+          (end-of-line)
+          ;; strip dangling display property
+          (remove-text-properties
+           (point) (1+ (point)) '(display nil)))
+        ;; restore undo list
+        (setf buffer-undo-list saved-undo-list)
+        (buffer-enable-undo))))))
 
 (defun annotate-annotations-overlay-in-range (from-position to-position)
   "Returns the annotations overlays that are enclosed in the range
@@ -1316,10 +1405,10 @@ essentially what you get from:
       (delete-dups entry))
     ;; skip files with no annotations
     (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
-                                                   (null (cdr entry)))
+                                                   (null (annotate-annotations-from-dump entry)))
                                                  all-annotations))
-    (if annotate-use-messages
-        (message "Annotations saved."))))
+    (when annotate-use-messages
+      (message "Annotations saved."))))
 
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
@@ -1342,8 +1431,8 @@ essentially what you get from:
             (annotate-create-annotation start end annotation-string nil)))))
     (set-buffer-modified-p modified-p)
     (font-lock-flush)
-    (if annotate-use-messages
-        (message "Annotations loaded."))))
+    (when annotate-use-messages
+      (message "Annotations loaded."))))
 
 (defun annotate-load-annotations ()
   "Load all annotations from disk and redraw the buffer to render the annotations.
@@ -1887,22 +1976,18 @@ See the variable: `annotate-use-echo-area'."
 
 This function is not part of the public API."
   (annotate-ensure-annotation (annotation)
-    (save-excursion
-      (with-current-buffer (current-buffer)
-        (let* ((chain         (annotate-find-chain annotation))
-               (filename      (annotate-actual-file-name))
-               (info-format-p (eq (annotate-guess-file-format filename)
-                                  :info)))
-          (dolist (single-element chain)
-            (goto-char (overlay-end single-element))
-            (move-end-of-line nil)
-            (when info-format-p
-              (read-only-mode -1))
-            (annotate--remove-annotation-property (overlay-start single-element)
-                                                  (overlay-end   single-element))
-            (delete-overlay single-element)
-            (when info-format-p
-              (read-only-mode 1))))))))
+   (save-excursion
+     (with-current-buffer (current-buffer)
+       (let* ((chain         (annotate-find-chain annotation))
+              (filename      (annotate-actual-file-name))
+              (info-format-p (eq (annotate-guess-file-format filename)
+                                 :info)))
+         (dolist (single-element chain)
+           (goto-char (overlay-end single-element))
+           (move-end-of-line nil)
+           (annotate--remove-annotation-property (overlay-start single-element)
+                                                 (overlay-end   single-element))
+           (delete-overlay single-element)))))))
 
 (defun annotate--delete-annotation-chain-ring (annotation-ring)
   "Delete overlay of `annotation-ring' from a buffer.
@@ -2399,6 +2484,7 @@ results can be filtered with a simple query language: see
                                (read-from-minibuffer "Query: "))
                               (t
                                ".*"))))
+    (annotate-save-annotations)
     (let* ((filter-query (get-query))
            (dump         (annotate-summary-filter-db (annotate-load-annotation-data t)
                                                      filter-query
@@ -2407,35 +2493,35 @@ results can be filtered with a simple query language: see
           (when annotate-use-messages
             (message "The annotation database is empty"))
         (with-current-buffer-window
-         annotate-summary-buffer-name nil nil
-         (display-buffer annotate-summary-buffer-name)
-         (select-window (get-buffer-window annotate-summary-buffer-name t))
-         (outline-mode)
-         (use-local-map nil)
-         (local-set-key "q" (lambda ()
-                              (interactive)
-                              (kill-buffer annotate-summary-buffer-name)))
-         (dolist (annotation dump)
-           (let* ((all-annotations (annotate-annotations-from-dump annotation))
-                  (db-filename     (annotate-filename-from-dump annotation)))
-             (when (not (null all-annotations))
-               (insert (format (concat annotate-summary-list-prefix-file "%s\n\n")
-                               db-filename))
-               (dolist (annotation-field all-annotations)
-                 (let* ((button-text      (format "%s"
-                                                  (annotate-annotation-string annotation-field)))
-                        (annotation-begin (annotate-beginning-of-annotation annotation-field))
-                        (annotation-end   (annotate-ending-of-annotation    annotation-field))
-                        (snippet-text     (build-snippet db-filename
-                                                         annotation-begin
-                                                         annotation-end)))
-                   (insert-item-summary db-filename
-                                        snippet-text
-                                        button-text
-                                        annotation-begin
-                                        annotation-end
-                                        filter-query))))))
-         (read-only-mode 1))))))
+            annotate-summary-buffer-name nil nil
+          (display-buffer annotate-summary-buffer-name)
+          (select-window (get-buffer-window annotate-summary-buffer-name t))
+          (outline-mode)
+          (use-local-map nil)
+          (local-set-key "q" (lambda ()
+                               (interactive)
+                               (kill-buffer annotate-summary-buffer-name)))
+          (dolist (annotation dump)
+            (let* ((all-annotations (annotate-annotations-from-dump annotation))
+                   (db-filename     (annotate-filename-from-dump annotation)))
+              (when (not (null all-annotations))
+                (insert (format (concat annotate-summary-list-prefix-file "%s\n\n")
+                                db-filename))
+                (dolist (annotation-field all-annotations)
+                  (let* ((button-text      (format "%s"
+                                                   (annotate-annotation-string annotation-field)))
+                         (annotation-begin (annotate-beginning-of-annotation annotation-field))
+                         (annotation-end   (annotate-ending-of-annotation    annotation-field))
+                         (snippet-text     (build-snippet db-filename
+                                                          annotation-begin
+                                                          annotation-end)))
+                    (insert-item-summary db-filename
+                                         snippet-text
+                                         button-text
+                                         annotation-begin
+                                         annotation-end
+                                         filter-query))))))
+          (read-only-mode 1))))))
 
 ;;;; end summary window procedures
 
@@ -2620,29 +2706,29 @@ Arguments:
               ;; filter-fn     see the docstring
               ;; matchp        non nil if (funcall filter-fn previous-token) is not nil
               (operator             (previous-token filter-fn annotation matchp)
-                                    (let ((look-ahead        (annotate-summary-lexer t)))
-                                      (if (annotate-summary-query-parse-end-input-p look-ahead)
-                                          ;; end of input, recurse one more time
-                                          (annotate-summary-query-parse-note filter-fn
-                                                                             annotation
-                                                                             matchp)
-                                        (let ((look-ahead-symbol
-                                               (annotate-summary-query-lexer-symbol look-ahead))
-                                              (look-ahead-string
-                                               (annotate-summary-query-lexer-string look-ahead)))
-                                          (cond
-                                           ((not (cl-find look-ahead-symbol '(and or close-par)))
-                                            (signal 'annotate-query-parsing-error
-                                                    (list (format (concat "Expecting for operator "
-                                                                          "('and' or 'or') or \")\". "
-                                                                          "found %S instead")
-                                                                  look-ahead-string))))
-                                           (t
-                                            ;; found operator, recurse to search for rhs of rule
-                                            ;; NOTE OPERATOR NOTE
-                                            (annotate-summary-query-parse-note filter-fn
-                                                                               annotation
-                                                                               matchp))))))))
+               (let ((look-ahead        (annotate-summary-lexer t)))
+                 (if (annotate-summary-query-parse-end-input-p look-ahead)
+                     ;; end of input, recurse one more time
+                     (annotate-summary-query-parse-note filter-fn
+                                                        annotation
+                                                        matchp)
+                   (let ((look-ahead-symbol
+                          (annotate-summary-query-lexer-symbol look-ahead))
+                         (look-ahead-string
+                          (annotate-summary-query-lexer-string look-ahead)))
+                     (cond
+                      ((not (cl-find look-ahead-symbol '(and or close-par)))
+                       (signal 'annotate-query-parsing-error
+                               (list (format (concat "Expecting for operator "
+                                                     "('and' or 'or') or \")\". "
+                                                     "found %S instead")
+                                             look-ahead-string))))
+                      (t
+                       ;; found operator, recurse to search for rhs of rule
+                       ;; NOTE OPERATOR NOTE
+                       (annotate-summary-query-parse-note filter-fn
+                                                          annotation
+                                                          matchp))))))))
     (let* ((look-ahead (annotate-summary-lexer t))) ; the next token that the lexer *will* consume
                                                     ; note the second arg is non nil
       (if (not (annotate-summary-query-parse-end-input-p look-ahead))
@@ -2938,7 +3024,6 @@ position."
     (when buffer-file-name
       (annotate-show-annotation-summary buffer-file-name (point)))))
 
-
 ;;; switching database
 
 (defun annotate-buffers-annotate-mode ()
@@ -2988,7 +3073,8 @@ code, always use load files from trusted sources!"
                                 (annotate-mode  1)
                                 (when (not buffer-was-modified-p)
                                   (set-buffer-modified-p nil)))))))
-              (message "Load aborted by the user")))
+              (when annotate-use-messages
+                (message "Load aborted by the user"))))
         (signal 'annotate-db-file-not-found (list new-db))))))
 
 ;; end of switching database
