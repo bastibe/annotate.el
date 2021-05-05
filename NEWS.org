@@ -226,3 +226,8 @@
 
   Finally   annotating   read-only    buffers   (especially   deleting
   annotations) should works without problems.
+
+- 2021-05-05 V1.2.1 Bastian Bechtold, cage ::
+
+  This version fixes a bug that prevented command like
+  'comment-region' to works properly when annotate-mode was active.
