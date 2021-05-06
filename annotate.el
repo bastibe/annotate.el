@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.2.0
+;; Version: 1.2.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.2.0"
+  :version "1.2.1"
   :group 'text)
 
 ;;;###autoload
@@ -1228,8 +1228,8 @@ a        a**
 
 (defun annotate--remove-annotation-property (begin end)
   "Cleans up annotation properties associated with a region."
-  (when (> (buffer-size)
-           0)
+  (when (and (> (buffer-size) 0)
+             (not (buffer-narrowed-p)))
     (annotate-with-inhibit-modification-hooks
      (annotate-with-disable-read-only
       ;; copy undo list
@@ -1242,8 +1242,7 @@ a        a**
           ;; annotated newline used to be
           (end-of-line)
           ;; strip dangling display property
-          (remove-text-properties
-           (point) (1+ (point)) '(display nil)))
+          (remove-text-properties (point) (1+ (point)) '(display nil)))
         ;; restore undo list
         (setf buffer-undo-list saved-undo-list)
         (buffer-enable-undo))))))

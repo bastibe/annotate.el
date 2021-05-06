@@ -1,3 +1,17 @@
+021-04-30  cage
+
+        * annotate.el:
+
+	- prevented calling 'annotate--remove-annotation-property' on a
+	narrowed buffer.
+
+	For some reason (perhaps related to font-locking?) comment-region
+	command was calling this function, the fact is that the command
+	narrows the buffer before actually adding comments, so the call to
+	`point' inside the annotate--remove-annotation-property's body may
+	fall outside of the buffer raising an error. This patch prevents
+	calling this function on narrowed buffer.
+
 2021-04-23  cage
 
         * annotate.el:
