@@ -155,6 +155,13 @@ database is not filtered at all."
   :type 'boolean
   :group 'annotate)
 
+(defcustom annotate-database-confirm-deletion t
+ "If non nil a prompt asking confirmation before deleting a
+database file that is going to be empty after saving an annotated
+file will be shown"
+  :type 'boolean
+  :group 'annotate)
+
 (defcustom annotate-annotation-max-size-not-place-new-line 15
  "The maximum `string-width` allowed for an annotation to be
  placed on the right margin of the window instead of its own line
@@ -1565,19 +1572,32 @@ annotation."
         (ignore-errors (%load-annotation-data))
       (%load-annotation-data))))
 
-(defun annotate-dump-annotation-data (data)
+(defun annotate-dump-annotation-data (data &optional save-empty-db)
   "Save `data` into annotation file."
-  (with-temp-file annotate-file
-    (let* ((print-length nil)
-           (%abbreviate-filename (lambda (record)
-                                   (let ((full-filename (annotate-filename-from-dump    record))
-                                         (annotations   (annotate-annotations-from-dump record))
-                                         (file-checksum (annotate-checksum-from-dump    record)))
-                                     (annotate-make-record (abbreviate-file-name full-filename)
-                                                           annotations
-                                                           file-checksum))))
-           (actual-data (mapcar %abbreviate-filename data)))
-      (prin1 actual-data (current-buffer)))))
+  (if (or save-empty-db
+          data)
+      (with-temp-file annotate-file
+        (let* ((print-length nil)
+               (%abbreviate-filename (lambda (record)
+                                       (let ((full-filename (annotate-filename-from-dump    record))
+                                             (annotations   (annotate-annotations-from-dump record))
+                                             (file-checksum (annotate-checksum-from-dump    record)))
+                                         (annotate-make-record (abbreviate-file-name full-filename)
+                                                               annotations
+                                                               file-checksum))))
+               (actual-data (mapcar %abbreviate-filename data)))
+          (prin1 actual-data (current-buffer))))
+    (let* ((confirm-message    "Delete annotations database file %S? [y/N] ")
+           (delete-confirmed-p (or (not annotate-database-confirm-deletion)
+                                   (string= (read-from-minibuffer (format confirm-message
+                                                                           annotate-file))
+                                            "y"))))
+      (if delete-confirmed-p
+          (condition-case err
+              (delete-file annotate-file t)
+            (error (message "error removing annotation database: %S"
+                            (error-message-string err))))
+        (annotate-dump-annotation-data data t)))))
 
 (cl-defmacro with-matching-annotation-fns ((filename
                                             beginning
