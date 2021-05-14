@@ -53,15 +53,19 @@ see:
 [[https://github.com/bastibe/annotate.el/issues/68][this thread]] and, in particular
 [[https://github.com/bastibe/annotate.el/issues/68#issuecomment-728218022][this message]].
 
+If an  empty annotation database  (in memory) is saved  the database
+file  is deleted  instead, if  ~annotate-database-confirm-deletion~ is
+non  nil (the  default) a  confirmation action  is asked  to the  user
+before actually remove the file from the file system.
+
 Users of
 [[https://github.com/emacscollective/no-littering][no-littering]]
 can take advantage of its packages generated files management.
 
 **** related customizable variable
      - ~annotate-file~
-
-**** related customizable variable
      - ~annotate-warn-if-hash-mismatch~
+     - ~annotate-database-confirm-deletion~
 
 ** keybindings
 

@@ -231,3 +231,15 @@
 
   This version fixes a bug that prevented command like
   'comment-region' to works properly when annotate-mode was active.
+
+- 2021-05-07 V1.3.0 cage ::
+
+  This version  added a procedure to  prevent an empty database  to be
+  saved on the user's disk.
+
+  Moreover if an  empty annotations database is going  to overwrite an
+  existing stale database file on disk the file is deleted instead.
+
+  Before  deleting the  old database  file a  confirmation message  is
+  printed    on    the    minibuffer   if    the    custom    variable
+  'annotate-database-confirm-deletion' is non nil (default: t).
