@@ -1,4 +1,10 @@
-021-04-30  cage
+2021-05-07  cage
+
+        * annotate.el:
+
+	- prevented saving a file with an empty database;
+
+2021-04-30  cage
 
         * annotate.el:
 
