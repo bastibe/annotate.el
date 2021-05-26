@@ -2338,6 +2338,13 @@ sophisticated way than plain text"
         (with-current-buffer buffer
           (goto-char (button-get button 'go-to))))))))
 
+(defun annotate-update-visited-buffer-maybe (filename)
+  (let ((visited-buffer (find-buffer-visiting filename)))
+    (when visited-buffer ;; a buffer is visiting the file
+      (with-current-buffer visited-buffer
+        (annotate-mode -1)
+        (annotate-mode  1)))))
+
 (defun annotate-summary-delete-annotation-button-pressed (button)
  "Callback for summary window fired when a 'delete' button is
 pressed."
@@ -2358,20 +2365,12 @@ pressed."
                         (button-put annotation-button 'face '(:strike-through t)))
                       (let ((replace-button (next-button (point))))
                         (button-put replace-button 'invisible t)))
-                    (read-only-mode 1)))
-                ;; if the file where the  deleted annotation belong to is visited,
-                ;; update the buffer
-                (update-visited-buffer-maybe ()
-                  (let ((visited-buffer (find-buffer-visiting filename)))
-                    (when visited-buffer ;; a buffer is visiting the file
-                      (with-current-buffer visited-buffer
-                        (annotate-mode -1)
-                        (annotate-mode  1))))))
+                    (read-only-mode 1))))
       (redraw-summary-window)
-      (update-visited-buffer-maybe))))
+      (annotate-update-visited-buffer-maybe filename))))
 
 (defun annotate-summary-replace-annotation-button-pressed (button)
-   "Callback for summary window fired when a 'replace' button is
+  "Callback for summary window fired when a 'replace' button is
 pressed."
   (let* ((filename             (button-get button 'file))
          (annotation-beginning (button-get button 'beginning))
@@ -2387,9 +2386,10 @@ pressed."
                                                                     annotation-ending
                                                                     new-annotation-text)))
         (annotate-dump-annotation-data replaced-annotation-db)
-        (annotate-show-annotation-summary query)))))
+        (annotate-update-visited-buffer-maybe filename)
+        (annotate-show-annotation-summary query nil nil)))))
 
-(defun annotate-show-annotation-summary (&optional arg-query cut-above-point)
+(cl-defun annotate-show-annotation-summary (&optional arg-query cut-above-point (save-annotations t))
  "Show a summary of all the annotations in a temp buffer, the
 results can be filtered with a simple query language: see
 `annotate-summary-filter-db'."
@@ -2503,7 +2503,8 @@ results can be filtered with a simple query language: see
                                (read-from-minibuffer "Query: "))
                               (t
                                ".*"))))
-    (annotate-save-annotations)
+    (when save-annotations
+      (annotate-save-annotations))
     (let* ((filter-query (get-query))
            (dump         (annotate-summary-filter-db (annotate-load-annotation-data t)
                                                      filter-query
