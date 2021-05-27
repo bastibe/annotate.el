@@ -243,3 +243,16 @@
   Before  deleting the  old database  file a  confirmation message  is
   printed    on    the    minibuffer   if    the    custom    variable
   'annotate-database-confirm-deletion' is non nil (default: t).
+
+- 2021-05-27 V1.3.1 cage ::
+
+  Bugfix release:
+
+  - The  button "[replace]"  to edit  an annotation  from the  summary
+    window was not working at all;
+
+  - In certain  cases the  summary window  was rendering  wrong text's
+    fragment instead of the text of the annotation.
+
+  Many thanks  to "glvno"  for reporting  the aforementioned  bugs and
+  testing the patches!
