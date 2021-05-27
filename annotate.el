@@ -2470,6 +2470,20 @@ results can be filtered with a simple query language: see
                                     (info-setup filename (current-buffer))
                                     (buffer-substring-no-properties annotation-begin
                                                                     annotation-end)))
+              (build-snippet-from-buffer (filename annotation-begin annotation-end)
+                (let ((visited-buffer (find-buffer-visiting filename)))
+                  (when visited-buffer ;; a buffer is visiting the file
+                    (with-current-buffer visited-buffer
+                      (let ((raw-snippet (buffer-substring-no-properties annotation-begin
+                                                                         annotation-end)))
+                        (clean-snippet raw-snippet))))))
+              (build-snippet-from-file (filename annotation-begin annotation-end)
+                (with-temp-buffer
+                  (insert-file-contents filename
+                                        nil
+                                        (1- annotation-begin)
+                                        (1- annotation-end))
+                  (clean-snippet (buffer-string))))
               (build-snippet (filename annotation-begin annotation-end)
                              (if (file-exists-p filename)
                                  (cond
@@ -2479,12 +2493,12 @@ results can be filtered with a simple query language: see
                                                                       annotation-begin
                                                                       annotation-end)))
                                   (t
-                                   (with-temp-buffer
-                                     (insert-file-contents filename
-                                                           nil
-                                                           (1- annotation-begin)
-                                                           (1- annotation-end))
-                                     (clean-snippet (buffer-string)))))
+                                   (or (build-snippet-from-buffer filename
+                                                                  annotation-begin
+                                                                  annotation-end)
+                                       (build-snippet-from-file   filename
+                                                                  annotation-begin
+                                                                  annotation-end))))
                                (if (annotate-info-root-dir-p filename)
                                    (clean-snippet (build-snippet-info filename
                                                                       annotation-begin
