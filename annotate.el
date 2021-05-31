@@ -2389,6 +2389,24 @@ pressed."
         (annotate-update-visited-buffer-maybe filename)
         (annotate-show-annotation-summary query nil nil)))))
 
+(cl-defun annotate-wrap-text (text &optional (wrapper "\""))
+  (concat wrapper text wrapper))
+
+(cl-defun annotate-unwrap-text (text &optional (wrapper "\""))
+  (let ((left-re  (concat "^" wrapper))
+        (right-re (concat wrapper "$")))
+    (save-match-data
+      (let* ((matchedp      (string-match left-re text))
+             (trimmed-left (if matchedp
+                               (replace-match "" t t text)
+                             text)))
+        (save-match-data
+          (let ((matchedp (string-match right-re trimmed-left)))
+            (if matchedp
+                (replace-match "" t t trimmed-left)
+              trimmed-left)))))))
+
+
 (cl-defun annotate-show-annotation-summary (&optional arg-query cut-above-point (save-annotations t))
  "Show a summary of all the annotations in a temp buffer, the
 results can be filtered with a simple query language: see
@@ -2408,7 +2426,7 @@ results can be filtered with a simple query language: see
                                        annotate-ellipse-text-marker)
                              text)))
               (wrap      (text)
-                         (concat "\"" text "\""))
+                         (annotate-wrap-text text "\""))
               (insert-item-summary (filename
                                     snippet-text
                                     button-text
@@ -2690,6 +2708,10 @@ example:
 `annotate-summary-query'"
   (eq token :no-more-tokens))
 
+(defun annotate-summary-token-symbol-match (looking-symbol token)
+  (eq looking-symbol
+      (annotate-summary-query-lexer-symbol token)))
+
 (cl-defun annotate-summary-query-parse-note (filter-fn annotation &optional (res nil))
   "Parser rule for note:
 
@@ -2730,8 +2752,7 @@ Arguments:
 
 "
   (cl-labels ((token-symbol-match-p (looking-symbol token)
-                                    (eq looking-symbol
-                                        (annotate-summary-query-lexer-symbol token)))
+                (annotate-summary-token-symbol-match looking-symbol token))
               ;; this function will parse the rule operator
               ;; OPERATOR   := AND | OR
               ;; where
@@ -2886,16 +2907,20 @@ Note: this function returns the annotation part of the record, see
   (lambda (annotation query file-filter-fn note-filter-fn)
     (let ((annotate-summary-query query) ; save the query
           (query-notes-only       nil)) ; the query for just the notes
-      (let ((next-token (annotate-summary-lexer))) ; get file-mask
-        ;; if there are no more tokes just return all the records
+      (let ((next-token (annotate-summary-lexer))) ; get potential file-mask
+        ;; if there are no more tokens just return all the records
         ;; these match the empty string as in rule
         ;; EXPRESSION := epsilon
         (if (annotate-summary-query-parse-end-input-p next-token)
             (annotate-annotations-from-dump annotation)
           ;; otherwise test the record with the file-mask
-          (let* ((filtered-annotation (funcall file-filter-fn
-                                               (annotate-summary-query-lexer-string next-token)
-                                               annotation))
+          (let* ((quoted-file-mask-p  (annotate-summary-token-symbol-match 'escaped-re
+                                                                           next-token))
+                 (file-mask-raw       (annotate-summary-query-lexer-string next-token))
+                 (file-mask           (if quoted-file-mask-p
+                                          (annotate-unwrap-text file-mask-raw "\"")
+                                         file-mask-raw))
+                 (filtered-annotation (funcall file-filter-fn file-mask annotation))
                  ;; get the operator as in rule
                  (operator-token (annotate-summary-lexer)))
             ;; if there are no operator just return the filtered (by file-mask)
@@ -3056,7 +3081,8 @@ position."
   (interactive)
   (with-current-buffer (current-buffer)
     (when buffer-file-name
-      (annotate-show-annotation-summary buffer-file-name (point)))))
+      (annotate-show-annotation-summary (annotate-wrap-text buffer-file-name "\"")
+                                        (point)))))
 
 ;;; switching database
 
