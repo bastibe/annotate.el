@@ -2392,20 +2392,23 @@ pressed."
 (cl-defun annotate-wrap-text (text &optional (wrapper "\""))
   (concat wrapper text wrapper))
 
-(cl-defun annotate-unwrap-text (text &optional (wrapper "\""))
-  (let ((left-re  (concat "^" wrapper))
-        (right-re (concat wrapper "$")))
-    (save-match-data
-      (let* ((matchedp      (string-match left-re text))
-             (trimmed-left (if matchedp
-                               (replace-match "" t t text)
-                             text)))
-        (save-match-data
-          (let ((matchedp (string-match right-re trimmed-left)))
-            (if matchedp
-                (replace-match "" t t trimmed-left)
-              trimmed-left)))))))
-
+(cl-defun annotate-unwrap-text (text &optional (wrapper "\"") (left-side t))
+  (let ((results        text)
+        (wrapper-length (length wrapper)))
+    (when (>= (length text)
+              wrapper-length)
+      (if left-side
+          (let ((maybe-wrapper (substring results 0 wrapper-length)))
+            (when (string= maybe-wrapper wrapper)
+              (setf results (substring results wrapper-length))
+              (setf results (annotate-unwrap-text results wrapper nil))))
+        (let ((maybe-wrapper (substring results
+                                        (- (length results)
+                                           wrapper-length))))
+          (when (string= maybe-wrapper wrapper)
+            (setf results (substring results 0 (- (length results)
+                                                  wrapper-length)))))))
+    results))
 
 (cl-defun annotate-show-annotation-summary (&optional arg-query cut-above-point (save-annotations t))
  "Show a summary of all the annotations in a temp buffer, the
