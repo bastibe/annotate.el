@@ -1,3 +1,26 @@
+2021-05-27  cage
+
+        * annotate.el:
+
+	- fixed annotated text shown in the summary window
+
+	When an annotated buffer (that is  visiting a file) is modified in
+	a way that  changes the position of an annotation  in that buffer,
+	showing the  summary window -without  saving the file  first- will
+	read the  annotation using the  updated position but will  get the
+	contents from the  outdated file; this gives wrong  results in the
+	text  annotation  parts of  the  summary  windows, with  the  text
+	shifted from  the correct  position.  This patch  try to  fix this
+	bug.
+
+2021-05-26  cage
+
+        * annotate.el:
+
+	- fixed  callback for  "[replace]" button  in summary  window; the
+	callback  function  was  neither properly  saving  the  annotation
+	database nor refreshing the buffer's annotations.
+
 2021-05-07  cage
 
         * annotate.el:
