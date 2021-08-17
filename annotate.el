@@ -580,7 +580,7 @@ specified by `from' and `to'."
                    (condition-case error-message
                        (annotate-create-annotation start end annotation-text nil)
                      (annotate-empty-annotation-text-error
-                      (user-error "Annotation text is empty.? "))))))
+                      (user-error "Annotation text is empty"))))))
               (cut-right (region-beg region-stop &optional delete-enclosed)
                 ;; This function will trim on the right one or more
                 ;; existing chains of overlays that compose an
