@@ -1995,9 +1995,7 @@ This function is not part of the public API."
    (save-excursion
      (with-current-buffer (current-buffer)
        (let* ((chain         (annotate-find-chain annotation))
-              (filename      (annotate-actual-file-name))
-              (info-format-p (eq (annotate-guess-file-format filename)
-                                 :info)))
+              (filename      (annotate-actual-file-name)))
          (dolist (single-element chain)
            (goto-char (overlay-end single-element))
            (move-end-of-line nil)
@@ -2007,6 +2005,8 @@ This function is not part of the public API."
 
 (defun annotate--delete-annotation-chain-ring (annotation-ring)
   "Delete overlay of `annotation-ring' from a buffer.
+
+A ring is a single element of an annotation chain.
 
 This function is not part of the public API."
   (annotate-ensure-annotation (annotation-ring)
@@ -2018,7 +2018,8 @@ This function is not part of the public API."
       (delete-overlay annotation-ring))))
 
 (defun annotate-delete-chain-element (annotation)
-  "Delete a ring from a chain where `annotation' belong."
+  "Delete a ring (a ring is a single element of an annotation chain.)
+from a chain where `annotation' belong."
   (annotate-ensure-annotation (annotation)
     (let* ((chain                   (annotate-find-chain    annotation))
            (first-of-chain-p        (annotate-chain-first-p annotation))
