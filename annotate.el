@@ -164,6 +164,12 @@ file will be shown."
   :type 'boolean
   :group 'annotate)
 
+(defcustom annotate-annotation-confirm-deletion t
+ "If non nil a prompt asking confirmation before deleting an
+annotation file will be shown."
+  :type 'boolean
+  :group 'annotate)
+
 (defcustom annotate-annotation-max-size-not-place-new-line 15
  "The maximum `string-width` allowed for an annotation to be
 placed on the right margin of the window instead of its own line
@@ -2076,15 +2082,26 @@ from a chain where `annotation' belong."
        (t
         (move-overlay last-annotation last-annotation-starting-pos new-ending-pos))))))
 
-(defun annotate--delete-annotation-prevent-modification (annotation)
+(defun annotate--delete-annotation-chain-prevent-modification (annotation)
+"Delete an annotation chain backing up and restoring modification
+status of the buffer before deltion occured."
   (annotate-ensure-annotation (annotation)
     (annotate-with-restore-modified-bit
      (annotate--delete-annotation-chain annotation))))
 
 (cl-defun annotate-delete-annotation (&optional (point (point)))
+  "Command  to  delete  an  annotation,  `point'  is  the  buffer
+position  where  to  look  for  annotation  (default  the  cursor
+point)."
   (interactive)
   (when-let ((annotation (annotate-annotation-at point)))
-    (annotate--delete-annotation-prevent-modification annotation)))
+    (let* ((confirm-message    "Delete this annotation? [y/N] ")
+           (delete-confirmed-p (or (not annotate-annotation-confirm-deletion)
+                                   (string= (read-from-minibuffer (format confirm-message
+                                                                          annotate-file))
+                                            "y"))))
+      (when delete-confirmed-p
+        (annotate--delete-annotation-prevent-modification annotation)))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
