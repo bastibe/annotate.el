@@ -2084,10 +2084,21 @@ from a chain where `annotation' belong."
 
 (defun annotate--delete-annotation-chain-prevent-modification (annotation)
 "Delete an annotation chain backing up and restoring modification
-status of the buffer before deltion occured."
+status of the buffer before deletion occured.
+
+This function is not part of the public API."
   (annotate-ensure-annotation (annotation)
     (annotate-with-restore-modified-bit
      (annotate--delete-annotation-chain annotation))))
+
+(defun annotate--confirm-annotation-delete ()
+  "Prompt user for delete confirmation.
+This function is not part of the public API."
+  (let ((confirm-message "Delete this annotation? [y/N] "))
+    (or (not annotate-annotation-confirm-deletion)
+        (string= (read-from-minibuffer (format confirm-message
+                                               annotate-file))
+                 "y"))))
 
 (cl-defun annotate-delete-annotation (&optional (point (point)))
   "Command  to  delete  an  annotation,  `point'  is  the  buffer
@@ -2095,11 +2106,7 @@ position  where  to  look  for  annotation  (default  the  cursor
 point)."
   (interactive)
   (when-let ((annotation (annotate-annotation-at point)))
-    (let* ((confirm-message    "Delete this annotation? [y/N] ")
-           (delete-confirmed-p (or (not annotate-annotation-confirm-deletion)
-                                   (string= (read-from-minibuffer (format confirm-message
-                                                                          annotate-file))
-                                            "y"))))
+    (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
       (when delete-confirmed-p
         (annotate--delete-annotation-prevent-modification annotation)))))
 
@@ -2119,7 +2126,9 @@ point)."
          ((null annotation-text))
          ;; annotation was erased:
          ((string= "" annotation-text)
-          (annotate--delete-annotation-prevent-modification highlight))
+          (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
+            (when delete-confirmed-p
+              (annotate--delete-annotation-prevent-modification highlight))))
          ;; annotation was changed:
          (t
           (change highlight)))))))
