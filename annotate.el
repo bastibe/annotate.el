@@ -73,6 +73,8 @@ See https://github.com/bastibe/annotate.el/ for documentation."
 
 (define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
 
+(define-key annotate-mode-map (kbd "C-c C-d") 'annotate-delete-annotation)
+
 (define-key annotate-mode-map (kbd "C-c C-s") 'annotate-show-annotation-summary)
 
 (define-key annotate-mode-map (kbd "C-c ]") 'annotate-goto-next-annotation)
@@ -2074,15 +2076,22 @@ from a chain where `annotation' belong."
        (t
         (move-overlay last-annotation last-annotation-starting-pos new-ending-pos))))))
 
+(defun annotate--delete-annotation-prevent-modification (annotation)
+  (annotate-ensure-annotation (annotation)
+    (annotate-with-restore-modified-bit
+     (annotate--delete-annotation-chain annotation))))
+
+(cl-defun annotate-delete-annotation (&optional (point (point)))
+  (interactive)
+  (when-let ((annotation (annotate-annotation-at point)))
+    (annotate--delete-annotation-prevent-modification annotation)))
+
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
   (let* ((highlight       (annotate-annotation-at pos))
          (annotation-text (read-from-minibuffer annotate-annotation-prompt
                                                 (overlay-get highlight 'annotation))))
-    (cl-labels ((delete (annotation)
-                  (annotate-with-restore-modified-bit
-                    (annotate--delete-annotation-chain annotation)))
-                (change (annotation)
+    (cl-labels ((change (annotation)
                   (let ((chain (annotate-find-chain annotation)))
                     (dolist (single-element chain)
                       (annotate-overlay-maybe-set-help-echo single-element annotation-text)
@@ -2093,7 +2102,7 @@ from a chain where `annotation' belong."
          ((null annotation-text))
          ;; annotation was erased:
          ((string= "" annotation-text)
-          (delete highlight))
+          (annotate--delete-annotation-prevent-modification highlight))
          ;; annotation was changed:
          (t
           (change highlight)))))))
