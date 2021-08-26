@@ -2108,7 +2108,7 @@ point)."
   (when-let ((annotation (annotate-annotation-at point)))
     (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
       (when delete-confirmed-p
-        (annotate--delete-annotation-prevent-modification annotation)))))
+        (annotate--delete-annotation-chain-prevent-modification annotation)))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
@@ -2128,7 +2128,7 @@ point)."
          ((string= "" annotation-text)
           (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
             (when delete-confirmed-p
-              (annotate--delete-annotation-prevent-modification highlight))))
+              (annotate--delete-annotation-chain-prevent-modification highlight))))
          ;; annotation was changed:
          (t
           (change highlight)))))))
