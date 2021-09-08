@@ -164,7 +164,7 @@ file will be shown."
   :type 'boolean
   :group 'annotate)
 
-(defcustom annotate-annotation-confirm-deletion t
+(defcustom annotate-annotation-confirm-deletion nil
  "If non nil a prompt asking confirmation before deleting an
 annotation file will be shown."
   :type 'boolean
