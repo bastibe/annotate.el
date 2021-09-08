@@ -219,6 +219,11 @@ by the newline character only) instead."
   :type 'boolean
   :group 'annotate)
 
+(defcustom annotate-y-or-n-prompt-function 'yes-or-no-p
+  "Function to be called when asking user for a yes/no question."
+  :type 'function
+  :group 'annotate)
+
 (defconst annotate-prop-chain-position
   'position)
 
@@ -288,6 +293,9 @@ annotation as defined in the database."
 
 (defconst annotate-summary-replace-button-label "[replace]"
   "The label for the button, in summary window, to replace an annotation.")
+
+(defconst annotate-confirm-deleting-annotation-prompt  "Delete this annotation? "
+  "The string for the prompt to be shown when asking for annotation deletion confirm.")
 
 ;;;; custom errors
 
@@ -2094,11 +2102,7 @@ This function is not part of the public API."
 (defun annotate--confirm-annotation-delete ()
   "Prompt user for delete confirmation.
 This function is not part of the public API."
-  (let ((confirm-message "Delete this annotation? [y/N] "))
-    (or (not annotate-annotation-confirm-deletion)
-        (string= (read-from-minibuffer (format confirm-message
-                                               annotate-file))
-                 "y"))))
+  (funcall annotate-y-or-n-prompt-function annotate-confirm-deleting-annotation-prompt))
 
 (cl-defun annotate-delete-annotation (&optional (point (point)))
   "Command  to  delete  an  annotation,  `point'  is  the  buffer
