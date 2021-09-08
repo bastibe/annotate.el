@@ -94,6 +94,7 @@ can take advantage of its packages generated files management.
 
 **** related customizable variable
      - ~annotate-annotation-column~;
+     - ~annotate-y-or-n-prompt-function~;
      - ~annotate-annotation-confirm-deletion~;
      - ~annotate-annotation-max-size-not-place-new-line~;
      - ~annotate-annotation-position-policy~;
@@ -113,7 +114,7 @@ can take advantage of its packages generated files management.
     annotation.
 
 **** related customizable variable
-     - ~annotate-y-or-n-prompt-function~
+     - ~annotate-y-or-n-prompt-function~;
      - ~annotate-annotation-confirm-deletion~.
 
 *** ~C-c ]~ (function annotate-goto-next-annotation)
