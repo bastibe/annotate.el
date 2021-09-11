@@ -2102,7 +2102,8 @@ This function is not part of the public API."
 (defun annotate--confirm-annotation-delete ()
   "Prompt user for delete confirmation.
 This function is not part of the public API."
-  (funcall annotate-y-or-n-prompt-function annotate-confirm-deleting-annotation-prompt))
+  (or (not annotate-annotation-confirm-deletion)
+      (funcall annotate-y-or-n-prompt-function annotate-confirm-deleting-annotation-prompt)))
 
 (cl-defun annotate-delete-annotation (&optional (point (point)))
   "Command  to  delete  an  annotation,  `point'  is  the  buffer
