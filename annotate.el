@@ -219,11 +219,6 @@ by the newline character only) instead."
   :type 'boolean
   :group 'annotate)
 
-(defcustom annotate-y-or-n-prompt-function 'yes-or-no-p
-  "Function to be called when asking user for a yes/no question."
-  :type 'function
-  :group 'annotate)
-
 (defconst annotate-prop-chain-position
   'position)
 
@@ -2103,7 +2098,7 @@ This function is not part of the public API."
   "Prompt user for delete confirmation.
 This function is not part of the public API."
   (or (not annotate-annotation-confirm-deletion)
-      (funcall annotate-y-or-n-prompt-function annotate-confirm-deleting-annotation-prompt)))
+      (y-or-n-p annotate-confirm-deleting-annotation-prompt)))
 
 (cl-defun annotate-delete-annotation (&optional (point (point)))
   "Command  to  delete  an  annotation,  `point'  is  the  buffer

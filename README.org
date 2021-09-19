@@ -77,10 +77,8 @@ can take advantage of its packages generated files management.
     annotation deletes them.
 
     If ~annotate-annotation-confirm-deletion~ is  non nil (the default
-    is *nil*) a confirmation action  is asked using the function bound
-    to  the  customizable  variable  ~annotate-y-or-n-prompt-function~
-    (default: ~yes-or-no-p~)  to the  user before actually  remove the
-    annotation.
+    is *nil*) a confirmation action is asked, using ~y-or-n-p~, to the
+    user before actually remove the annotation.
 
     If point  is the newline  character and the  customizable variable
     ~annotate-endline-annotate-whole-line~ is not  nil (default is non
@@ -94,7 +92,6 @@ can take advantage of its packages generated files management.
 
 **** related customizable variable
      - ~annotate-annotation-column~;
-     - ~annotate-y-or-n-prompt-function~;
      - ~annotate-annotation-confirm-deletion~;
      - ~annotate-annotation-max-size-not-place-new-line~;
      - ~annotate-annotation-position-policy~;
@@ -108,13 +105,10 @@ can take advantage of its packages generated files management.
     Delete an annotation under point, if such annotation exists.
 
     If ~annotate-annotation-confirm-deletion~ is  non nil (the default
-    is *nil*) a confirmation action  is asked using the function bound
-    to  the  customizable  variable  ~annotate-y-or-n-prompt-function~
-    (default: ~yes-or-no-p~)  to the  user before actually  remove the
-    annotation.
+    is *nil*) a confirmation action is asked, using ~y-or-n-p~, to the
+    user before actually remove the annotation.
 
 **** related customizable variable
-     - ~annotate-y-or-n-prompt-function~;
      - ~annotate-annotation-confirm-deletion~.
 
 *** ~C-c ]~ (function annotate-goto-next-annotation)
