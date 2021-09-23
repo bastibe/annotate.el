@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.3.2
+;; Version: 1.4.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.3.2"
+  :version "1.4.2"
   :group 'text)
 
 ;;;###autoload
@@ -72,6 +72,8 @@ See https://github.com/bastibe/annotate.el/ for documentation."
   :after-hook (annotate-initialize-maybe))
 
 (define-key annotate-mode-map (kbd "C-c C-a") 'annotate-annotate)
+
+(define-key annotate-mode-map (kbd "C-c C-d") 'annotate-delete-annotation)
 
 (define-key annotate-mode-map (kbd "C-c C-s") 'annotate-show-annotation-summary)
 
@@ -159,6 +161,12 @@ database is not filtered at all."
  "If non nil a prompt asking confirmation before deleting a
 database file that is going to be empty after saving an annotated
 file will be shown."
+  :type 'boolean
+  :group 'annotate)
+
+(defcustom annotate-annotation-confirm-deletion nil
+ "If non nil a prompt asking confirmation before deleting an
+annotation file will be shown."
   :type 'boolean
   :group 'annotate)
 
@@ -280,6 +288,9 @@ annotation as defined in the database."
 
 (defconst annotate-summary-replace-button-label "[replace]"
   "The label for the button, in summary window, to replace an annotation.")
+
+(defconst annotate-confirm-deleting-annotation-prompt  "Delete this annotation? "
+  "The string for the prompt to be shown when asking for annotation deletion confirm.")
 
 ;;;; custom errors
 
@@ -1995,9 +2006,7 @@ This function is not part of the public API."
    (save-excursion
      (with-current-buffer (current-buffer)
        (let* ((chain         (annotate-find-chain annotation))
-              (filename      (annotate-actual-file-name))
-              (info-format-p (eq (annotate-guess-file-format filename)
-                                 :info)))
+              (filename      (annotate-actual-file-name)))
          (dolist (single-element chain)
            (goto-char (overlay-end single-element))
            (move-end-of-line nil)
@@ -2007,6 +2016,8 @@ This function is not part of the public API."
 
 (defun annotate--delete-annotation-chain-ring (annotation-ring)
   "Delete overlay of `annotation-ring' from a buffer.
+
+A ring is a single element of an annotation chain.
 
 This function is not part of the public API."
   (annotate-ensure-annotation (annotation-ring)
@@ -2018,7 +2029,8 @@ This function is not part of the public API."
       (delete-overlay annotation-ring))))
 
 (defun annotate-delete-chain-element (annotation)
-  "Delete a ring from a chain where `annotation' belong."
+  "Delete a ring (a ring is a single element of an annotation chain.)
+from a chain where `annotation' belong."
   (annotate-ensure-annotation (annotation)
     (let* ((chain                   (annotate-find-chain    annotation))
            (first-of-chain-p        (annotate-chain-first-p annotation))
@@ -2073,15 +2085,37 @@ This function is not part of the public API."
        (t
         (move-overlay last-annotation last-annotation-starting-pos new-ending-pos))))))
 
+(defun annotate--delete-annotation-chain-prevent-modification (annotation)
+"Delete an annotation chain backing up and restoring modification
+status of the buffer before deletion occured.
+
+This function is not part of the public API."
+  (annotate-ensure-annotation (annotation)
+    (annotate-with-restore-modified-bit
+     (annotate--delete-annotation-chain annotation))))
+
+(defun annotate--confirm-annotation-delete ()
+  "Prompt user for delete confirmation.
+This function is not part of the public API."
+  (or (not annotate-annotation-confirm-deletion)
+      (y-or-n-p annotate-confirm-deleting-annotation-prompt)))
+
+(cl-defun annotate-delete-annotation (&optional (point (point)))
+  "Command  to  delete  an  annotation,  `point'  is  the  buffer
+position  where  to  look  for  annotation  (default  the  cursor
+point)."
+  (interactive)
+  (when-let ((annotation (annotate-annotation-at point)))
+    (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
+      (when delete-confirmed-p
+        (annotate--delete-annotation-chain-prevent-modification annotation)))))
+
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
   (let* ((highlight       (annotate-annotation-at pos))
          (annotation-text (read-from-minibuffer annotate-annotation-prompt
                                                 (overlay-get highlight 'annotation))))
-    (cl-labels ((delete (annotation)
-                  (annotate-with-restore-modified-bit
-                    (annotate--delete-annotation-chain annotation)))
-                (change (annotation)
+    (cl-labels ((change (annotation)
                   (let ((chain (annotate-find-chain annotation)))
                     (dolist (single-element chain)
                       (annotate-overlay-maybe-set-help-echo single-element annotation-text)
@@ -2092,7 +2126,9 @@ This function is not part of the public API."
          ((null annotation-text))
          ;; annotation was erased:
          ((string= "" annotation-text)
-          (delete highlight))
+          (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
+            (when delete-confirmed-p
+              (annotate--delete-annotation-chain-prevent-modification highlight))))
          ;; annotation was changed:
          (t
           (change highlight)))))))
