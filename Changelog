@@ -1,3 +1,93 @@
+2021-09-19  cage
+
+	* annotate.el:
+
+        - removed customizable function 'annotate-y-or-n-prompt-function'.
+
+2021-09-11  cage
+
+	* annotate.el:
+
+        - used variable 'annotate-annotation-confirm-deletion' when asking
+	for deleting an annotation.
+
+2021-09-08  cage
+
+	* annotate.el,
+	* README.org:
+
+        -    updated    README.org     added    missing    reference    to
+	'annotate-y-or-n-prompt-function'.
+        - updated README.org mentioning 'annotate-y-or-n-prompt-function'.
+        -  changed   default  for   asking  confirm  before   deleting  an
+	annotation:  the   value  is   now  'nil'   (do  not   prompt  for
+	confirmation).
+        -  used 'yes-or-no-p'  (customizable via  a variable)  to ask  for
+	deletion confirm.
+
+2021-08-26  cage
+
+	* annotate.el:
+
+        - fixed function's name.
+
+2021-08-24  cage
+
+	* annotate.el,
+	* README.org:
+
+        - increased version number.
+
+        - added prompt to confirm deletion also when deleting annotation's
+	text;
+        - updated README.org.
+        - added confirmation prompt before delete an annotation.
+        - added command to delete an annotation under point;
+        - refactored some code in a function.
+        - improved docstrings;
+        - removed useless variable.
+
+2021-08-19  cage
+
+	* annotate.el:
+
+        Merge pull request #112 from cage/clean-style
+        Clean style
+
+2021-08-17  cage
+
+	* annotate.el:
+
+        - increased version number.
+
+        - removed garbage at the end of an error message.
+
+2021-08-16  cage
+
+	* annotate.el:
+
+        - cleaned up style using checkdoc;
+        - added missing docstrings.
+
+2021-06-20  cage
+
+	* annotate.el:
+
+        Merge pull request #109 from cage2/fix-replace-button
+        Fixed callback for "[replace]" button in summary window
+
+2021-06-07  cage
+
+	* annotate.el:
+
+        - removed uses of regular expressions from 'annotate-unwrap-text'.
+
+2021-05-31  cage
+
+	* annotate.el:
+
+        - allowed paths with spaces in a search query.
+
 2021-05-27  cage
 
         * annotate.el:
