@@ -256,3 +256,8 @@
 
   Many thanks  to "glvno"  for reporting  the aforementioned  bugs and
   testing the patches!
+
+- 2021-09-24 v1.4.2 cage ::
+
+  This  version added  a new  command to  delete the  annotation under
+  cursor.
