@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.4.2
+;; Version: 1.4.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.4.2"
+  :version "1.4.3"
   :group 'text)
 
 ;;;###autoload
@@ -1584,19 +1584,21 @@ annotation."
 
 (defun annotate-dump-annotation-data (data &optional save-empty-db)
   "Save `data' into annotation file."
-  (if (or save-empty-db
-          data)
-      (with-temp-file annotate-file
-        (let* ((print-length nil)
-               (%abbreviate-filename (lambda (record)
-                                       (let ((full-filename (annotate-filename-from-dump    record))
-                                             (annotations   (annotate-annotations-from-dump record))
-                                             (file-checksum (annotate-checksum-from-dump    record)))
-                                         (annotate-make-record (abbreviate-file-name full-filename)
-                                                               annotations
-                                                               file-checksum))))
-               (actual-data (mapcar %abbreviate-filename data)))
-          (prin1 actual-data (current-buffer))))
+  (cond
+   ((or save-empty-db
+        data)
+    (with-temp-file annotate-file
+      (let* ((print-length nil)
+             (%abbreviate-filename (lambda (record)
+                                     (let ((full-filename (annotate-filename-from-dump    record))
+                                           (annotations   (annotate-annotations-from-dump record))
+                                           (file-checksum (annotate-checksum-from-dump    record)))
+                                       (annotate-make-record (abbreviate-file-name full-filename)
+                                                             annotations
+                                                             file-checksum))))
+             (actual-data (mapcar %abbreviate-filename data)))
+        (prin1 actual-data (current-buffer)))))
+   ((file-exists-p annotate-file)
     (let* ((confirm-message    "Delete annotations database file %S? [y/N] ")
            (delete-confirmed-p (or (not annotate-database-confirm-deletion)
                                    (string= (read-from-minibuffer (format confirm-message
@@ -1607,7 +1609,7 @@ annotation."
               (delete-file annotate-file t)
             (error (message "error removing annotation database: %S"
                             (error-message-string err))))
-        (annotate-dump-annotation-data data t)))))
+        (annotate-dump-annotation-data data t))))))
 
 (cl-defmacro with-matching-annotation-fns ((filename
                                             beginning
@@ -2108,7 +2110,7 @@ point)."
   (when-let ((annotation (annotate-annotation-at point)))
     (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
       (when delete-confirmed-p
-        (annotate--delete-annotation-chain-prevent-modification annotation)))))
+        (annotate--delete-annotation-chain annotation)))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."

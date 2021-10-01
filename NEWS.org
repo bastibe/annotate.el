@@ -261,3 +261,17 @@
 
   This  version added  a new  command to  delete the  annotation under
   cursor.
+
+- 2021-09-30 v1.4.3 cage ::
+
+  This  is a bugfix release.
+
+  The  program  would  keep  asking to  confirmation  for  deleting  a
+  database  file even  if such  file does  not actually  exists on  the
+  file system.
+
+  When the  only action on  a buffer  was deleting an  annotation, the
+  buffer was  not marked as  modified; as a consequence,  the deletion
+  would  not happens  on  the  database (the  database  entry for  the
+  annotation to  be deleted would not  be removed from the  file) and,
+  when visiting the file, the annotation would be shown again.

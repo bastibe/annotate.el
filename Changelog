@@ -1,3 +1,14 @@
+2021-09-30 cage
+
+        * NEWS.org,
+        * annotate.el:
+
+        - increased version number.
+        - marked as modified the buffer when an annotation is deleted.
+        - prevented asking to delete a  database that does not actually exists
+        on the file system;
+        - updated NEWS.org;
+
 2021-09-19  cage
 
 	* annotate.el:
