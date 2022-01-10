@@ -1384,6 +1384,29 @@ essentially what you get from:
 \(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
   (cl-second annotation))
 
+(defun annotate--interval-left-limit (a)
+  (cl-first a))
+
+(defun annotate--interval-right-limit (a)
+  (cl-second a))
+
+(defun annotate--make-interval (left-limit right-limit)
+  (list left-limit right-limit))
+
+(defun annotate-annotation-interval (annotation)
+  "Returns a list of two  numbers representing the left and right
+limit  respectively  of the  portion  of  the buffer  where  this
+annotation is applied.
+Note that this function returns the character interval
+yyyyyyyy ggg
+  ^^^^^^^  ← Annotation interval i the database (extends for one more than the last character)
+  |----|   ← The interval that this function returns.
+
+In other terms the interval i the database is a closed interval while the interval that
+this function return is closed on the left and open on the right side."
+  (annotate--make-interval (annotate-beginning-of-annotation annotation)
+                           (1- (annotate-ending-of-annotation annotation))))
+
 (defun annotate-annotation-string (annotation)
   "Get the text of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
@@ -1562,25 +1585,25 @@ annotation."
                           annotations
                           file-checksum)))
 
+(defun annotate--deserialize-database-file (file)
+  (with-temp-buffer
+    (let* ((annotations-file file)
+           (attributes    (file-attributes annotations-file)))
+      (cond
+       ((not (file-exists-p annotations-file))
+        (signal 'annotate-db-file-not-found (list annotations-file)))
+       ((= (file-attribute-size attributes)
+           0)
+        nil)
+       (t
+        (insert-file-contents annotations-file)
+        (mapcar 'annotate--expand-record-path (read (current-buffer))))))))
+
 (defun annotate-load-annotation-data (&optional ignore-errors)
   "Read and returns saved annotations."
-  (cl-labels ((%load-annotation-data ()
-                (let ((annotations-file annotate-file))
-                  (with-temp-buffer
-                    (let* ((annotate-file annotations-file)
-                           (attributes    (file-attributes annotate-file)))
-                      (cond
-                       ((not (file-exists-p annotate-file))
-                        (signal 'annotate-db-file-not-found (list annotate-file)))
-                       ((= (file-attribute-size attributes)
-                           0)
-                        nil)
-                       (t
-                        (insert-file-contents annotate-file)
-                        (mapcar 'annotate--expand-record-path (read (current-buffer))))))))))
     (if ignore-errors
-        (ignore-errors (%load-annotation-data))
-      (%load-annotation-data))))
+        (ignore-errors (annotate-deserialize-database-file annotate-file))
+      (annotate--deserialize-database-file annotate-file)))
 
 (defun annotate-dump-annotation-data (data &optional save-empty-db)
   "Save `data' into annotation file."
@@ -3175,6 +3198,40 @@ code, always use load files from trusted sources!"
         (signal 'annotate-db-file-not-found (list new-db))))))
 
 ;; end of switching database
+
+;;; merging database
+
+(defun annotate--merge-interval (a b)
+  (let ((new-left-limit  (min (annotate--interval-left-limit a)
+                              (annotate--interval-left-limit b)))
+        (new-right-limit (max (annotate--interval-right-limit a)
+                              (annotate--interval-right-limit b))))
+    (annotate--make-interval new-left-limit
+                             new-right-limit)))
+
+(defun annotate--db-annotations-overlaps-p (annotation-a annotation-b)
+  (let ((interval-a (annotate-annotation-interval annotation-a))
+        (interval-b (annotate-annotation-interval annotation-b)))
+    (not (or (< (annotate--interval-right-limit interval-b)
+                (annotate--interval-left-limit interval-a))
+             (> (annotate--interval-left-limit interval-b)
+                (annotate--interval-right-limit interval-a))))))
+
+(defun annotate-db-merge-annotations (host guest)
+  (when (annotate--db-annotations-overlaps-p host guest)
+    (let* ((interval-host       (annotate-annotation-interval host))
+           (interval-guest      (annotate-annotation-interval guest))
+           (text-host           (annotate-annotation-string   host))
+           (text-guest          (annotate-annotation-string   guest))
+           (new-interval        (annotate--merge-interval     interval-host interval-guest))
+           (new-annotation-text (concat text-host " " text-guest))
+           (left                (annotate--interval-left-limit new-interval))
+           (right               (1+ (annotate--interval-right-limit new-interval)))
+           (new-annotated-text  (with-current-buffer (current-buffer)
+                                  (buffer-substring-no-properties left right))))
+      (annotate-make-annotation left right new-annotation-text new-annotated-text))))
+
+;;; end of merging datatase
 
 (provide 'annotate)
 ;;; annotate.el ends here
