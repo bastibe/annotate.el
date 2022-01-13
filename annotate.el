@@ -170,6 +170,12 @@ annotation file will be shown."
   :type 'boolean
   :group 'annotate)
 
+(defcustom annotate-database-confirm-import t
+ "If non nil a prompt asking confirmation before importing a
+database file will be shown."
+  :type 'boolean
+  :group 'annotate)
+
 (defcustom annotate-annotation-max-size-not-place-new-line 15
  "The maximum `string-width` allowed for an annotation to be
 placed on the right margin of the window instead of its own line
@@ -1602,7 +1608,7 @@ annotation."
 (defun annotate-load-annotation-data (&optional ignore-errors)
   "Read and returns saved annotations."
     (if ignore-errors
-        (ignore-errors (annotate-deserialize-database-file annotate-file))
+        (ignore-errors (annotate--deserialize-database-file annotate-file))
       (annotate--deserialize-database-file annotate-file)))
 
 (defun annotate-dump-annotation-data (data &optional save-empty-db)
@@ -3217,7 +3223,7 @@ code, always use load files from trusted sources!"
              (> (annotate--interval-left-limit interval-b)
                 (annotate--interval-right-limit interval-a))))))
 
-(defun annotate-db-merge-annotations (host guest)
+(defun annotate--db-merge-annotations (host guest)
   (when (annotate--db-annotations-overlaps-p host guest)
     (let* ((interval-host       (annotate-annotation-interval host))
            (interval-guest      (annotate-annotation-interval guest))
@@ -3230,6 +3236,76 @@ code, always use load files from trusted sources!"
            (new-annotated-text  (with-current-buffer (current-buffer)
                                   (buffer-substring-no-properties left right))))
       (annotate-make-annotation left right new-annotation-text new-annotated-text))))
+
+(defun annotate--db-remove-overlap-annotations (annotations &optional accum)
+  (if (= (length annotations) 1)
+      (push (cl-first annotations) accum)
+    (let* ((probe            (cl-first annotations))
+           (rest-annotations (rest annotations))
+           (position-overlap (cl-position-if (lambda (a)
+                                               (annotate--db-annotations-overlaps-p probe a))
+                                             rest-annotations)))
+      (if position-overlap
+          (let* ((annotation-overlapping    (elt rest-annotations position-overlap))
+                 (annotations-before-merged (cl-subseq rest-annotations 0 position-overlap))
+                 (annotations-after-merged  (cl-subseq rest-annotations (1+ position-overlap)))
+                 (merged-annotation         (annotate--db-merge-annotations probe
+                                                                            annotation-overlapping)))
+            (annotate--db-remove-overlap-annotations (append annotations-before-merged
+                                                             (list merged-annotation)
+                                                             annotations-after-merged)
+                                                     accum))
+        (annotate--db-remove-overlap-annotations rest-annotations (push probe accum))))))
+
+(defun annotate--db-merge-databases (db-1 db-2 &optional accum)
+  (cl-labels ((find-same-file-record (record annotations-db)
+                (let ((record-filename (annotate-filename-from-dump record)))
+                  (cl-find-if (lambda (a)
+                                (let ((scanned-record-filename (annotate-filename-from-dump a)))
+                                  (file-equal-p record-filename scanned-record-filename)))
+                              annotations-db))))
+    (if (null db-1)
+        (append accum db-2)
+      (let* ((first-record     (cl-first db-1))
+             (same-file-record (find-same-file-record first-record db-2)))
+        (if same-file-record
+            (let* ((filename                 (annotate-filename-from-dump first-record))
+                   (concatenated-annotations (append (annotate-annotations-from-dump first-record)
+                                                     (annotate-annotations-from-dump same-file-record)))
+                   (non-overlapped-annotations (annotate--db-remove-overlap-annotations concatenated-annotations))
+                   (concatenated-checksum      (annotate-checksum-from-dump first-record))
+                   (concatenated-record        (annotate-make-record filename
+                                                                     non-overlapped-annotations
+                                                                     concatenated-checksum))
+                   (rest-of-db-2               (cl-remove-if
+                                                (lambda (a)
+                                                  (let ((record-filename (annotate-filename-from-dump a)))
+                                                    (file-equal-p record-filename filename)))
+                                                db-2)))
+              (annotate--db-concat (cl-rest db-1)
+                                   rest-of-db-2
+                                   (push concatenated-record accum)))
+          (annotate--db-concat (cl-rest db-1)
+                               db-2
+                               (push first-record accum)))))))
+
+(defun annotate-import-annotations ()
+  (interactive)
+  (let* ((confirm-message    (concat "Importing databases from untrusted source may cause sereve "
+                                     "security issues, continue? [y/N] "))
+         (import-confirmed-p (or (not annotate-database-confirm-import)
+                                 (string= (read-from-minibuffer (format confirm-message
+                                                                        annotate-file))
+                                          "y"))))
+    (when import-confirmed-p
+      (let* ((imported-db-name (read-file-name "Choose the database to import: "))
+             (imported-db      (annotate--deserialize-database-file imported-db-name))
+             (hosting-db       (annotate--deserialize-database-file annotate-file))
+             (merged-db        (annotate--db-merge-databases hosting-db imported-db)))
+        (annotate-dump-annotation-data merged-db)
+        (annotate-switch-db t annotate-file)
+        (when annotate-use-messages
+          (message "Imprted annotations from %s." imported-db-name))))))
 
 ;;; end of merging datatase
 
