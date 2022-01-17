@@ -3282,16 +3282,23 @@ code, always use load files from trusted sources!"
                                                   (let ((record-filename (annotate-filename-from-dump a)))
                                                     (file-equal-p record-filename filename)))
                                                 db-2)))
-              (annotate--db-concat (cl-rest db-1)
-                                   rest-of-db-2
-                                   (push concatenated-record accum)))
-          (annotate--db-concat (cl-rest db-1)
-                               db-2
-                               (push first-record accum)))))))
+              (annotate--db-merge-databases (cl-rest db-1)
+                                            rest-of-db-2
+                                            (push concatenated-record accum)))
+          (annotate--db-merge-databases (cl-rest db-1)
+                                        db-2
+                                        (push first-record accum)))))))
 
 (defun annotate-import-annotations ()
   (interactive)
-  (let* ((confirm-message    (concat "Importing databases from untrusted source may cause sereve "
+  (cl-flet ((deserialize-db (file)
+             (ignore-errors (annotate--deserialize-database-file file)))
+            (remove-non-existing-files (annotations)
+             (cl-remove-if-not (lambda (a)
+                                 (let ((filename (annotate-filename-from-dump a)))
+                                   (file-exists-p filename)))
+                               annotations)))
+  (let* ((confirm-message    (concat "Importing databases from untrusted source may cause severe "
                                      "security issues, continue? [y/N] "))
          (import-confirmed-p (or (not annotate-database-confirm-import)
                                  (string= (read-from-minibuffer (format confirm-message
@@ -3299,13 +3306,13 @@ code, always use load files from trusted sources!"
                                           "y"))))
     (when import-confirmed-p
       (let* ((imported-db-name (read-file-name "Choose the database to import: "))
-             (imported-db      (annotate--deserialize-database-file imported-db-name))
-             (hosting-db       (annotate--deserialize-database-file annotate-file))
+             (imported-db      (remove-non-existing-files (deserialize-db imported-db-name)))
+             (hosting-db       (deserialize-db annotate-file))
              (merged-db        (annotate--db-merge-databases hosting-db imported-db)))
         (annotate-dump-annotation-data merged-db)
         (annotate-switch-db t annotate-file)
         (when annotate-use-messages
-          (message "Imprted annotations from %s." imported-db-name))))))
+          (message "Imported annotations from %s." imported-db-name)))))))
 
 ;;; end of merging datatase
 
