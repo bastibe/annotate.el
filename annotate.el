@@ -140,7 +140,7 @@ that Emacs passes to the diff program."
   :group 'annotate)
 
 (defcustom annotate-fallback-comment "#"
-  "When variable `comment-start' is nil use this string instead."
+  "When variable `COMMENT-START' is nil use this string instead."
   :type 'string
   :group 'annotate)
 
@@ -177,7 +177,7 @@ database file will be shown."
   :group 'annotate)
 
 (defcustom annotate-annotation-max-size-not-place-new-line 15
- "The maximum `string-width` allowed for an annotation to be
+ "The maximum 'string-width' allowed for an annotation to be
 placed on the right margin of the window instead of its own line
  after the annotated text."
   :type  'number
@@ -193,7 +193,7 @@ placed on the right margin of the window instead of its own line
   decide by text's length
 
 if the length is more than the value of
-`annotate-annotation-max-size-not-place-new-line' place the
+`ANNOTATE-ANNOTATION-MAX-SIZE-NOT-PLACE-NEW-LINE' place the
 annotation on a new line, place on the right margin
 otherwise."
   :type  'symbol
@@ -319,7 +319,7 @@ annotation as defined in the database."
   'annotate-error)
 
 (cl-defmacro annotate-with-disable-read-only (&body body)
-"Run `body' with `read-only-mode' temporary disabled."
+"Run `BODY' with `READ-ONLY-MODE' temporary disabled."
   `(let ((read-mode-p (if buffer-read-only
                           1
                         -1)))
@@ -350,11 +350,11 @@ annotation as defined in the database."
       (annotate-shutdown)))))
 
 (cl-defun annotate-buffer-checksum (&optional (object (current-buffer)))
-  "Calculate an hash for the argument `object'."
+  "Calculate an hash for the argument `OBJECT'."
   (secure-hash 'md5 object))
 
 (cl-defmacro annotate-with-inhibit-modification-hooks (&rest body)
-  "Wrap `body' in a block with modification-hooks inhibited."
+  "Wrap `BODY' in a block with modification-hooks inhibited."
   (let ((old-mode (gensym)))
     `(let ((,old-mode inhibit-modification-hooks))
        (unwind-protect
@@ -364,8 +364,8 @@ annotation as defined in the database."
          (setf inhibit-modification-hooks ,old-mode)))))
 
 (cl-defmacro annotate-with-restore-modified-bit (&rest body)
-  "Save the value of `buffer-modified-p' before `body' is executed
-and restore the saved value just after the end of `body'."
+  "Save the value of `BUFFER-MODIFIED-P' before `BODY' is executed
+and restore the saved value just after the end of `BODY'."
   (let ((modifiedp (gensym)))
     `(let ((,modifiedp (buffer-modified-p)))
        ,@body
@@ -391,36 +391,36 @@ position (so that it is unchanged after this function is called)."
      (overlay-end   annotation)))
 
 (defun annotate-annotation-force-newline-policy (annotation)
-  "Force annotate to place `annotation' on the line after the annotated text.
+  "Force annotate to place `ANNOTATION' on the line after the annotated text.
 
-See: `annotate-annotation-position-policy'."
+See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
   (overlay-put annotation 'force-newline-policy t))
 
 (defun annotate-annotation-newline-policy-forced-p (annotation)
-  "Is `annotation' forced  to place annotation on the  line after the
+  "Is `ANNOTATION' forced to place annotation on the line after the
 annotated text?
 
-See: `annotate-annotation-position-policy'."
+See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
   (overlay-get annotation 'force-newline-policy))
 
 (defun annotate--remap-chain-pos (annotations)
-  "Remap an annotation 'chain'.
+  "Remap `ANNOTATIONS' as an annotation 'chain'.
 
 An annotation is a collection of one or more overlays that
-contains the property `annotate-prop-chain-position'.
+contains the property `ANNOTATE-PROP-CHAIN-POSITION'.
 
-The value of `annotate-prop-chain-position' in each chain is an
+The value of `ANNOTATE-PROP-CHAIN-POSITION' in each chain is an
 integer starting from:
 
-`annotate-prop-chain-pos-marker-first' and *always* ending with
+`ANNOTATE-PROP-CHAIN-POS-MARKER-FIRST' and *always* ending with
 
-`annotate-prop-chain-pos-marker-last'
+`ANNOTATE-PROP-CHAIN-POS-MARKER-LAST'
 
 This means that a value of said property for a chain that
 contains only an element is equal to
-`annotate-prop-chain-pos-marker-last'.
+`ANNOTATE-PROP-CHAIN-POS-MARKER-LAST'.
 
-This function ensure this constrains for the chain `annotation'
+This function ensure this constrains for the chain `ANNOTATION'
 belong."
   (cond
    ((< (length annotations)
@@ -505,22 +505,22 @@ modified (for example a newline is inserted)."
                                     (1 (annotate--change-guard)))))))
 
 (defun annotate-overlay-filled-p (overlay)
-  "Does this `overlay' contains an 'annotation' property?"
+  "Does this `OVERLAY' contains an 'annotation' property?"
   (and overlay
        (overlayp overlay)
        (overlay-get overlay 'annotation)))
 
 (defun annotationp (overlay)
-  "Is `overlay' an annotation?"
+  "Is `OVERLAY' an annotation?"
   (annotate-overlay-filled-p overlay))
 
 (cl-defmacro annotate-ensure-annotation ((overlay) &body body)
-  "Runs body only if overlay is an annotation (i.e. passes annotationp)."
+  "Runs body only if `OVERLAY' is an annotation (i.e. passes annotationp)."
   `(and (annotationp ,overlay)
         (progn ,@body)))
 
 (defun annotate--position-on-annotated-text-p (pos)
-  "Does `pos' (as buffer position) corresponds to a character
+  "Does `POS' (as buffer position) corresponds to a character
 that belong to some annotated text?"
   (let ((annotation (annotate-annotation-at pos)))
     (if annotation
@@ -575,14 +575,14 @@ that belong to some annotated text?"
 
 (defun annotate-delete-chains-in-region (from to)
   "Deletes all the chains enclosed in the range specified by
-positions `from' and `to'."
+positions `FROM' and `TO'."
   (let* ((enclosed-chains (annotate-annotations-chain-in-range from to)))
     (dolist (chain enclosed-chains)
       (annotate--delete-annotation-chain (cl-first chain)))))
 
 (defun annotate-count-newline-in-region (from to)
  "Counts the number of newlines character (?\n) in range
-specified by `from' and `to'."
+specified by `FROM' and `TO'."
   (cl-count-if (lambda (a) (char-equal a ?\n))
                (buffer-substring-no-properties from to)))
 
@@ -940,13 +940,13 @@ annotation, and can be conveniently viewed in diff-mode."
 - the area between the overlay and the annotation
 - the newline that will display the annotation
 
-The first match will get `annotate--change-guard` as its
-`insert-in-front-hook`, to make sure that if a newline is inserted
-between the overlay and the annotation, the `display` property of
+The first match will get `ANNOTATE--CHANGE-GUARD' as its
+`INSERT-IN-FRONT-HOOK', to make sure that if a newline is inserted
+between the overlay and the annotation, the 'display' property of
 the newline is properly disposed of.
 
-The second match will get `annotate--annotation-builder` as its
-`display` property, which makes the newline look like an
+The second match will get `ANNOTATE--ANNOTATION-BUILDER' as its
+'display' property, which makes the newline look like an
 annotation plus the newline."
   (goto-char (next-overlay-change (point)))
   (if (>= (point) limit)
@@ -973,8 +973,8 @@ annotation plus the newline."
   start-word)
 
 (defun annotate-group-by-width (text maximum-width)
-  "Groups text in a list formed by chunks of maximum size equal
-to 'maximum-width'."
+  "Groups `TEXT' in a list formed by chunks of maximum size equal
+to `MAXIMUM-WIDTH'."
   (cl-labels ((next-word (words)
                          (or (cl-first words)
                              ""))
@@ -1047,7 +1047,8 @@ to 'maximum-width'."
         grouped))))
 
 (cl-defun annotate-safe-subseq (seq from to &optional (value-if-limits-invalid seq))
-  "Returns 'value-if-limits-invalid' sequence if 'from' or 'to' are invalids."
+  "Returns a substring of `SEQ' or `VALUE-IF-LIMITS-INVALID'
+sequence if `FROM' or `TO' are invalids."
   (cond
    ((< to from)
     value-if-limits-invalid)
@@ -1059,7 +1060,7 @@ to 'maximum-width'."
     (cl-subseq seq from to))))
 
 (defun annotate-lineate (text line-width)
-  "Breaks `text` into lines to fit in the annotation space."
+  "Breaks `TEXT' into lines to fit in the annotation space with width `LINE-WIDTH'."
   (cl-labels ((pad (string max-width add-newline-p)
                    (if (null string)
                        ""
@@ -1097,12 +1098,12 @@ to 'maximum-width'."
                      (list (pad last-line max-width nil)))))))
 
 (cl-defun annotate--split-lines (text &optional (separator "\n"))
-  "Returns text splitted by `separator' (default: \"\n\")."
+  "Returns `TEXT' splitted by `SEPARATOR' (default: \"\n\")."
   (save-match-data
     (split-string text separator)))
 
 (defun annotate--join-with-string (strings junction)
-"Join list of string in `strings' using string `junction'."
+"Join list of string in `STRINGS' using string `JUNCTION'."
   (cl-reduce (lambda (a b) (concat a junction b))
              strings))
 
@@ -1110,12 +1111,13 @@ to 'maximum-width'."
                                         begin-of-line
                                         end-of-line
                                         annotation-on-is-own-line-p)
-  "Pads   or    breaks   annotation   text   (as    property   of
-`annotation-overlay' so that all lines have the same width.
+  "Pads or breaks annotation text (as property of
+`ANNOTATION-OVERLAY' so that all lines have the same width.
 
-If annotation is a  placed on the margin of a window (that is  `annotation-on-is-own-line-p' is
-nil) the text is broken (regardless  of words) to fit on the side
-of the window using `begin-of-line' `end-of-line'.
+If annotation is a placed on the margin of a window (that is
+`ANNOTATION-ON-IS-OWN-LINE-P' is
+nil) the text is broken (regardless of words) to fit on the side
+of the window using `BEGIN-OF-LINE' `END-OF-LINE'.
 
 If annotation is a note that is placed in its own line the text is padded with spaces so that
 a 'box' surround the text without seams, e.g:
@@ -1152,7 +1154,7 @@ a        a**"
 
 (defun annotate--annotation-builder ()
   "Searches the line before point for annotations, and returns a
-`facespec` with the annotation in its `display` property."
+'facespec' with the annotation in its 'display' property."
   (save-excursion
     (let ((newline-position (point)))
       (goto-char (1- (point))) ; we start at the start of the previous line
@@ -1250,7 +1252,8 @@ a        a**"
             (list 'face 'default 'display annotation-text)))))))
 
 (defun annotate--remove-annotation-property (begin end)
-  "Cleans up annotation properties associated with a region."
+  "Cleans up annotation properties associated within a region
+surrounded by `BEGIN' and `END'."
   (when (and (> (buffer-size) 0)
              (not (buffer-narrowed-p)))
     (annotate-with-inhibit-modification-hooks
@@ -1272,7 +1275,7 @@ a        a**"
 
 (defun annotate-annotations-overlay-in-range (from-position to-position)
   "Returns the annotations overlays that are enclosed in the range
-defined by `from-position' and `to-position'."
+defined by `FROM-POSITION' and `TO-POSITION'."
   (let ((annotations ()))
     (cl-loop for  i
              from (max 0 (1- from-position))
@@ -1289,7 +1292,7 @@ defined by `from-position' and `to-position'."
 
 (defun annotate-annotations-chain-in-range (from-position to-position)
   "Returns the annotations (chains) that are enclosed in the range
-defined by `from-position' and `to-position'."
+defined by `FROM-POSITION' and `TO-POSITION'."
   (let ((annotations (annotate-annotations-overlay-in-range from-position to-position))
         (chains      ()))
     (cl-loop for annotation in annotations do
@@ -1308,7 +1311,9 @@ an overlay and it's annotation."
         '(annotate--remove-annotation-property)))
 
 (defun annotate-prefix-lines (prefix text &optional omit-trailing-null)
-  "Prepend PREFIX to each line in TEXT."
+ "Prepend `PREFIX' to each line in `TEXT'.
+If `OMIT-TRAILING-NULL' is non null, empty line at the end of
+text will be discarded."
   (let ((lines (annotate--split-lines text "\n")))
     (when omit-trailing-null
       (let ((last-not-empty (cl-position-if-not 'annotate-string-empty-p
@@ -1332,7 +1337,7 @@ buffer is not on info-mode"
 
 (cl-defun annotate-guess-filename-for-dump (filename
                                             &optional (return-filename-if-not-found-p t))
-  "Prepare an acceptable filename suitable for metadata database."
+  "Guess an acceptable file name suitable for metadata database from `FILENAME'."
   (cond
    ((annotate-string-empty-p filename)
     nil)
@@ -1351,7 +1356,7 @@ buffer is not on info-mode"
       found))))
 
 (defun annotate-make-annotation-dump-entry (filename file-annotations checksum)
-  "Make an annotation record: see `annotate-load-annotations'."
+  "Make an annotation record: see `ANNOTATE-LOAD-ANNOTATIONS'."
   (list filename
         file-annotations
         checksum))
@@ -1391,17 +1396,20 @@ essentially what you get from:
   (cl-second annotation))
 
 (defun annotate--interval-left-limit (a)
+  "Given an annotation record `A' returns the left limit of the annotated text."
   (cl-first a))
 
 (defun annotate--interval-right-limit (a)
+  "Given an annotation record `A' returns the right limit of the annotated text."
   (cl-second a))
 
 (defun annotate--make-interval (left-limit right-limit)
+  "Make an interval from `LEFT-LIMIT' and `RIGHT-LIMIT'."
   (list left-limit right-limit))
 
 (defun annotate-annotation-interval (annotation)
-  "Returns a list of two  numbers representing the left and right
-limit  respectively  of the  portion  of  the buffer  where  this
+  "Returns a list of two numbers representing the left and right
+limit respectively of the portion of the buffer where this
 annotation is applied.
 Note that this function returns the character interval
 yyyyyyyy ggg
@@ -1421,7 +1429,7 @@ essentially what you get from:
   (nth 2 annotation))
 
 (defun annotate-annotated-text (annotation)
-  "Get the annotated text of an annotation. The arg 'annotation' must be a single
+  "Get the annotated text of an annotation. The arg `ANNOTATION' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
 \(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
@@ -1557,7 +1565,7 @@ example:
           (message "Annotations loaded."))))))
 
 (defun annotate-db-clean-records (records-db)
-  "Remove records from arg `records-db' that have empty annotation, example:
+  "Remove records from arg `RECORDS-DB' that have empty annotation, example:
 
 '((\"/foo/bar.dat\" nil \"abababababababababababababab\")
   (\"/foo/baz.dat\" ((0 9 \"note\" \"annotated\")) \"abababababababababababababab\"))
@@ -1578,7 +1586,7 @@ annotation."
     (annotate-dump-annotation-data db)))
 
 (defun annotate--expand-record-path (record)
-"Expand file component of `record'."
+"Expand file component of `RECORD'."
   (let* ((short-filename  (annotate-filename-from-dump    record))
          (annotations     (annotate-annotations-from-dump record))
          (file-checksum   (annotate-checksum-from-dump    record))
@@ -1592,6 +1600,7 @@ annotation."
                           file-checksum)))
 
 (defun annotate--deserialize-database-file (file)
+"Returns a sexp from the annotation database contained in `FILE'."
   (with-temp-buffer
     (let* ((annotations-file file)
            (attributes    (file-attributes annotations-file)))
@@ -1612,7 +1621,7 @@ annotation."
       (annotate--deserialize-database-file annotate-file)))
 
 (defun annotate-dump-annotation-data (data &optional save-empty-db)
-  "Save `data' into annotation file."
+  "Save `DATA' into annotation file."
   (cond
    ((or save-empty-db
         data)
@@ -1659,9 +1668,9 @@ annotation."
                                       record-filename
                                       annotation-beginning
                                       annotation-ending)
-  "Remove from database `db-records' the annotation identified by
-the triplets `record-filename', `annotation-beginning' and
- `annotation-ending'; if such annotation does exists."
+  "Remove from database `DB-RECORDS' the annotation identified by
+the triplets `RECORD-FILENAME', `ANNOTATION-BEGINNING' and
+ `ANNOTATION-ENDING'; if such annotation does exists."
   (with-matching-annotation-fns
    (record-filename
     annotation-beginning
@@ -1684,9 +1693,9 @@ the triplets `record-filename', `annotation-beginning' and
                                        annotation-beginning
                                        annotation-ending
                                        replacing-text)
-  "Replace the text of annotation from database `db-records'
-identified by the triplets `record-filename',
- `annotation-beginning' and `annotation-ending'; if such
+  "Replace the text of annotation from database `DB-RECORDS'
+identified by the triplets `RECORD-FILENAME',
+ `ANNOTATION-BEGINNING' and `ANNOTATION-ENDING'; if such
  annotation does exists."
   (with-matching-annotation-fns
    (record-filename
@@ -1715,7 +1724,7 @@ identified by the triplets `record-filename',
        db-records))))
 
 (defun annotate-db-annotations-starts-before-p (a b)
-  "Non nil if  annotation `a' starts before `b'.
+  "Non nil if  annotation `A' starts before `B'.
 
 In this context annotation means annotation loaded from local
 database not the annotation shown in the buffer (therefore these
@@ -1743,34 +1752,34 @@ functions)."
       (set-buffer-modified-p modifiedp))))
 
 (defun annotate-string-empty-p (a)
-  "Is the arg an empty string or null?"
+  "Is the arg `A' an empty string or null?"
   (or (null a)
       (string= "" a)))
 
 (defun annotate-annotation-prop-get (annotation property)
-  "Get  property  `property'  from  annotation  `annotation'.  If
-`annotation' does not pass `annotationp' returns nil."
+  "Get property `PROPERTY' from annotation `ANNOTATION'. If
+`ANNOTATION' does not pass `annotationp' returns nil."
   (annotate-ensure-annotation (annotation)
     (overlay-get annotation property)))
 
 (defun annotate-annotation-get-chain-position (annotation)
-  "Get property's value that  define position of this annotation
+  "Get property's value that define position of this annotation
 in a chain of annotations"
   (annotate-annotation-prop-get annotation annotate-prop-chain-position))
 
 (defun annotate-annotation-chain-position (annotation pos)
-  "Set property's value that  define position of this annotation
+  "Set property's value that define position of this annotation
 in a chain of annotations."
   (overlay-put annotation annotate-prop-chain-position pos))
 
 (defun annotate-chain-last-p (annotation)
-  "Non nil if this annotation is the last element of a chain of annotations."
+  "Non nil if `ANNOTATION' is the last element of a chain of annotations."
   (let ((value (annotate-annotation-get-chain-position annotation)))
     (and value
          (cl-equalp value annotate-prop-chain-pos-marker-last))))
 
 (defun annotate-chain-first-p (annotation)
-  "Non nil if  this annotation is the first element,  or the only
+  "Non nil if `ANNOTATION' is the first element, or the only
 of a chain of annotations."
   (let* ((chain-pos           (annotate-annotation-get-chain-position annotation))
          (annotation-start    (overlay-start annotation))
@@ -1785,7 +1794,7 @@ of a chain of annotations."
                     annotate-prop-chain-pos-marker-last))))))
 
 (defun annotate-chain-first (annotation)
-  "Find first element of the chain where `annotation' belongs."
+  "Find first element of the chain where `ANNOTATION' belongs."
   (cond
    ((null annotation)
     nil)
@@ -1797,7 +1806,7 @@ of a chain of annotations."
       (annotate-chain-first previous-annotation)))))
 
 (defun annotate-chain-last (annotation)
-  "Find last element of the chain where `annotation' belongs."
+  "Find last element of the chain where `ANNOTATION' belongs."
   (cond
    ((null annotation)
     nil)
@@ -1809,35 +1818,35 @@ of a chain of annotations."
       (annotate-chain-last next-annotation)))))
 
 (defun annotate-chain-first-at (pos)
-  "Find first element of the chain of annotation that overlap point `pos'."
+  "Find first element of the chain of annotation that overlap point `POS'."
   (let ((annotation (annotate-annotation-at pos)))
     (annotate-ensure-annotation (annotation)
       (annotate-chain-first annotation))))
 
 (defun annotate-chain-last-at (pos)
-  "Find last element of the chain of annotation that overlap point `pos'."
+  "Find last element of the chain of annotation that overlap point `POS'."
   (let ((annotation (annotate-annotation-at pos)))
     (annotate-ensure-annotation (annotation)
       (annotate-chain-last annotation))))
 
 (defun annotate-chain-at (pos)
-  "Find the chain of overlays where point `pos' belongs."
+  "Find the chain of overlays where point `POS' belongs."
   (let ((annotation (annotate-annotation-at pos)))
     (annotate-ensure-annotation (annotation)
       (annotate-find-chain annotation))))
 
 (defun annotate-annotation-set-chain-first (annotation)
-  "Set property's value that  define position of this annotation
+  "Set property's value that define position of this annotation
 in a chain of annotations as first."
   (annotate-annotation-chain-position annotation annotate-prop-chain-pos-marker-first))
 
 (defun annotate-annotation-set-chain-last (annotation)
-  "Set property's value that  define position of this annotation
+  "Set property's value that define position of this annotation
 in a chain of annotations as last."
   (annotate-annotation-chain-position annotation annotate-prop-chain-pos-marker-last))
 
 (defun annotate-find-chain (annotation)
-  "Find all annotation that are parts of the chain where `annotation' belongs."
+  "Find all ANNOTATION that are parts of the chain where `ANNOTATION' belongs."
   (annotate-ensure-annotation (annotation)
     (cl-labels ((find-next-annotation (pos)
                  (annotate-annotation-at (next-overlay-change pos))))
@@ -2014,23 +2023,23 @@ The searched interval can be customized setting the variable:
           (font-lock-fontify-block 1))))))
 
 (defun annotate-overlay-put-echo-help (overlay text)
-  "Set the property `help-echo' to `text' in overlay `overlay'."
+  "Set the property `HELP-ECHO' to `TEXT' in overlay `OVERLAY'."
   (overlay-put overlay 'help-echo text))
 
 (defun annotate-overlay-get-echo-help (overlay)
-  "Set the property `help-echo' from overlay `overlay'."
+  "Set the property `HELP-ECHO' from overlay `OVERLAY'."
   (overlay-get overlay 'help-echo))
 
 (defun annotate-overlay-maybe-set-help-echo (overlay annotation-text)
-  "Set the property `help-echo' to `text' in overlay `overlay' if
+  "Set the property `HELP-ECHO' to `TEXT' in overlay `OVERLAY' if
 the annotations should be shown in a popup fashion.
 
-See the variable: `annotate-use-echo-area'."
+See the variable: `ANNOTATE-USE-ECHO-AREA'."
   (when annotate-use-echo-area
     (annotate-overlay-put-echo-help overlay annotation-text)))
 
 (defun annotate--delete-annotation-chain (annotation)
-  "Delete `annotation' from a buffer and the chain it belongs to.
+  "Delete `ANNOTATION' from a buffer and the chain it belongs to.
 
 This function is not part of the public API."
   (annotate-ensure-annotation (annotation)
@@ -2046,7 +2055,7 @@ This function is not part of the public API."
            (delete-overlay single-element)))))))
 
 (defun annotate--delete-annotation-chain-ring (annotation-ring)
-  "Delete overlay of `annotation-ring' from a buffer.
+  "Delete overlay of `ANNOTATION-RING' from a buffer.
 
 A ring is a single element of an annotation chain.
 
@@ -2060,8 +2069,8 @@ This function is not part of the public API."
       (delete-overlay annotation-ring))))
 
 (defun annotate-delete-chain-element (annotation)
-  "Delete a ring (a ring is a single element of an annotation chain.)
-from a chain where `annotation' belong."
+  "Delete a ring (a ring is a single element of an ANNOTATION chain.)
+from a chain where `ANNOTATION' belong."
   (annotate-ensure-annotation (annotation)
     (let* ((chain                   (annotate-find-chain    annotation))
            (first-of-chain-p        (annotate-chain-first-p annotation))
@@ -2079,7 +2088,7 @@ from a chain where `annotation' belong."
             (annotate-annotation-set-chain-last annotation-before))))))))
 
 (defun annotate--cut-left-annotation (annotation)
-  "Trims `annotation' exactly one character from the start."
+  "Trims `ANNOTATION' exactly one character from the start."
   (annotate-ensure-annotation (annotation)
     (let* ((chain                       (annotate-find-chain annotation))
            (first-annotation            (annotate-chain-first annotation))
@@ -2097,7 +2106,7 @@ from a chain where `annotation' belong."
         (move-overlay first-annotation new-starting-pos first-annotation-ending-pos))))))
 
 (defun annotate--cut-right-annotation (annotation &optional refontify-buffer)
-  "Trims `annotation' exactly one character from the end."
+  "Trims `ANNOTATION' exactly one character from the end."
   (annotate-ensure-annotation (annotation)
     (let* ((chain                        (annotate-find-chain annotation))
            (last-annotation              (annotate-chain-last annotation))
@@ -2132,8 +2141,8 @@ This function is not part of the public API."
       (y-or-n-p annotate-confirm-deleting-annotation-prompt)))
 
 (cl-defun annotate-delete-annotation (&optional (point (point)))
-  "Command  to  delete  an  annotation,  `point'  is  the  buffer
-position  where  to  look  for  annotation  (default  the  cursor
+  "Command to delete an annotation, `POINT' is the buffer
+position where to look for annotation (default the cursor
 point)."
   (interactive)
   (when-let ((annotation (annotate-annotation-at point)))
@@ -2177,7 +2186,7 @@ point)."
 
 (defun annotate-annotation-at (pos)
   "Returns the annotations (overlay where (annotationp overlay) -> t)
-at positions pos or nil if no annotations exists at pos.
+at positions `POS' or nil if no annotations exists at pos.
 
 NOTE this assumes that annotations never overlaps so the list of
 all annotations can contains only one element maximum."
@@ -2186,7 +2195,7 @@ all annotations can contains only one element maximum."
     (cl-first all)))
 
 (defun annotate-previous-annotation-ends (pos)
-  "Returns the previous annotation that ends before pos or nil if no annotation
+  "Returns the previous annotation that ends before `POS' or nil if no annotation
 was found.
 NOTE this assumes that annotations never overlaps."
   (cl-labels ((previous-annotation-ends (start)
@@ -2203,12 +2212,12 @@ NOTE this assumes that annotations never overlaps."
         (previous-annotation-ends pos)))))
 
 (defun annotate-previous-annotation (annotation)
- "Returns the annotation before `annotations' or nil if no such
+ "Returns the annotation before `ANNOTATIONS' or nil if no such
 annotation exists."
  (annotate-previous-annotation-ends (overlay-start (annotate-chain-first annotation))))
 
 (defun annotate-next-annotation-starts (pos)
-  "Returns the previous annotation that ends before pos or nil if no annotation
+  "Returns the previous annotation that ends before `POS' or nil if no annotation
 was found.
 NOTE this assumes that annotations never overlaps."
   (cl-labels ((next-annotation-ends (start)
@@ -2225,13 +2234,13 @@ NOTE this assumes that annotations never overlaps."
         (next-annotation-ends pos)))))
 
 (defun annotate-next-annotation (annotation)
- "Returns the annotation after `annotations' or nil if no such
+ "Returns the annotation after `ANNOTATIONS' or nil if no such
 annotation exists."
  (annotate-next-annotation-starts (overlay-end (annotate-chain-last annotation))))
 
 (defun annotate-symbol-strictly-at-point ()
  "Returns non nil if a symbol is at char immediately following
-the point. This is needed as `thing-at-point' family of
+the point. This is needed as `THING-AT-POINT' family of
  functions returns non nil if the thing (a symbol in this case)
  is around the point, according to the documentation."
   (cl-labels ((after-point ()
@@ -2286,8 +2295,8 @@ the point. This is needed as `thing-at-point' family of
 
 (defun annotate-make-annotation (beginning ending annotation annotated-text)
  "Make an annotation record that represent an annotation
-starting at `beginning', terminate at `ending' with annotation
-content `annotation' and annotated text `annotated-text'."
+starting at `BEGINNING', terminate at `ENDING' with annotation
+content `ANNOTATION' and annotated text `ANNOTATED-TEXT'."
   (list beginning ending annotation annotated-text))
 
 (defun annotate-all-annotations ()
@@ -2403,7 +2412,7 @@ sophisticated way than plain text."
           (goto-char (button-get button 'go-to))))))))
 
 (defun annotate-update-visited-buffer-maybe (filename)
-"Reload annotation mode in  the buffer visiting `filename', if such buffer exists."
+"Reload annotation mode in the buffer visiting `FILENAME', if such buffer exists."
   (let ((visited-buffer (find-buffer-visiting filename)))
     (when visited-buffer ;; a buffer is visiting the file
       (with-current-buffer visited-buffer
@@ -2455,11 +2464,11 @@ pressed."
         (annotate-show-annotation-summary query nil nil)))))
 
 (cl-defun annotate-wrap-text (text &optional (wrapper "\""))
-  "Wrap string `text' with string `wrapper'."
+  "Wrap string `TEXT' with string `WRAPPER'."
   (concat wrapper text wrapper))
 
 (cl-defun annotate-unwrap-text (text &optional (wrapper "\"") (left-side t))
-  "Remove `wrapper' at both ends from `text'."
+  "Remove `WRAPPER' at both ends from `TEXT'."
   (let ((results        text)
         (wrapper-length (length wrapper)))
     (when (>= (length text)
@@ -2480,7 +2489,7 @@ pressed."
 (cl-defun annotate-show-annotation-summary (&optional arg-query cut-above-point (save-annotations t))
  "Show a summary of all the annotations in a temp buffer, the
 results can be filtered with a simple query language: see
-`annotate-summary-filter-db'."
+`ANNOTATE-SUMMARY-FILTER-DB'."
   (interactive)
   (cl-labels ((ellipsize (text prefix-string)
                          (let* ((prefix-length   (string-width prefix-string))
@@ -2654,7 +2663,7 @@ results can be filtered with a simple query language: see
 summary window is shown.")
 
 (defvar annotate-summary-query-current-token nil
-  "Holds the next token of the query in `annotate-summary-query'.")
+  "Holds the next token of the query in `ANNOTATE-SUMMARY-QUERY'.")
 
 (defun annotate-summary-query-lexer-symbol (res)
   "The symbol identifying the token (e.g. 'and)."
@@ -2666,20 +2675,20 @@ summary window is shown.")
 
 (defun annotate-summary-query-lexer-start (res)
  "The starting point of the substring of
-`annotate-summary-query' for this token."
+`ANNOTATE-SUMMARY-QUERY' for this token."
   (elt res 2))
 
 (defun annotate-summary-query-lexer-end (res)
   "The ending point of the substring of
-`annotate-summary-query' for this token."
+`ANNOTATE-SUMMARY-QUERY' for this token."
 
   (elt res 3))
 
 (cl-defun annotate-summary-lexer (&optional (look-ahead-p nil))
-  "The lexer for `annotate-summary-query'.
+  "The lexer for `ANNOTATE-SUMMARY-QUERY'.
 
 This function, when called, will produce the next token from
-`annotate-summary-query'; a token is a substring with a well
+`ANNOTATE-SUMMARY-QUERY'; a token is a substring with a well
 defined meaning according to our grammar.
 
 For example this string:
@@ -2704,13 +2713,13 @@ The format is a proper list where:
    - 'and , 'or , 'not    = logical operator
    - 'open-par, close-par = open and closing parenthesis respectively
 - second element
-  the  value (the actual substring for this token)
+  the value (the actual substring for this token)
 
 - third and fourth element (currently unused)
  the substring limits for this token (as returned by
- `match-beginning' and `match-end'
+ `MATCH-BEGINNING' and `MATCH-END'
 
-Note that spaces are ignored and all the tokens except `re' must
+Note that spaces are ignored and all the tokens except `RE' must
 not be prefixed with a backslash to match. So, for example not ->
 will match the token type 'not but \not will match the token 're;
 this way we can 'protect' a regexp that contains reserved
@@ -2719,14 +2728,14 @@ keyword (aka escaping).
 The special value :no-more-token is returned after the whole
 input is processed.
 
-Calling this function with value of `look-ahead-p' nil will `consume' the token from
-`annotate-summary-query' (i.e. that string is modified)
+Calling this function with value of `LOOK-AHEAD-P' nil will `CONSUME' the token from
+`ANNOTATE-SUMMARY-QUERY' (i.e. that string is modified)
 
 example:
 'a and b' -> 'and b', '(re \"a\" 0 1)
 
-when `look-ahead-p' is not nil the token is recognized but not cut away from
-`annotate-summary-query'
+when `LOOK-AHEAD-P' is not nil the token is recognized but not cut away from
+`ANNOTATE-SUMMARY-QUERY'
 
 example:
 'a and b' -> 'a and b', '(re \"a\" 0 1)"
@@ -2773,12 +2782,12 @@ example:
           res)))))
 
 (defun annotate-summary-query-parse-end-input-p (token)
- "Non nil if there are no more tokens in `annotate-summary-query'."
+  "Non nil if there are no more tokens in `ANNOTATE-SUMMARY-QUERY'."
   (eq token :no-more-tokens))
 
 (defun annotate-summary-token-symbol-match (looking-symbol token)
- "Return non nil if `looking-symbol' is 'eq' to the symbol
-component of `token'."
+  "Return non nil if `LOOKING-SYMBOL' is 'eq' to the symbol
+component of `TOKEN'."
   (eq looking-symbol
       (annotate-summary-query-lexer-symbol token)))
 
@@ -2809,8 +2818,8 @@ Arguments:
 
 - filter-fn is a function that accept two parameters: the regular
   expression to match (a token of type 're, see the lexer
-  `annotate-summary-lexer' and a single annotation record (see
-  `annotate-load-annotations').
+  `ANNOTATE-SUMMARY-LEXER' and a single annotation record (see
+  `ANNOTATE-LOAD-ANNOTATIONS').
 
   This function will reject (its value is nil) records that do
   not match the annotation.
@@ -2969,7 +2978,7 @@ NOT        := 'not'
 DELIMITER  := \" ; ASCII 34 (dec) 22 (hex)
 
 Note: this function returns the annotation part of the record, see
-`annotate-load-annotations'."
+`ANNOTATE-LOAD-ANNOTATIONS'."
   (lambda (annotation query file-filter-fn note-filter-fn)
     (let ((annotate-summary-query query) ; save the query
           (query-notes-only       nil)) ; the query for just the notes
@@ -3060,7 +3069,7 @@ Note: this function returns the annotation part of the record, see
 (defun annotate-summary-filter-db (annotations-dump query remove-annotations-cutoff-point)
   "Filter an annotation database with a query.
 
-The argument `query' is a string that respect a simple syntax:
+The argument `QUERY' is a string that respect a simple syntax:
 
 - [file-mask] [(and | or) [not] regex-note [(and | or) [not] regexp-note ...]]
 
@@ -3074,27 +3083,27 @@ where
 Examples:
 
 - lisp$ and TODO
- matches the text `TODO' in all lisp files
+ matches the text 'TODO' in all lisp files
 
 Parenthesis can be used for the expression related to the text of
 annotation, like this:
 
 - lisp$ and (TODO or important)
- the same as above but checks also for string `important'
+ the same as above but checks also for string 'important'
 
 - /home/foo/
  matches all the annotation that refers to file in the directory
- `/home/foo'
+ '/home/foo'
 
 - /home/foo/ and not minor
  matches all the annotation that refers to file in the directory
- `/home/foo' and that not contains the text `minor'.
+ '/home/foo' and that not contains the text 'minor'.
 
 - .* and \"not\"
  the \" can be used to escape strings
 
 If you want to remove from summary the annotations that appears
-before a position in buffer set `remove-annotations-cutoff-point' to said
+before a position in buffer set 'remove-annotations-cutoff-point' to said
 position.
 
 The annotations in each record are sorted by starting point in ascending order."
@@ -3167,11 +3176,11 @@ annotate minor mode active."
 refresh all the annotations contained in each buffer where
 annotate minor mode is active.
 
-if `database-file-path' is nil (the default) a prompt asking for
+if `DATABASE-FILE-PATH' is nil (the default) a prompt asking for
 a file containing database is presented to the user, otherwise
 the value of this argument is used.
 
-If `force-load' is non nil no prompt asking user for confirmation
+If `FORCE-LOAD' is non nil no prompt asking user for confirmation
 about loading the new file is shown.
 
 Note: this function will attempt to load (compile and
@@ -3208,6 +3217,9 @@ code, always use load files from trusted sources!"
 ;;; merging database
 
 (defun annotate--merge-interval (a b)
+"Merge two annotation interval `A' and `B'.
+
+The new interval is expanded so that includes `A' and `B'."
   (let ((new-left-limit  (min (annotate--interval-left-limit a)
                               (annotate--interval-left-limit b)))
         (new-right-limit (max (annotate--interval-right-limit a)
@@ -3216,6 +3228,7 @@ code, always use load files from trusted sources!"
                              new-right-limit)))
 
 (defun annotate--db-annotations-overlaps-p (annotation-a annotation-b)
+"Returns non nil if `ANNOTATION-A' and `ANNOTATION-B' overlaps."
   (let ((interval-a (annotate-annotation-interval annotation-a))
         (interval-b (annotate-annotation-interval annotation-b)))
     (not (or (< (annotate--interval-right-limit interval-b)
@@ -3224,6 +3237,7 @@ code, always use load files from trusted sources!"
                 (annotate--interval-right-limit interval-a))))))
 
 (defun annotate--db-merge-annotations (host guest)
+"Merge annotation `GUEST' into annotation `HOST' using `ANNOTATE--MERGE-INTERVAL'."
   (when (annotate--db-annotations-overlaps-p host guest)
     (let* ((interval-host       (annotate-annotation-interval host))
            (interval-guest      (annotate-annotation-interval guest))
@@ -3238,6 +3252,8 @@ code, always use load files from trusted sources!"
       (annotate-make-annotation left right new-annotation-text new-annotated-text))))
 
 (defun annotate--db-remove-overlap-annotations (annotations &optional accum)
+"Recursively merges overlapping annotations in `ANNOTATIONS'
+using `ANNOTATE--DB-MERGE-ANNOTATIONS'."
   (if (= (length annotations) 1)
       (push (cl-first annotations) accum)
     (let* ((probe            (cl-first annotations))
@@ -3258,6 +3274,7 @@ code, always use load files from trusted sources!"
         (annotate--db-remove-overlap-annotations rest-annotations (push probe accum))))))
 
 (defun annotate--db-merge-databases (db-1 db-2 &optional accum)
+"Recursively merge database `DB-1' and `DB-2'."
   (cl-labels ((find-same-file-record (record annotations-db)
                 (let ((record-filename (annotate-filename-from-dump record)))
                   (cl-find-if (lambda (a)
@@ -3290,6 +3307,8 @@ code, always use load files from trusted sources!"
                                         (push first-record accum)))))))
 
 (defun annotate-import-annotations ()
+"Prompt user for an annotation database file and merge it int
+their personal database."
   (interactive)
   (cl-flet ((deserialize-db (file)
              (ignore-errors (annotate--deserialize-database-file file)))
