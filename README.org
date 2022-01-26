@@ -87,7 +87,7 @@ can take advantage of its packages generated files management.
 
     If the line contains a single annotation that cover all the line
     annotating the newline Will ask to edit the annotation. If
-    `annotate-endline-annotate-whole-line' is nil annotating a newline
+    ~annotate-endline-annotate-whole-line~ is nil annotating a newline
     will signal an error.
 
 **** related customizable variable
@@ -153,6 +153,33 @@ as comments into the current buffer, like this:
      - ~annotate-diff-export-options~
      - ~annotate-integrate-highlight~
      - ~annotate-fallback-comment~
+
+
+* Importing
+
+An  annotation  database  file  can  be  imported  using  the  command
+~annotate-import-annotations~.
+
+When importing, overlapping annotations will be merged in a single
+annotation with the new annotated text that maximizes the portion of
+text annotated, e.g.
+
+#+BEGIN_SRC
+The quick brown fox ← text
+ ^^^^^^^^           ← first annotation
+      ********      ← second annotation
+ +++++++++++++      ← merged annotation
+#+END_SRC
+
+The text of the merged annotation is the concatenated text of the two
+annotations.
+
+Note that importing a database will modify permanently the file bound
+to the variable ~annotate-file~. If unsure of the results, backup
+that file before importing.
+
+**** related customizable variable
+     - ~annotate-database-confirm-import~.
 
 * Alternative visualization of annotations
 
