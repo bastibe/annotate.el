@@ -1,3 +1,26 @@
+2022-01-26 cage
+
+	* Changelog,
+	* NEWS.org,
+        * annotate.el:
+
+	- This version added the following procedures:
+
+	- annotate--merge-interval
+	- annotate--db-annotations-overlaps-p
+	- annotate--db-merge-annotations
+	- annotate--db-remove-overlap-annotations
+	- annotate--db-merge-databases
+
+	to merge two annotation database (in memory)
+
+	and a command:
+
+	- annotate-import-annotations
+
+	that allow users  to import an annotation file  (sexp format) into
+	their database.
+
 2021-09-30 cage
 
         * NEWS.org,
