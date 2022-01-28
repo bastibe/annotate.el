@@ -275,3 +275,7 @@
   would  not happens  on  the  database (the  database  entry for  the
   annotation to  be deleted would not  be removed from the  file) and,
   when visiting the file, the annotation would be shown again.
+
+- 2022-01-26 v1.5.0 cage ::
+
+  This version add a new command to import a database file.
