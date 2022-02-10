@@ -1381,16 +1381,15 @@ essentially what you get from:
   (list left-limit right-limit))
 
 (defun annotate-annotation-interval (annotation)
-  ;; FIXME: Should "interval i the" below be "interval in the"?
   "Return the limits where ANNOTATION is applied.
 The limit is a list of two numbers (LEFT RIGHT) representing of the portion
 of the buffer where this annotation is applied.
 Note that this function returns the character interval
 yyyyyyyy ggg
-  ^^^^^^^  ← Annotation interval i the database (extends for one more than the last character)
+  ^^^^^^^  ← Annotation interval in the database (extends for one more than the last character)
   |----|   ← The interval that this function returns.
 
-In other terms the interval i the database is a closed interval while the interval that
+In other terms the interval in the database is a closed interval while the interval that
 this function return is closed on the left and open on the right side."
   (annotate--make-interval (annotate-beginning-of-annotation annotation)
                            (1- (annotate-ending-of-annotation annotation))))
