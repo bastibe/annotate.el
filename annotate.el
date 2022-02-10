@@ -1610,11 +1610,9 @@ annotation."
              (actual-data (mapcar %abbreviate-filename data)))
         (prin1 actual-data (current-buffer)))))
    ((file-exists-p annotate-file)
-    (let* ((confirm-message    "Delete annotations database file %S? [y/N] ")
+    (let* ((confirm-message    "Delete annotations database file %S? ")
            (delete-confirmed-p (or (not annotate-database-confirm-deletion)
-                                   (string= (read-from-minibuffer (format confirm-message
-                                                                           annotate-file))
-                                            "y"))))
+                                   (y-or-n-p (format confirm-message annotate-file)))))
       (if delete-confirmed-p
           (condition-case err
               (delete-file annotate-file t)
@@ -3166,12 +3164,9 @@ code, always use load files from trusted sources!"
                     (read-file-name "Database file location: "))))
     (when (not (annotate-string-empty-p new-db))
       (if (file-exists-p new-db)
-          (let* ((confirm-message "Loading elisp file from untrusted source may results in severe security problems. Load %S? [y/N] ")
-                 (load-file-confirmed (if force-load
-                                          t
-                                        (string= (read-from-minibuffer (format confirm-message
-                                                                               new-db))
-                                                 "y"))))
+          (let* ((confirm-message "Loading elisp file from untrusted source may results in severe security problems. Load %S?")
+                 (load-file-confirmed (or force-load
+                                          (y-or-n-p (format confirm-message new-db)))))
             (if load-file-confirmed
                 (progn
                   (setf annotate-file new-db)
@@ -3294,14 +3289,9 @@ their personal database."
                                    (file-exists-p filename)))
                                annotations)))
   (let* ((confirm-message    (concat "Importing databases from untrusted source may cause severe "
-                                     "security issues, continue? [y/N] "))
+                                     "security issues, continue?"))
          (import-confirmed-p (or (not annotate-database-confirm-import)
-                                 ;; FIXME: There's no `%s' in `confirm-message'
-                                 ;; to make use of the `annotate-file' arg?
-                                 ;; FIXME: Use `y-or-n-p' or `yes-or-no-p'!
-                                 (string= (read-string (format confirm-message
-                                                                        annotate-file))
-                                          "y"))))
+                                 (y-or-n-p confirm-message))))
     (when import-confirmed-p
       (let* ((imported-db-name (read-file-name "Choose the database to import: "))
              (imported-db      (remove-non-existing-files (deserialize-db imported-db-name)))
