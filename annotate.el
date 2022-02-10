@@ -329,21 +329,6 @@ See 'annotate-blacklist-major-mode'."
   "Calculate an hash for the argument `OBJECT'."
   (secure-hash 'md5 object))
 
-(cl-defmacro annotate-with-inhibit-modification-hooks (&rest body)
-  ;; FIXME: Use `with-silent-modifications' instead?
-  "Wrap `BODY' in a block with modification-hooks inhibited."
-  `(let ((inhibit-modification-hooks t))
-     ,@body))
-
-(cl-defmacro annotate-with-restore-modified-bit (&rest body)
-  "Save the value of `BUFFER-MODIFIED-P' before `BODY' is executed
-and restore the saved value just after the end of `BODY'."
-  ;; FIXME: Use `with-silent-modifications' instead?
-  (let ((modifiedp (gensym)))
-    `(let ((,modifiedp (buffer-modified-p)))
-       ,@body
-       (restore-buffer-modified-p ,modifiedp))))
-
 (defun annotate-end-of-line-pos ()
  "Get the position of the end of line and rewind the point's
 position (so that it is unchanged after this function is called)."
@@ -418,7 +403,7 @@ it is called any time the buffer content is changed (so, for
 example, text is added or deleted). In particular, it will
 rearrange the overlays bounds when an annotated text is
 modified (for example a newline is inserted)."
-  (annotate-with-inhibit-modification-hooks
+  (with-silent-modifications
    (save-excursion
      (let* ((bol (annotate-beginning-of-line-pos))
             (eol (annotate-end-of-line-pos))
@@ -1229,22 +1214,22 @@ a        a**"
 surrounded by `BEGIN' and `END'."
   (when (and (> (buffer-size) 0)
              (not (buffer-narrowed-p)))
-    (annotate-with-inhibit-modification-hooks
-     (annotate-with-disable-read-only
-      ;; copy undo list
-      (let ((saved-undo-list (copy-tree buffer-undo-list t)))
-        ;; inhibit property removal to the undo list (and empty it too)
-        (buffer-disable-undo)
-        (save-excursion
-          (goto-char end)
-          ;; go to the EOL where the
-          ;; annotated newline used to be
-          (end-of-line)
-          ;; strip dangling display property
-          (remove-text-properties (point) (1+ (point)) '(display nil)))
-        ;; restore undo list
-        (setf buffer-undo-list saved-undo-list)
-        (buffer-enable-undo))))))
+    (with-silent-modifications
+      (annotate-with-disable-read-only
+       ;; copy undo list
+       (let ((saved-undo-list (copy-tree buffer-undo-list t)))
+         ;; inhibit property removal to the undo list (and empty it too)
+         (buffer-disable-undo)
+         (save-excursion
+           (goto-char end)
+           ;; go to the EOL where the
+           ;; annotated newline used to be
+           (end-of-line)
+           ;; strip dangling display property
+           (remove-text-properties (point) (1+ (point)) '(display nil)))
+         ;; restore undo list
+         (setf buffer-undo-list saved-undo-list)
+         (buffer-enable-undo))))))
 
 (defun annotate-annotations-overlay-in-range (from-position to-position)
   "Return the annotations overlays that are enclosed in the range
@@ -2103,7 +2088,7 @@ status of the buffer before deletion occured.
 
 This function is not part of the public API."
   (annotate-ensure-annotation (annotation)
-    (annotate-with-restore-modified-bit
+    (with-silent-modifications
      (annotate--delete-annotation-chain annotation))))
 
 (defun annotate--confirm-annotation-delete ()
@@ -3172,12 +3157,9 @@ code, always use load files from trusted sources!"
                   (setf annotate-file new-db)
                   (cl-loop for annotated-buffer in (annotate-buffers-annotate-mode) do
                            (with-current-buffer annotated-buffer
-                             (let ((buffer-was-modified-p (buffer-modified-p annotated-buffer)))
-                               (annotate-with-inhibit-modification-hooks
-                                (annotate-mode -1)
-                                (annotate-mode  1)
-                                (when (not buffer-was-modified-p)
-                                  (set-buffer-modified-p nil)))))))
+                             (with-silent-modifications
+                               (annotate-mode -1)
+                               (annotate-mode  1)))))
               (when annotate-use-messages
                 (message "Load aborted by the user"))))
         (signal 'annotate-db-file-not-found (list new-db))))))
