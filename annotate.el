@@ -558,12 +558,13 @@ specified by `FROM' and `TO'."
                      (annotate-empty-annotation-text-error
                       (user-error "Annotation text is empty"))))))
               (cut-right (region-beg region-stop &optional delete-enclosed)
-                ;; This function will trim on the right one or more
-                ;; existing chains of overlays that compose an
-                ;; annotation (i.e. the overlays applied on the
-                ;; annotated text). After this function is called the
-                ;; text staring from `region-beg' end ending on
-                ;; `region-stop' will be cleared of all annotations.
+                ;; This function  will trim on  the right one  or more
+                ;; existing  chains   of  overlays  that   compose  an
+                ;; annotation  (i.e.  the   overlays  applied  on  the
+                ;; annotated text). After this  function is called the
+                ;; text  staring  from   `region-beg'  and  ending  on
+                ;; `region-stop' will be cleared of all annotations if
+                ;; `delete-enclosed' is non null.
                 (let* ((last-of-chain-to-cut  (annotate-chain-last-at region-beg))
                        (first-of-chain-to-cut (annotate-chain-first-at region-beg))
                        (chain-start           (overlay-start first-of-chain-to-cut))
@@ -579,12 +580,14 @@ specified by `FROM' and `TO'."
                   (when delete-enclosed
                     (annotate-delete-chains-in-region chain-end region-stop))))
               (cut-left (region-stop delete-enclosed)
-                ;; This function will trim on the left one or more
-                ;; existing chains of overlays that compose an
-                ;; annotation (i.e. the overlays applied on the
-                ;; annotated text). After this function is called the
-                ;; text staring from `region-beg' end ending on
-                ;; `region-stop' will be cleared of all annotations.
+                ;; This function  will trim  on the  left one  or more
+                ;; existing  chains   of  overlays  that   compose  an
+                ;; annotation  (i.e.   the  overlays  applied  on  the
+                ;; annotated text). After this  function is called the
+                ;; text starting from the last  char of the last chain
+                ;; element   of   the   annotation   and   ending   on
+                ;; `region-stop' will be cleared of all annotations if
+                ;; `delete-enclosed' is non null.
                 (let* ((last-of-chain-to-cut  (annotate-chain-last-at region-stop))
                        (first-of-chain-to-cut (annotate-chain-first-at region-stop))
                        (chain-start           (overlay-start first-of-chain-to-cut))
