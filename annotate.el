@@ -423,9 +423,8 @@ modified (for example a newline is inserted)."
              (when (<= a start-overlay)
                (let ((chain (cl-remove overlay (annotate-find-chain overlay))))
                  (delete-overlay overlay)
-                 (annotate--remap-chain-pos chain)
-                 ;; FIXME: Why?  And especially, why the whole buffer?
-                 (font-lock-flush))))))))))
+                 (annotate--remap-chain-pos chain))))))))))
+;;                 (font-lock-flush))))))))))
 
 (defun annotate-info-select-fn ()
   "The function to be called when an info buffer is updated."
