@@ -2,6 +2,8 @@
 #+AUTHOR:
 #+TITLE: Annotate.el
 
+[[https://elpa.nongnu.org/nongnu/annotate.svg][https://elpa.nongnu.org/nongnu/annotate.svg]]
+
 [[http://melpa.org/#/annotate][http://melpa.org/packages/annotate-badge.svg]]
 
 [[http://stable.melpa.org/#/annotate][http://stable.melpa.org/packages/annotate-badge.svg]]
