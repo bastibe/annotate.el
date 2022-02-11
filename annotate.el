@@ -490,9 +490,8 @@ that belong to some annotated text?"
   (let ((annotation (annotate-annotation-at pos)))
     (if annotation
         t
-      ;; there is a chance that a point do not belong text rendered as
-      ;; annotated but belong to a chain anyway
-      ;; example:
+      ;; there is  a chance  that a  point do not  belong to  the text
+      ;; rendered as annotated but belong to a chain anyway example:
       ;;
       ;; legend:
       ;; a = annotated text
