@@ -1,213 +1,55 @@
-- 2015-06-12 V0.1 Bastian Bechtold ::
-  First working release.
+- 2022-01-26 v1.5.0 cage ::
 
-- 2015-06-12 V0.1.1 Bastian Bechtold ::
-  Improve documentation and add license.
+  This version add a new command to import a database file.
 
-- 2015-06-12 V0.1.2 Bastian Bechtold ::
-  Fix typo and version error.
+- 2021-09-30 v1.4.3 cage ::
 
-- 2015-06-15 V0.1.3 Bastian Bechtold ::
-  Improve README and auto-remove empty annotations created by earlier bug.
+  This  is a bugfix release.
 
-- 2015-06-15 V0.1.4 Bastian Bechtold ::
-  Minor bug fixes.
+  The  program  would  keep  asking to  confirmation  for  deleting  a
+  database  file even  if such  file does  not actually  exists on  the
+  file system.
 
-- 2015-06-15 V0.1.5 Bastian Bechtold ::
-  Annotations now work on long lines.
+  When the  only action on  a buffer  was deleting an  annotation, the
+  buffer was  not marked as  modified; as a consequence,  the deletion
+  would  not happens  on  the  database (the  database  entry for  the
+  annotation to  be deleted would not  be removed from the  file) and,
+  when visiting the file, the annotation would be shown again.
 
-- 2015-06-19 V0.2.0 Bastian Bechtold ::
-  Annotations can be exported as unified diff files.
-  Several smaller bug fixes.
+- 2021-09-24 v1.4.2 cage ::
 
-- 2015-06-19 V0.2.1 Bastian Bechtold ::
-  Now with fewer compile warnings (turns out, not really).
+  This  version added  a new  command to  delete the  annotation under
+  cursor.
 
-- 2015-06-19 V0.2.2 Bastian Bechtold ::
-  Now with more compile warnings (0.2.1 didn't work).
+- 2021-05-27 V1.3.1 cage ::
 
-- 2015-07-02 V0.2.3 Bastian Bechtold ::
-  Can now disable minibuffer messages.
+  Bugfix release:
 
-- 2015-09-17 V0.2.4 Bastian Bechtold ::
-  Load and Clear don't mark buffer as modified any more.
+  - The  button "[replace]"  to edit  an annotation  from the  summary
+    window was not working at all;
 
-- 2015-09-21 V0.3.0 Bastian Bechtold ::
-  Add key bindings for jumping to next/previous annotation.
+  - In certain  cases the  summary window  was rendering  wrong text's
+    fragment instead of the text of the annotation.
 
-- 2015-09-22 V0.3.1 Bastian Bechtold ::
-  Change key bindings for jumping as to conform with Emacs' standards.
+  Many thanks  to "glvno"  for reporting  the aforementioned  bugs and
+  testing the patches!
 
-  Didn't change  the main key binding  though, because I don't  know a
-  good alternative.
+- 2021-05-07 V1.3.0 cage ::
 
-- 2015-09-23 V0.4.0 Bastian Bechtold ::
-  Completely reworked the display engine for annotations. You can now
- have several annotations per line, and annotations should not
- move any more when editing the line they are on. Finally,
- annotations can now span several lines.
+  This version  added a procedure to  prevent an empty database  to be
+  saved on the user's disk.
 
-- 2015-10-06 V0.4.3 Bastian Bechtold ::
-  Bugfixes. No more hidden newlines, no more annotations in undo-list,
-  no more error messages with annotations at bol, mark deactivated
-  after creating annotation, annotations auto-reflow on frame size
-  change.
+  Moreover if an  empty annotations database is going  to overwrite an
+  existing stale database file on disk the file is deleted instead.
 
-- 2015-10-06 V0.4.4 Bastian Bechtold ::
-  Added a new export system. Let's see if it turns out to be more
-  useful than the previous one.
+  Before  deleting the  old database  file a  confirmation message  is
+  printed    on    the    minibuffer   if    the    custom    variable
+  'annotate-database-confirm-deletion' is non nil (default: t).
 
-- 2016-08-25 V0.4.5 Bastian Bechtold ::
-  Bugfix release for unicode annotations and multiline annotations.
+- 2021-05-05 V1.2.1 Bastian Bechtold, cage ::
 
-- 2016-09-07 V0.4.6 Bastian Bechtold ::
-  Bugfix release for annotations ending on an empty line.
-
-- 2016-10-06 V0.4.7 Bastian Bechtold ::
-  Bugfix release for buffers without a file name.
-
-- 2019-12-09 V0.5.0 Bastian Bechtold, cage ::
-  - prevented crash when a window (containing annotations) is resized;
-  - prevented loss of undo tree when annotations is modified;
-  - positioning of annotation is customizable;
-  - added a summary window to display annotations; the summary results
-    can be filtered by a simple query language. Deleting or
-    modifying of annotation text is possible;
-  - info files can be annotated (thanks to randomwangran);
-  - annotated text on the same lines are highlighted with two
-    different, alternating, colors;
-  - annotate try to check file modifications using checksum and warns
-    user if the file has been modified when annotate minor mode was
-    not loaded;
-  - a simple heuristic is used to search for annotated text when
-    annotate mode is loaded.
-
-- 2020-01-22 V0.5.1 Bastian Bechtold, cage ::
-  - fixed bug that prevented correct fontifications for major modes
-    that puts overlays on the buffer's text (e.g. SLIME).
-
-- 2020-02-10 V0.5.2 Bastian Bechtold, cage ::
-
-  - fixed bugs that makes some annotations overlaps;
-  - fixed some bugs in fontifications of multiline annotation;
-  - when the only user interactions, before saving, with a visited file was
-    the call of 'annotate-clear-annotations' the annotations
-    will shows again at reload, this should be fixed now.
-
-- 2020-03-06 V0.5.3 Bastian Bechtold, cage ::
-  - Partially fixed bug that prevented annotation of buffer when org-mode was used;
-  - when an user delete an annotation for a file using a button from
-    summary window force refresh of a buffer that is visiting said
-    file, if exists, to reflect the changes;
-  - fixed flowings of annotations when window's width is changed.
-
-- 2020-03-06 V0.6.0 Bastian Bechtold, cage ::
-  Fixed bugs of multiline annotations, diff exports and integration.
-
-- 2020-03-16 V0.6.1 Bastian Bechtold, cage ::
-  Fixed annotation picking in 'annotate-annotate'.
-
-- 2020-03-25 V0.6.2 Bastian Bechtold, cage ::
-  Fixed bug that prevent annotation of text with complex faces definition.
-  Thanks to the person who filed the issue
-  (see: https://github.com/bastibe/annotate.el/pull/63)
-
-- 2020-05-18 V0.7.0 Bastian Bechtold, cage ::
-  Increased version to 0.7.0 for stable release
-
-- 2020-06-09 V0.8.0 Bastian Bechtold, cage ::
-  The database of annotation can be changed using the command ~annotate-switch-db~.
-
-- 2020-06-26 V0.8.1 Bastian Bechtold, cage ::
-  Added file argument to ~annotate-switch-db~.
-
-- 2020-07-01 V0.8.2 Bastian Bechtold, cage ::
-  Added explicit dependency on 'info' and removed a duplicated operation.
-
-- 2020-08-11 V0.8.3 Bastian Bechtold, cage ::
-  Some function now signal errors where appropriate.
-
-- 2020-09-29 V0.9.0 Bastian Bechtold, cage ::
-  Added two new styles to render the annotation: using "pop-up" style
-  or via a specialized summary window.
-
-- 2020-11-20 V0.9.2 Bastian Bechtold, cage ::
-
-  This version fix a regression and  some more bug that could breaks a
-  multiline  annotation  in  ways  that makes  the  annotation  system
-  inconsistent  and  renders the  annotated  text  in wrong  way  (for
-  details see the Changelog).
-
-  The 'annotate-file' can be now  safely declared buffer-local so that
-  multiple databases of annotations can be used on a per-buffer basis.
-
-  For practical applications see:
-
-  https://github.com/bastibe/annotate.el/issues/68
-
-  Many thanks to gopar for spotting  this elusive bug and help testing
-  the patch! :)
-
-- 2020-12-16 V1.0.0 Bastian Bechtold, cage ::
-
-  This version  allow overwrite of notes.  That is, user can  place an
-  annotation on  top of an already  existing one. The new  will delete
-  overlapped portion of the old annotation.
-
-  Also a new  customizable variable ('annotate-warn-if-hash-mismatch')
-  has  been  added.   When  nil   prevent  printing  of  warning  when
-  annotation database's' hash and file has do not match;
-
-  Also a problem with adjacent annotation's coloring has been fixed.
-
-- 2020-12-24 V1.1.0 Bastian Bechtold, cage ::
-
-  This version  improves the  visual style of  annotated text  that if
-  formed by more than one line.
-
-  Also  the file  path  of each  annotated file  (in  the database  of
-  annotation)     is    saved     so    called     abbreviated    form
-  (e.g. '/home/user/foo' is saved as  '~/foo', this could be useful if
-  the database is migrated from one machine to another.
-
-  This  improvements has  been suggested  by  the user  Ran that  also
-  helped testing this new version of the package. Thank you!
-
-  Finally import and export of annotation has been fixed.
-
-  Related to the last  fix the variable ~annotate-diff-export-context~
-  has been removed.
-
-- 2021-01-06 V1.1.1 Bastian Bechtold, cage ::
-
-  This version  fix an old bug  that causes many types  of issues with
-  rendering of annotations on the margin of the window.
-
-- 2021-01-06 V1.1.2 Bastian Bechtold, cage ::
-
-  This  version improves  visual  of multilined  notes  placed on  the
-  window margins.
-
-- 2021-01-06 V1.1.3 Bastian Bechtold, cage ::
-
-  Optimized the code to speedup  reading and saving of encrypted (with
-  GPG) annotated files.
-
-- 2021-02-05 V1.1.4 Bastian Bechtold, cage ::
-
-  Fixed highlight color  of annotated text that starts  from the first
-  character of the buffer's content.
-
-- 2021-03-17 V1.1.5 Bastian Bechtold, cage ::
-
-  Removed compilation  warnings, one of  the problem highlighted  by a
-  warning was actually preventing this package working on Doom Emacs.
-
-  Also a  bug that prevented  annotations placed  on info files  to be
-  deleted has been fixed.
-
-  Many thanks  to many people  that helped discovering  and suggesting
-  fix for these problems!
+  This version fixes a bug that prevented command like
+  'comment-region' to works properly when annotate-mode was active.
 
 - 2021-04-27 V1.2 Bastian Bechtold, cage ::
 
@@ -227,55 +69,216 @@
   Finally   annotating   read-only    buffers   (especially   deleting
   annotations) should works without problems.
 
-- 2021-05-05 V1.2.1 Bastian Bechtold, cage ::
+- 2021-03-17 V1.1.5 Bastian Bechtold, cage ::
 
-  This version fixes a bug that prevented command like
-  'comment-region' to works properly when annotate-mode was active.
+  Removed compilation  warnings, one of  the problem highlighted  by a
+  warning was actually preventing this package working on Doom Emacs.
 
-- 2021-05-07 V1.3.0 cage ::
+  Also a  bug that prevented  annotations placed  on info files  to be
+  deleted has been fixed.
 
-  This version  added a procedure to  prevent an empty database  to be
-  saved on the user's disk.
+  Many thanks  to many people  that helped discovering  and suggesting
+  fix for these problems!
 
-  Moreover if an  empty annotations database is going  to overwrite an
-  existing stale database file on disk the file is deleted instead.
+- 2021-02-05 V1.1.4 Bastian Bechtold, cage ::
 
-  Before  deleting the  old database  file a  confirmation message  is
-  printed    on    the    minibuffer   if    the    custom    variable
-  'annotate-database-confirm-deletion' is non nil (default: t).
+  Fixed highlight color  of annotated text that starts  from the first
+  character of the buffer's content.
 
-- 2021-05-27 V1.3.1 cage ::
+- 2021-01-06 V1.1.3 Bastian Bechtold, cage ::
 
-  Bugfix release:
+  Optimized the code to speedup  reading and saving of encrypted (with
+  GPG) annotated files.
 
-  - The  button "[replace]"  to edit  an annotation  from the  summary
-    window was not working at all;
+- 2021-01-06 V1.1.2 Bastian Bechtold, cage ::
 
-  - In certain  cases the  summary window  was rendering  wrong text's
-    fragment instead of the text of the annotation.
+  This  version improves  visual  of multilined  notes  placed on  the
+  window margins.
 
-  Many thanks  to "glvno"  for reporting  the aforementioned  bugs and
-  testing the patches!
+- 2021-01-06 V1.1.1 Bastian Bechtold, cage ::
 
-- 2021-09-24 v1.4.2 cage ::
+  This version  fix an old bug  that causes many types  of issues with
+  rendering of annotations on the margin of the window.
 
-  This  version added  a new  command to  delete the  annotation under
-  cursor.
+- 2020-12-24 V1.1.0 Bastian Bechtold, cage ::
 
-- 2021-09-30 v1.4.3 cage ::
+  This version  improves the  visual style of  annotated text  that if
+  formed by more than one line.
 
-  This  is a bugfix release.
+  Also  the file  path  of each  annotated file  (in  the database  of
+  annotation)     is    saved     so    called     abbreviated    form
+  (e.g. '/home/user/foo' is saved as  '~/foo', this could be useful if
+  the database is migrated from one machine to another.
 
-  The  program  would  keep  asking to  confirmation  for  deleting  a
-  database  file even  if such  file does  not actually  exists on  the
-  file system.
+  This  improvements has  been suggested  by  the user  Ran that  also
+  helped testing this new version of the package. Thank you!
 
-  When the  only action on  a buffer  was deleting an  annotation, the
-  buffer was  not marked as  modified; as a consequence,  the deletion
-  would  not happens  on  the  database (the  database  entry for  the
-  annotation to  be deleted would not  be removed from the  file) and,
-  when visiting the file, the annotation would be shown again.
+  Finally import and export of annotation has been fixed.
 
-- 2022-01-26 v1.5.0 cage ::
+  Related to the last  fix the variable ~annotate-diff-export-context~
+  has been removed.
 
-  This version add a new command to import a database file.
+- 2020-12-16 V1.0.0 Bastian Bechtold, cage ::
+
+  This version  allow overwrite of notes.  That is, user can  place an
+  annotation on  top of an already  existing one. The new  will delete
+  overlapped portion of the old annotation.
+
+  Also a new  customizable variable ('annotate-warn-if-hash-mismatch')
+  has  been  added.   When  nil   prevent  printing  of  warning  when
+  annotation database's' hash and file has do not match;
+
+  Also a problem with adjacent annotation's coloring has been fixed.
+
+- 2020-11-20 V0.9.2 Bastian Bechtold, cage ::
+
+  This version fix a regression and  some more bug that could breaks a
+  multiline  annotation  in  ways  that makes  the  annotation  system
+  inconsistent  and  renders the  annotated  text  in wrong  way  (for
+  details see the Changelog).
+
+  The 'annotate-file' can be now  safely declared buffer-local so that
+  multiple databases of annotations can be used on a per-buffer basis.
+
+  For practical applications see:
+
+  https://github.com/bastibe/annotate.el/issues/68
+
+  Many thanks to gopar for spotting  this elusive bug and help testing
+  the patch! :)
+
+- 2020-09-29 V0.9.0 Bastian Bechtold, cage ::
+  Added two new styles to render the annotation: using "pop-up" style
+  or via a specialized summary window.
+
+- 2020-08-11 V0.8.3 Bastian Bechtold, cage ::
+  Some function now signal errors where appropriate.
+
+- 2020-07-01 V0.8.2 Bastian Bechtold, cage ::
+  Added explicit dependency on 'info' and removed a duplicated operation.
+
+- 2020-06-26 V0.8.1 Bastian Bechtold, cage ::
+  Added file argument to ~annotate-switch-db~.
+
+- 2020-06-09 V0.8.0 Bastian Bechtold, cage ::
+  The database of annotation can be changed using the command ~annotate-switch-db~.
+
+- 2020-05-18 V0.7.0 Bastian Bechtold, cage ::
+  Increased version to 0.7.0 for stable release
+
+- 2020-03-25 V0.6.2 Bastian Bechtold, cage ::
+  Fixed bug that prevent annotation of text with complex faces definition.
+  Thanks to the person who filed the issue
+  (see: https://github.com/bastibe/annotate.el/pull/63)
+
+- 2020-03-16 V0.6.1 Bastian Bechtold, cage ::
+  Fixed annotation picking in 'annotate-annotate'.
+
+- 2020-03-06 V0.6.0 Bastian Bechtold, cage ::
+  Fixed bugs of multiline annotations, diff exports and integration.
+
+- 2020-03-06 V0.5.3 Bastian Bechtold, cage ::
+  - Partially fixed bug that prevented annotation of buffer when org-mode was used;
+  - when an user delete an annotation for a file using a button from
+    summary window force refresh of a buffer that is visiting said
+    file, if exists, to reflect the changes;
+  - fixed flowings of annotations when window's width is changed.
+
+- 2020-02-10 V0.5.2 Bastian Bechtold, cage ::
+
+  - fixed bugs that makes some annotations overlaps;
+  - fixed some bugs in fontifications of multiline annotation;
+  - when the only user interactions, before saving, with a visited file was
+    the call of 'annotate-clear-annotations' the annotations
+    will shows again at reload, this should be fixed now.
+
+- 2020-01-22 V0.5.1 Bastian Bechtold, cage ::
+  - fixed bug that prevented correct fontifications for major modes
+    that puts overlays on the buffer's text (e.g. SLIME).
+
+- 2019-12-09 V0.5.0 Bastian Bechtold, cage ::
+  - prevented crash when a window (containing annotations) is resized;
+  - prevented loss of undo tree when annotations is modified;
+  - positioning of annotation is customizable;
+  - added a summary window to display annotations; the summary results
+    can be filtered by a simple query language. Deleting or
+    modifying of annotation text is possible;
+  - info files can be annotated (thanks to randomwangran);
+  - annotated text on the same lines are highlighted with two
+    different, alternating, colors;
+  - annotate try to check file modifications using checksum and warns
+    user if the file has been modified when annotate minor mode was
+    not loaded;
+  - a simple heuristic is used to search for annotated text when
+    annotate mode is loaded.
+
+- 2016-10-06 V0.4.7 Bastian Bechtold ::
+  Bugfix release for buffers without a file name.
+
+- 2016-09-07 V0.4.6 Bastian Bechtold ::
+  Bugfix release for annotations ending on an empty line.
+
+- 2016-08-25 V0.4.5 Bastian Bechtold ::
+  Bugfix release for unicode annotations and multiline annotations.
+
+- 2015-10-06 V0.4.4 Bastian Bechtold ::
+  Added a new export system. Let's see if it turns out to be more
+  useful than the previous one.
+
+- 2015-10-06 V0.4.3 Bastian Bechtold ::
+  Bugfixes. No more hidden newlines, no more annotations in undo-list,
+  no more error messages with annotations at bol, mark deactivated
+  after creating annotation, annotations auto-reflow on frame size
+  change.
+
+- 2015-09-23 V0.4.0 Bastian Bechtold ::
+  Completely reworked the display engine for annotations. You can now
+  have several annotations per line, and annotations should not
+  move any more when editing the line they are on. Finally,
+  annotations can now span several lines.
+
+- 2015-09-22 V0.3.1 Bastian Bechtold ::
+  Change key bindings for jumping as to conform with Emacs' standards.
+
+  Didn't change  the main key binding  though, because I don't  know a
+  good alternative.
+
+- 2015-09-21 V0.3.0 Bastian Bechtold ::
+  Add key bindings for jumping to next/previous annotation.
+
+- 2015-09-17 V0.2.4 Bastian Bechtold ::
+  Load and Clear don't mark buffer as modified any more.
+
+- 2015-07-02 V0.2.3 Bastian Bechtold ::
+  Can now disable minibuffer messages.
+
+- 2015-06-19 V0.2.2 Bastian Bechtold ::
+  Now with more compile warnings (0.2.1 didn't work).
+
+- 2015-06-19 V0.2.1 Bastian Bechtold ::
+  Now with fewer compile warnings (turns out, not really).
+
+- 2015-06-19 V0.2.0 Bastian Bechtold ::
+  Annotations can be exported as unified diff files.
+  Several smaller bug fixes.
+
+- 2015-06-15 V0.1.5 Bastian Bechtold ::
+  Annotations now work on long lines.
+
+- 2015-06-15 V0.1.4 Bastian Bechtold ::
+  Minor bug fixes.
+
+- 2015-06-15 V0.1.3 Bastian Bechtold ::
+  Improve README and auto-remove empty annotations created by earlier bug.
+
+- 2015-06-12 V0.1.2 Bastian Bechtold ::
+  Fix typo and version error.
+
+- 2015-06-12 V0.1.1 Bastian Bechtold ::
+  Improve documentation and add license.
+
+- 2015-06-12 V0.1.1 Bastian Bechtold ::
+  Improve documentation and add license.
+
+- 2015-06-12 V0.1 Bastian Bechtold ::
+  First working release.
