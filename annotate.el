@@ -2799,12 +2799,10 @@ Arguments:
                 (annotate-summary-token-symbol-match looking-symbol token))
               ;; this function will parse the rule operator
               ;; OPERATOR   := AND | OR
-              ;; where
-              ;; previous-token is the value of the token just matched in rule
               ;; NOTE OPERATOR NOTE
               ;; filter-fn     see the docstring
               ;; matchp        non nil if (funcall filter-fn previous-token) is not nil
-              (operator             (filter-fn annotation matchp)
+              (operator (filter-fn annotation matchp)
                (let ((look-ahead        (annotate-summary-lexer t)))
                  (if (annotate-summary-query-parse-end-input-p look-ahead)
                      ;; end of input, recurse one more time
