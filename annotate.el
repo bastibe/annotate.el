@@ -131,9 +131,11 @@ that Emacs passes to the diff program."
   :type 'string)
 
 (defcustom annotate-blacklist-major-mode '()
-  ;; FIXME: When/why would this be needed?
-  "Prevent loading of annotate-mode When the visited file's
-major mode is a member of this list (space separated entries)."
+ "Prevent loading of annotate-mode When the visited file's major
+mode is a member of this list (space separated entries). This
+could be useful if some mode does not work well with annotate as
+this ensure that it will be never loaded, see
+`annotate-initialize-maybe'."
   :type  '(repeat symbol))
 
 (defcustom annotate-summary-ask-query t
@@ -435,7 +437,9 @@ modified (for example a newline is inserted)."
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
   (add-hook 'after-save-hook                  #'annotate-save-annotations t t)
-  (add-hook 'window-configuration-change-hook #'font-lock-flush  t t) ;FIXME: Why?
+  ;; This hook  is needed to  reorganize the layout of  the annotation
+  ;; text when a window vertically resized
+  (add-hook 'window-configuration-change-hook #'font-lock-flush  t t)
   (add-hook 'before-change-functions          #'annotate-before-change-fn t t)
   (add-hook 'Info-selection-hook              #'annotate-info-select-fn   t t)
   (if annotate-use-echo-area
