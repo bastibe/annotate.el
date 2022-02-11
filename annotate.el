@@ -76,7 +76,10 @@
 See https://github.com/bastibe/annotate.el/ for documentation."
   :lighter " Ann"
   :group 'annotate
-  ;; FIXME: Why `:after-hook'?
+  ;; we use  `:after-hook` to prevent running  initialization code for
+  ;; this mode if  the buffer already has annotate-mode  active and to
+  ;; prevent  loading   the  annotate   in  blacklisted   modes  (see:
+  ;; `annotate-blacklist-major-mode').
   :after-hook (annotate-initialize-maybe))
 
 (defcustom annotate-file (locate-user-emacs-file "annotations" ".annotations")
@@ -314,7 +317,7 @@ annotation as defined in the database."
 
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist.
-See 'annotate-blacklist-major-mode'."
+See: `annotate-blacklist-major-mode'."
   (let ((annotate-allowed-p (with-current-buffer (current-buffer)
                               (not (apply #'derived-mode-p annotate-blacklist-major-mode)))))
     (cond
