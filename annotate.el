@@ -427,7 +427,6 @@ modified (for example a newline is inserted)."
                (let ((chain (cl-remove overlay (annotate-find-chain overlay))))
                  (delete-overlay overlay)
                  (annotate--remap-chain-pos chain))))))))))
-;;                 (font-lock-flush))))))))))
 
 (defun annotate-info-select-fn ()
   "The function to be called when an info buffer is updated."
@@ -981,7 +980,6 @@ to `MAXIMUM-WIDTH'."
                         (let* ((potential-start (join-until-width words))
                                (word            (annotate-group-start-word potential-start))
                                (nonjoined-words (annotate-group-words potential-start))
-                               ;; (next-word       (cl-first nonjoined-words))
                                (rest-words      nonjoined-words)
                                (potential-start word))
                           (%group rest-words
@@ -1861,8 +1859,7 @@ The searched interval can be customized setting the variable:
 'annotate-search-region-lines-delta'."
   (cl-labels ((create-annotation (start end annotation-text)
                (save-excursion
-                 (let (;; (chain-pos 0)
-                       (all-overlays ()))
+                 (let ((all-overlays ()))
                    (while (< start end)
                      (goto-char start)
                      (let ((char-maybe-newline (string (char-after))))
@@ -2008,9 +2005,8 @@ This function is not part of the public API."
   (annotate-ensure-annotation (annotation)
    (save-excursion
      (with-current-buffer (current-buffer)
-       (let* ((chain         (annotate-find-chain annotation))
+       (let* ((chain (annotate-find-chain annotation)))
               ;; (filename      (annotate-actual-file-name))
-              )
          (dolist (single-element chain)
            (goto-char (overlay-end single-element))
            (move-end-of-line nil)
