@@ -2390,8 +2390,6 @@ pressed."
   (let* ((filename        (button-get button 'file))
          (beginning       (button-get button 'beginning))
          (ending          (button-get button 'ending))
-         ;; (begin-of-button (button-get button 'begin-of-button))
-         ;; (end-of-button   (button-get button 'end-of-button))
          (db              (annotate-load-annotation-data t))
          (filtered        (annotate-db-remove-annotation db filename beginning ending)))
     (annotate-dump-annotation-data filtered) ; save the new database with entry removed
