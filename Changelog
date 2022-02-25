@@ -1,3 +1,50 @@
+2022-02-16 cage
+
+        * annotate.el:
+
+        - removed commented code;
+
+2022-02-12 cage
+
+        * annotate.el:
+
+        - removed nested 'if' inside a call to 'list'.
+
+2022-02-11 cage
+
+        * NEWS.org,
+        * README.org,
+        * annotate.el:
+
+        - improved comment;
+
+        - explained why we need too hook into 'window-configuration-change-hook'
+          and 'annotate-blacklist-major-mode';
+        - commenting  call to  'font-lock-flush' when  removing annotation
+          because there is no more annotated text lef after a deletion;
+        - explained why we need to use 'after-hook';
+        - removed reference in a comment for a non existent argument function;
+        - fixed comment;
+        - flipped order of entries in the news file, now is from more recent
+          to older;
+        - added NonGNU ELPA badge.
+
+2022-02-10 cage
+
+        * annotate.el:
+
+        - fixed typo in docstring;
+        - substituted custom prompt with a call to 'y-or-no-p';
+        - removed   macros    'annotate-with-inhibit-modification-hooks'   and
+         'annotate-with-restore-modified-bit', both  can    be   replaced
+          with 'with-silent-modification'.
+
+2022-02-06 cage
+
+        * annotate.el:
+
+        - patched code as suggested from emacs maintainer.
+
 2022-01-26 cage
 
 	* Changelog,

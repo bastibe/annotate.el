@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.5.0
+;; Version: 1.5.1
 
 ;; This file is NOT part of GNU Emacs.
 
