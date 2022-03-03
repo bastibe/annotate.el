@@ -4,7 +4,7 @@
 ;; Universita' degli Studi di Palermo (2019)
 
 ;; Author: Bastian Bechtold
-;; Maintainer: Bastian Bechtold
+;; Maintainer: Bastian Bechtold co-maintainer: cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
 ;; Version: 1.5.1
@@ -76,11 +76,7 @@
 See https://github.com/bastibe/annotate.el/ for documentation."
   :lighter " Ann"
   :group 'annotate
-  ;; we use  `:after-hook` to prevent running  initialization code for
-  ;; this mode if  the buffer already has annotate-mode  active and to
-  ;; prevent  loading   the  annotate   in  blacklisted   modes  (see:
-  ;; `annotate-blacklist-major-mode').
-  :after-hook (annotate-initialize-maybe))
+  (annotate-initialize-maybe))
 
 (defcustom annotate-file (locate-user-emacs-file "annotations" ".annotations")
   "File where annotations are stored."
@@ -136,9 +132,9 @@ that Emacs passes to the diff program."
 (defcustom annotate-blacklist-major-mode '()
  "Prevent loading of annotate-mode When the visited file's major
 mode is a member of this list (space separated entries). This
-could be useful if some mode does not work well with annotate as
-this ensure that it will be never loaded, see
-`annotate-initialize-maybe'."
+could be useful if some mode does not work well with
+annotate (like source blocks in org-mode) as this ensure that it
+will be never loaded, see `annotate-initialize-maybe'."
   :type  '(repeat symbol))
 
 (defcustom annotate-summary-ask-query t
@@ -440,7 +436,7 @@ modified (for example a newline is inserted)."
   (add-hook 'after-save-hook                  #'annotate-save-annotations t t)
   ;; This hook  is needed to  reorganize the layout of  the annotation
   ;; text when a window vertically resized
-  (add-hook 'window-configuration-change-hook #'font-lock-flush  t t)
+  (add-hook 'window-size-change-functions     #'font-lock-flush t t)
   (add-hook 'before-change-functions          #'annotate-before-change-fn t t)
   (add-hook 'Info-selection-hook              #'annotate-info-select-fn   t t)
   (if annotate-use-echo-area
@@ -456,7 +452,7 @@ modified (for example a newline is inserted)."
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
   (remove-hook 'after-save-hook                  #'annotate-save-annotations t)
-  (remove-hook 'window-configuration-change-hook #'font-lock-flush  t)
+  (remove-hook 'window-size-change-functions     #'font-lock-flush t)
   (remove-hook 'before-change-functions          #'annotate-before-change-fn t)
   (remove-hook 'Info-selection-hook              #'annotate-info-select-fn   t)
   (if annotate-use-echo-area
