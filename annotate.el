@@ -100,16 +100,18 @@ See https://github.com/bastibe/annotate.el/ for documentation."
 
 (defface annotate-prefix
   '((t (:inherit default)))
- "Face for character used to pad annotation (fill space between
-text lines and annotation text).")
+ "Face for character used to pad annotation.
+This is the fill space between text lines and annotation text.")
 
 (defcustom annotate-annotation-column 85
   "Where annotations appear."
   :type 'number)
 
 (defcustom annotate-diff-export-options ""
- "Other options for diffing between a buffer with and without integrated annotations.
-Note that there is an implicit -u at the end of default options
+ "Options passed to `diff' in `annotate-export-annotations'.
+This is used when diffing between a buffer with and without
+integrated annotations.
+Note that there is an implicit `-u' at the end of default options
 that Emacs passes to the diff program."
   :type 'string)
 
@@ -130,9 +132,9 @@ that Emacs passes to the diff program."
   :type 'string)
 
 (defcustom annotate-blacklist-major-mode '()
- "Prevent loading of annotate-mode When the visited file's major
-mode is a member of this list (space separated entries). This
-could be useful if some mode does not work well with
+  "Major modes in which to prevent auto-activation of `annotate-mode'.
+This is consulted when visiting a file.
+It can be useful when some mode does not work well with
 annotate (like source blocks in org-mode) as this ensure that it
 will be never loaded, see `annotate-initialize-maybe'."
   :type  '(repeat symbol))
@@ -313,7 +315,7 @@ annotation as defined in the database."
 
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist.
-See: `annotate-blacklist-major-mode'."
+See `annotate-blacklist-major-mode'."
   (let ((annotate-allowed-p (with-current-buffer (current-buffer)
                               (not (apply #'derived-mode-p annotate-blacklist-major-mode)))))
     (cond
