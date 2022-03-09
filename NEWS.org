@@ -1,5 +1,13 @@
 - 2022-01-26 v1.5.1 cage ::
 
+  This version fixed a bug that prevented an annotation to be actually
+  deleted when the only action on the  buffer was a single call of the
+  command  `annotate-delete-annotation'.  Also,  again  thanks to  the
+  help of  an Emacs maintainer,  the code was simplified  and cleaned,
+  and a few of docstring was improved too.
+
+- 2022-01-26 v1.5.1 cage ::
+
   This version refactored  a lot of code thanks to  the suggestions of
   Emacs  maintainer. Several  unused variables  were removed  and some
   portion of the code was simplified.
