@@ -1,3 +1,32 @@
+2022-03-09 cage
+
+        * NEWS.org,
+        * annotate.el:
+
+        - increased version number.
+        - updated NEWS.org.
+
+2022-03-03 cage
+
+        * annotate.el:
+
+        - added an email address to contact the developers;
+        - removed ':after-hook' in define-minor-mode, and moved
+        'annotation-initialize-maybe' in the macro's body;
+        - changed 'window-configuration-change-hook' with
+        'window-size-change-functions'.
+        - updated docstrings.
+
+2022-02-26 cage
+
+        * annotate.el:
+
+        - fixed deletion of annotations;
+        The   function  'annotate-delete-annotation'   does   not  set   the
+        modification bit after deleting, so the annotation was not deleted at
+        all if the buffer was saved just after calling this command.
+        Also the coloring of the rest of the annotation was not updated.
+
 2022-02-16 cage
 
         * annotate.el:
