@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold co-maintainer: cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.5.1
+;; Version: 1.5.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.5.0"
+  :version "1.5.2"
   :group 'text)
 
 (defvar annotate-mode-map
