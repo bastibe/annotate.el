@@ -4,10 +4,10 @@
 ;; Universita' degli Studi di Palermo (2019)
 
 ;; Author: Bastian Bechtold
-;; Maintainer: Bastian Bechtold
+;; Maintainer: Bastian Bechtold co-maintainer: cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.5.1
+;; Version: 1.5.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.5.0"
+  :version "1.5.2"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -76,11 +76,7 @@
 See https://github.com/bastibe/annotate.el/ for documentation."
   :lighter " Ann"
   :group 'annotate
-  ;; we use  `:after-hook` to prevent running  initialization code for
-  ;; this mode if  the buffer already has annotate-mode  active and to
-  ;; prevent  loading   the  annotate   in  blacklisted   modes  (see:
-  ;; `annotate-blacklist-major-mode').
-  :after-hook (annotate-initialize-maybe))
+  (annotate-initialize-maybe))
 
 (defcustom annotate-file (locate-user-emacs-file "annotations" ".annotations")
   "File where annotations are stored."
@@ -104,16 +100,18 @@ See https://github.com/bastibe/annotate.el/ for documentation."
 
 (defface annotate-prefix
   '((t (:inherit default)))
- "Face for character used to pad annotation (fill space between
-text lines and annotation text).")
+ "Face for character used to pad annotation.
+This is the fill space between text lines and annotation text.")
 
 (defcustom annotate-annotation-column 85
   "Where annotations appear."
   :type 'number)
 
 (defcustom annotate-diff-export-options ""
- "Other options for diffing between a buffer with and without integrated annotations.
-Note that there is an implicit -u at the end of default options
+ "Options passed to `diff' in `annotate-export-annotations'.
+This is used when diffing between a buffer with and without
+integrated annotations.
+Note that there is an implicit `-u' at the end of default options
 that Emacs passes to the diff program."
   :type 'string)
 
@@ -134,11 +132,11 @@ that Emacs passes to the diff program."
   :type 'string)
 
 (defcustom annotate-blacklist-major-mode '()
- "Prevent loading of annotate-mode When the visited file's major
-mode is a member of this list (space separated entries). This
-could be useful if some mode does not work well with annotate as
-this ensure that it will be never loaded, see
-`annotate-initialize-maybe'."
+  "Major modes in which to prevent auto-activation of `annotate-mode'.
+This is consulted when visiting a file.
+It can be useful when some mode does not work well with
+annotate (like source blocks in org-mode) as this ensure that it
+will be never loaded, see `annotate-initialize-maybe'."
   :type  '(repeat symbol))
 
 (defcustom annotate-summary-ask-query t
@@ -317,7 +315,7 @@ annotation as defined in the database."
 
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist.
-See: `annotate-blacklist-major-mode'."
+See `annotate-blacklist-major-mode'."
   (let ((annotate-allowed-p (with-current-buffer (current-buffer)
                               (not (apply #'derived-mode-p annotate-blacklist-major-mode)))))
     (cond
@@ -440,7 +438,7 @@ modified (for example a newline is inserted)."
   (add-hook 'after-save-hook                  #'annotate-save-annotations t t)
   ;; This hook  is needed to  reorganize the layout of  the annotation
   ;; text when a window vertically resized
-  (add-hook 'window-configuration-change-hook #'font-lock-flush  t t)
+  (add-hook 'window-size-change-functions     #'font-lock-flush t t)
   (add-hook 'before-change-functions          #'annotate-before-change-fn t t)
   (add-hook 'Info-selection-hook              #'annotate-info-select-fn   t t)
   (if annotate-use-echo-area
@@ -456,7 +454,7 @@ modified (for example a newline is inserted)."
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
   (remove-hook 'after-save-hook                  #'annotate-save-annotations t)
-  (remove-hook 'window-configuration-change-hook #'font-lock-flush  t)
+  (remove-hook 'window-size-change-functions     #'font-lock-flush t)
   (remove-hook 'before-change-functions          #'annotate-before-change-fn t)
   (remove-hook 'Info-selection-hook              #'annotate-info-select-fn   t)
   (if annotate-use-echo-area
@@ -2108,7 +2106,9 @@ point)."
   (when-let ((annotation (annotate-annotation-at point)))
     (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
       (when delete-confirmed-p
-        (annotate--delete-annotation-chain annotation)))))
+        (annotate--delete-annotation-chain annotation)
+        (font-lock-flush)
+        (set-buffer-modified-p t)))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."
