@@ -1,10 +1,30 @@
+2022-04-08 btd, cage
+
+        * .gitignore,
+        * NEWS.org,
+        * annotate.el:
+
+        - fixes maintainers list as proposed by Stefan Monnier
+          also adds other proposed changes, such as ignoring ELPA-generated
+          files
+        - Merge pull request #127 from bastibe/bastibe/fix-maintainers
+        - increased version number;
+        - reverted a form;
+        - updated ad fixed NEWS.org.
+
+2022-04-07 cage
+
+        Merge pull request #125 from cage2/fixed-deleting-annotation
+
 2022-03-09 cage
 
+        * Changelog,
         * NEWS.org,
         * annotate.el:
 
         - increased version number.
         - updated NEWS.org.
+        - updated Changelog.
 
 2022-03-03 cage
 
