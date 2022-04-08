@@ -4,7 +4,7 @@
 ;; Universita' degli Studi di Palermo (2019)
 
 ;; Author: Bastian Bechtold
-;; Maintainer: Bastian Bechtold co-maintainer: cage <cage-dev@twistfold.it>
+;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
 ;; Version: 1.5.2
@@ -35,15 +35,15 @@
 
 ;; This package provides the minor mode annotate-mode, which can add
 ;; annotations to arbitrary files without changing the files
-;; themselves. Annotations are saved in the annotate-file
+;; themselves.  Annotations are saved in the annotate-file
 ;; (~/.annotations by default).
 ;;
-;; To add annotations to a file, select a region and hit C-c C-a. The
+;; To add annotations to a file, select a region and hit C-c C-a.  The
 ;; region will be underlined, and the annotation will be displayed in
-;; the right margin. Annotations are saved whenever the file is saved.
+;; the right margin.  Annotations are saved whenever the file is saved.
 ;;
 ;; Use C-c ] to jump to the next annotation and C-c [ to jump to
-;; the previous annotation. Use M-x annotate-export-annotations to
+;; the previous annotation.  Use M-x annotate-export-annotations to
 ;; save annotations as a no-difference diff file.
 
 ;; Important note: annotation can not overlaps and newline character
@@ -1206,11 +1206,12 @@ a        a**"
                     (setq prefix-first prefix-rest))))))
         (when (not annotate-use-echo-area)
           ;; build facespec with the annotation text as display property
-          (if (string= annotation-text "")
-              ;; annotation has been removed: remove display prop
-              (list 'face 'default 'display nil)
-            ;; annotation has been changed/added: change/add display prop
-            (list 'face 'default 'display annotation-text))))))
+          (list 'face 'default 'display
+                (if (string= annotation-text "")
+                    ;; annotation has been removed: remove display prop
+                    nil
+                  ;; annotation has been changed/added: change/add display prop
+                  annotation-text))))))
 
 (defun annotate--remove-annotation-property (_begin end)
   "Cleans up annotation properties associated within a region
