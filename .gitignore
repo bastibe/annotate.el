@@ -1,0 +1,3 @@
+*.elc
+/annotate-autoloads.el
+/annotate-pkg.el
