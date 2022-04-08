@@ -1,4 +1,9 @@
-- 2022-01-26 v1.5.1 cage ::
+- 2022-01-26 v1.5.3 cage ::
+
+  This version  fixed the  email maintainer  list that  was previously
+  confusing GNU ELPA building scripts.
+
+- 2022-01-26 v1.5.2 cage ::
 
   This version fixed a bug that prevented an annotation to be actually
   deleted when the only action on the  buffer was a single call of the

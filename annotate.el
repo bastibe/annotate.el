@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.5.2
+;; Version: 1.5.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.5.2"
+  :version "1.5.3"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -1206,12 +1206,11 @@ a        a**"
                     (setq prefix-first prefix-rest))))))
         (when (not annotate-use-echo-area)
           ;; build facespec with the annotation text as display property
-          (list 'face 'default 'display
-                (if (string= annotation-text "")
-                    ;; annotation has been removed: remove display prop
-                    nil
-                  ;; annotation has been changed/added: change/add display prop
-                  annotation-text))))))
+          (if (string= annotation-text "")
+              ;; annotation has been removed: remove display prop
+              (list 'face 'default 'display nil)
+            ;; annotation has been changed/added: change/add display prop
+            (list 'face 'default 'display annotation-text))))))
 
 (defun annotate--remove-annotation-property (_begin end)
   "Cleans up annotation properties associated within a region
