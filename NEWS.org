@@ -1,3 +1,8 @@
+- 2022-04-23 v1.5.4 cage::
+
+  This version  restored redrawing  of annotation  when the  window is
+  resized.
+
 - 2022-01-26 v1.5.3 cage ::
 
   This version  fixed the  email maintainer  list that  was previously

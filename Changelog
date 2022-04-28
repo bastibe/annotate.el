@@ -1,3 +1,13 @@
+2022-04-23 cage
+
+        * annotate.el:
+
+        - fixed  function that  is  called on  'window-size-change-functions',
+        this function is  called with a single frame as  an argument, whilst
+        we was using 'font-lock-flush' that takes two integer arguments.
+        The results was that the annotation was not properly resized.
+        - increased version number.
+
 2022-04-08 btd, cage
 
         * .gitignore,

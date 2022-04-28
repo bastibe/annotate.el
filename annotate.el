@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.5.3
+;; Version: 1.5.4
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.5.3"
+  :version "1.5.4"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -432,13 +432,18 @@ modified (for example a newline is inserted)."
   (annotate-load-annotations)
   (font-lock-flush))
 
+(defun on-window-size-change (frame)
+  "The function to call when window-size-change-functions is called,
+note that the argument `FRAME' is ignored"
+  (font-lock-flush))
+
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate-load-annotations)
   (add-hook 'after-save-hook                  #'annotate-save-annotations t t)
   ;; This hook  is needed to  reorganize the layout of  the annotation
   ;; text when a window vertically resized
-  (add-hook 'window-size-change-functions     #'font-lock-flush t t)
+  (add-hook 'window-size-change-functions     #'on-window-size-change t t)
   (add-hook 'before-change-functions          #'annotate-before-change-fn t t)
   (add-hook 'Info-selection-hook              #'annotate-info-select-fn   t t)
   (if annotate-use-echo-area
@@ -454,7 +459,7 @@ modified (for example a newline is inserted)."
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
   (remove-hook 'after-save-hook                  #'annotate-save-annotations t)
-  (remove-hook 'window-size-change-functions     #'font-lock-flush t)
+  (remove-hook 'window-size-change-functions     #'on-window-size-change t)
   (remove-hook 'before-change-functions          #'annotate-before-change-fn t)
   (remove-hook 'Info-selection-hook              #'annotate-info-select-fn   t)
   (if annotate-use-echo-area
