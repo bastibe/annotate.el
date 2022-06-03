@@ -1,3 +1,10 @@
+2022-05-26 cage
+
+        * annotate.el:
+
+        - added procedures to generate and use a single database for each
+        annotated file.
+
 2022-04-23 cage
 
         * annotate.el:

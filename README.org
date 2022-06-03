@@ -49,25 +49,50 @@ Please note that switching database,  in this context, means rebinding
 the  aforementioned variable  (~annotate-file~).  This  means than  no
 more than a single database can be active for each Emacs session.
 
+If an  empty annotation database  (in memory) is saved  the database
+file  is deleted  instead, if  ~annotate-database-confirm-deletion~ is
+non  nil (the  default) a  confirmation action  is asked  to the  user
+before actually remove the file from the file system.
+
+**** related customizable variable
+     - ~annotate-file~
+     - ~annotate-warn-if-hash-mismatch~
+     - ~annotate-database-confirm-deletion~
+
+*** Non centralized database
+
 To use multiple database in the same Emacs session ~annotate-file~ should be made
 [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Buffer_002dLocal-Variables.html][buffer-local]],
 see:
 [[https://github.com/bastibe/annotate.el/issues/68][this thread]] and, in particular
 [[https://github.com/bastibe/annotate.el/issues/68#issuecomment-728218022][this message]].
 
-If an  empty annotation database  (in memory) is saved  the database
-file  is deleted  instead, if  ~annotate-database-confirm-deletion~ is
-non  nil (the  default) a  confirmation action  is asked  to the  user
-before actually remove the file from the file system.
+Finally, if the customizable variable ~annotate-file-buffer-local~ is
+non-nil (default ~nil~), for each annotated file an annotation
+database is saved under the same directory that contains the annotated
+file.
+
+The name of the annotation database is built concatenating the name of
+the annotated file without the optional extension and the string value
+bound to the customizable variable
+~annotate-buffer-local-database-extension~ (default: ~notes~), example follows:
+
+| annotated file   | annotations file     |
+|------------------+----------------------|
+| /home/user/foo.c | /home/user/foo.notes |
+|------------------+----------------------|
+
+Important note: if ~/home/user/foo.notes~ exists, *will be overwritten*.
+
+**** related customizable variable
+     - ~annotate-file-buffer-local~
+     - ~annotate-buffer-local-database-extension~
+
+*** Uninstalling
 
 Users of
 [[https://github.com/emacscollective/no-littering][no-littering]]
 can take advantage of its packages generated files management.
-
-**** related customizable variable
-     - ~annotate-file~
-     - ~annotate-warn-if-hash-mismatch~
-     - ~annotate-database-confirm-deletion~
 
 ** keybindings
 

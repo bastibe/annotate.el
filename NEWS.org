@@ -1,4 +1,10 @@
-- 2022-04-23 v1.5.4 cage::
+- 2022-05-26 v1.6.0 cage ::
+
+  This version  allows users  to instruct the  program to  generate an
+  annotation  database for  each annotated  file, instead  of using  a
+  central database that contains all the annotations.
+
+- 2022-04-23 v1.5.4 cage ::
 
   This version  restored redrawing  of annotation  when the  window is
   resized.
