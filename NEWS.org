@@ -1,6 +1,6 @@
-- 2022-05-26 v1.6.1 cage ::
+- 2022-05-26 v1.7.0 cage ::
 
-  This  version no  more  set the  buffer as  modified  when the  only
+  This  version no  more sets  the buffer  as modified  when the  only
   changes made by  the user to such buffer are  related to annotations
   (for  example, creating  a new  annotation or  deleting an  existing
   one).
