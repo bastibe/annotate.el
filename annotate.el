@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.6.0
+;; Version: 1.7.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.6.0"
+  :version "1.7.0"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -468,7 +468,8 @@ local version (i.e. a different database for each annotated file"
   "Load annotations and set up save and display hooks."
   (annotate--maybe-database-set-buffer-local)
   (annotate-load-annotations)
-  (add-hook 'after-save-hook                  #'annotate-save-annotations t t)
+  (add-hook 'kill-buffer-hook                 #'annotate-save-annotations t t)
+  (add-hook 'kill-emacs-hook                  #'annotate-save-annotations t t)
   ;; This hook  is needed to  reorganize the layout of  the annotation
   ;; text when a window vertically resized
   (add-hook 'window-size-change-functions     #'on-window-size-change t t)
@@ -486,7 +487,8 @@ local version (i.e. a different database for each annotated file"
 (defun annotate-shutdown ()
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
-  (remove-hook 'after-save-hook                  #'annotate-save-annotations t)
+  (remove-hook 'kill-buffer-hook                 #'annotate-save-annotations t)
+  (remove-hook 'kill-emacs-hook                  #'annotate-save-annotations t)
   (remove-hook 'window-size-change-functions     #'on-window-size-change t)
   (remove-hook 'before-change-functions          #'annotate-before-change-fn t)
   (remove-hook 'Info-selection-hook              #'annotate-info-select-fn   t)
@@ -735,8 +737,7 @@ specified by `FROM' and `TO'."
                                             ; with proper text
                         (forward-line 1)
                         (goto-char (annotate-end-of-line-pos))
-                        (annotate-annotate))))))))))))
-      (set-buffer-modified-p t))))
+                        (annotate-annotate)))))))))))))))
 
 (cl-defun annotate-goto-next-annotation (&key (startingp t))
   "Move point to the next annotation."
@@ -1462,8 +1463,7 @@ essentially what you get from:
   "Load all annotations from disk in old format."
   (interactive)
   (let ((annotations (cdr (assoc-string (annotate-actual-file-name)
-                                        (annotate-load-annotation-data t))))
-        (modified-p  (buffer-modified-p)))
+                                        (annotate-load-annotation-data t)))))
     ;; remove empty annotations created by earlier bug:
     (setq annotations (cl-remove-if (lambda (ann) (null (nth 2 ann)))
                                     annotations))
@@ -1477,7 +1477,6 @@ essentially what you get from:
                 (end                (annotate-ending-of-annotation    annotation))
                 (annotation-string  (annotate-annotation-string       annotation)))
             (annotate-create-annotation start end annotation-string nil)))))
-    (set-buffer-modified-p modified-p)
     (font-lock-flush)
     (when annotate-use-messages
       (message "Annotations loaded."))))
@@ -1525,8 +1524,7 @@ example:
            (annotation-dump      (assoc-string filename all-annotations-data))
            (annotations          (annotate-annotations-from-dump annotation-dump))
            (old-checksum         (annotate-checksum-from-dump annotation-dump))
-           (new-checksum         (annotate-buffer-checksum))
-           (modified-p           (buffer-modified-p)))
+           (new-checksum         (annotate-buffer-checksum)))
       (if (old-format-p annotation-dump)
           (annotate-load-annotation-old-format)
         (when (and annotate-warn-if-hash-mismatch
@@ -1553,7 +1551,6 @@ example:
                                            end
                                            annotation-string
                                            annotated-text))))))
-        (set-buffer-modified-p modified-p)
         (font-lock-flush)
         (when annotate-use-messages
           (message "Annotations loaded."))))))
@@ -1730,8 +1727,7 @@ functions)."
 (defun annotate-clear-annotations ()
   "Clear all current annotations."
   (interactive)
-  (let ((overlays   (overlays-in 0 (buffer-size)))
-        (modifiedp (buffer-modified-p)))
+  (let ((overlays   (overlays-in 0 (buffer-size))))
     ;; only remove annotations, not all overlays
     (setq overlays (cl-remove-if
                     (lambda (ov) (not (annotationp ov)))
@@ -1739,9 +1735,7 @@ functions)."
     (dolist (ov overlays)
       (annotate--remove-annotation-property (overlay-start ov)
                                             (overlay-end ov))
-      (delete-overlay ov)
-      (setf modifiedp t)
-      (set-buffer-modified-p modifiedp))))
+      (delete-overlay ov))))
 
 (defun annotate-string-empty-p (a)
   "Is the arg `A' an empty string or null?"
@@ -2140,8 +2134,7 @@ point)."
     (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
       (when delete-confirmed-p
         (annotate--delete-annotation-chain annotation)
-        (font-lock-flush)
-        (set-buffer-modified-p t)))))
+        (font-lock-flush)))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at point. If empty, delete annotation."

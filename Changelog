@@ -1,3 +1,13 @@
+2022-06-23 cage
+
+        * annotate.el:
+
+        - removed the  use of  'after-save-hook', used  'kill-buffer-hook' and
+        'kill-emacs-hook', instead.
+        Using these  two hooks prevents  the buffer  to be marked  as modified
+        when,   in  fact,   only   the  annotation   has   been  changed   (or
+        added/deleted).
+
 2022-05-26 cage
 
         * annotate.el:
