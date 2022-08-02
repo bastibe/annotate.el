@@ -1,3 +1,15 @@
+2022-08-02 cage
+
+        * NEWS.org,
+        * annotate.el:
+
+        - modified the function called when kill-emacs-hook runs
+          The  new function  ensures  all the  buffers,  where annotate-mode  is
+          active, save the annotationos in  the database; also this function is
+          registered in the global hooks list.
+        - increased version number.
+        - updated NEWS.org.
+
 2022-06-23 cage
 
         * annotate.el:
