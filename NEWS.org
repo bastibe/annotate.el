@@ -1,3 +1,8 @@
+- 2022-08-02 v1.7.1 cage ::
+
+  This version fix  a bug that prevented saving  some annotations when
+  Emacs was closed.
+
 - 2022-05-26 v1.7.0 cage ::
 
   This  version no  more sets  the buffer  as modified  when the  only
