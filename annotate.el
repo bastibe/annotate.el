@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.7.0
+;; Version: 1.7.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.7.0"
+  :version "1.7.1"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -469,7 +469,7 @@ local version (i.e. a different database for each annotated file"
   (annotate--maybe-database-set-buffer-local)
   (annotate-load-annotations)
   (add-hook 'kill-buffer-hook                 #'annotate-save-annotations t t)
-  (add-hook 'kill-emacs-hook                  #'annotate-save-annotations t t)
+  (add-hook 'kill-emacs-hook                  #'annotate-save-all-annotated-buffers t nil)
   ;; This hook  is needed to  reorganize the layout of  the annotation
   ;; text when a window vertically resized
   (add-hook 'window-size-change-functions     #'on-window-size-change t t)
@@ -488,7 +488,7 @@ local version (i.e. a different database for each annotated file"
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
   (remove-hook 'kill-buffer-hook                 #'annotate-save-annotations t)
-  (remove-hook 'kill-emacs-hook                  #'annotate-save-annotations t)
+  (remove-hook 'kill-emacs-hook                  #'annotate-save-all-annotated-buffers nil)
   (remove-hook 'window-size-change-functions     #'on-window-size-change t)
   (remove-hook 'before-change-functions          #'annotate-before-change-fn t)
   (remove-hook 'Info-selection-hook              #'annotate-info-select-fn   t)
@@ -1430,6 +1430,13 @@ essentially what you get from:
 \(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
   (and (> (length annotation) 3)
        (nth 3 annotation)))
+
+(defun annotate-save-all-annotated-buffers ()
+  "Save the annotations for all buffer where annotate-mode is active"
+  (let ((all-annotated-buffers (annotate-buffers-annotate-mode)))
+    (cl-loop for annotated-buffer in all-annotated-buffers do
+             (with-current-buffer annotated-buffer
+               (annotate-save-annotations)))))
 
 (defun annotate-save-annotations ()
   "Save all annotations to disk."
