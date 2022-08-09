@@ -1433,7 +1433,7 @@ essentially what you get from:
 
 (defun annotate-save-all-annotated-buffers ()
   "Save the annotations for all buffer where annotate-mode is active"
-  (let ((all-annotated-buffers (annotate-buffers-annotate-mode )))
+  (let ((all-annotated-buffers (annotate-buffers-annotate-mode)))
     (cl-loop for annotated-buffer in all-annotated-buffers do
              (with-current-buffer annotated-buffer
                (annotate-save-annotations)))))
