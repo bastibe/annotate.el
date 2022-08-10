@@ -1,3 +1,13 @@
+2022-08-10 cage
+
+        * NEWS.org,
+        * annotate.el:
+
+        - fixed an error that was signalled when the annotated buffer was an
+        indirect one.
+        - increased version number;
+        - updated NEWS.org.
+
 2022-08-02 cage
 
         * NEWS.org,
