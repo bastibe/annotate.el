@@ -1328,6 +1328,7 @@ buffer is not on info-mode"
   "Get the actual file name of the current buffer."
   (substring-no-properties (or (annotate-info-actual-filename)
                                (buffer-file-name)
+                               (buffer-file-name (buffer-base-buffer))
                                "")))
 
 (cl-defun annotate-guess-filename-for-dump (filename
@@ -1447,24 +1448,28 @@ essentially what you get from:
                                         (annotate-describe-annotations)))
         (all-annotations  (annotate-load-annotation-data t))
         (filename         (annotate-guess-filename-for-dump (annotate-actual-file-name))))
-    (if (assoc-string filename all-annotations)
-        (setcdr (assoc-string filename all-annotations)
-                (list file-annotations
-                      (annotate-buffer-checksum)))
-      (setq all-annotations
-            (push (list filename
-                        file-annotations
-                        (annotate-buffer-checksum))
-                  all-annotations)))
-    ;; remove duplicate entries (a user reported seeing them)
-    (dolist (entry all-annotations)
-      (delete-dups entry))
-    ;; skip files with no annotations
-    (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
-                                                   (null (annotate-annotations-from-dump entry)))
-                                                 all-annotations))
-    (when annotate-use-messages
-      (message "Annotations saved."))))
+    (if filename
+        (progn
+          (if (assoc-string filename all-annotations)
+              (setcdr (assoc-string filename all-annotations)
+                      (list file-annotations
+                            (annotate-buffer-checksum)))
+            (setq all-annotations
+                  (push (list filename
+                              file-annotations
+                              (annotate-buffer-checksum))
+                        all-annotations)))
+          ;; remove duplicate entries (a user reported seeing them)
+          (dolist (entry all-annotations)
+            (delete-dups entry))
+          ;; skip files with no annotations
+          (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
+                                                         (null (annotate-annotations-from-dump entry)))
+                                                       all-annotations))
+          (when annotate-use-messages
+            (message "Annotations saved.")))
+      (user-error "Annotations can not be saved: unable to find a file for buffer %S"
+                  (current-buffer)))))
 
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
