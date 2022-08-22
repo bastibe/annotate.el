@@ -240,6 +240,11 @@ annotations positions could be outdated.")
   "The message to warn the user that file has been modified and
 an annotations could not be restored.")
 
+(defconst annotate-warn-buffer-has-no-valid-file
+  "Annotations can not be saved: unable to find a file for buffer %S"
+  "The message to warn the user that a buffer it is not visiting
+ a valid file to be annotated.")
+
 (defconst annotate-error-summary-win-filename-invalid
   "Error: File not found or in an unsupported format"
  "The message to warn the user that file can not be show in
@@ -1468,8 +1473,10 @@ essentially what you get from:
                                                        all-annotations))
           (when annotate-use-messages
             (message "Annotations saved.")))
-      (user-error "Annotations can not be saved: unable to find a file for buffer %S"
-                  (current-buffer)))))
+      (lwarn '(annotate-mode)
+             :warning
+             annotate-warn-buffer-has-no-valid-file
+             (current-buffer)))))
 
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
