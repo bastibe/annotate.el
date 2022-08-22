@@ -1329,12 +1329,19 @@ text will be discarded."
 buffer is not on info-mode"
   (annotate-guess-filename-for-dump Info-current-file nil))
 
+(cl-defun annotate-indirect-buffer-p (&optional (buffer (current-buffer)))
+  (buffer-base-buffer buffer))
+
 (defun annotate-actual-file-name ()
   "Get the actual file name of the current buffer."
-  (substring-no-properties (or (annotate-info-actual-filename)
-                               (buffer-file-name)
-                               (buffer-file-name (buffer-base-buffer))
-                               "")))
+  (cond
+   ((annotate-indirect-buffer-p)
+    nil)
+   (t
+    (substring-no-properties (or (annotate-info-actual-filename)
+                                 (buffer-file-name)
+                                 (buffer-file-name (buffer-base-buffer))
+                                 "")))))
 
 (cl-defun annotate-guess-filename-for-dump (filename
                                             &optional (return-filename-if-not-found-p t))
