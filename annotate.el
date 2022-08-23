@@ -281,6 +281,9 @@ annotation as defined in the database."
 (defconst annotate-summary-buffer-name "*annotations*"
   "The name of the buffer for summary window.")
 
+(defconst annotate-dump-from-indirect-bugger-suffix "-was-annotated-indirect-buffer"
+  "Append this suffix to a buffer generated from an annotated indirect buffer")
+
 (defconst annotate-annotation-prompt "Annotation: "
   "The prompt when asking user for annotation modification.")
 
@@ -339,8 +342,7 @@ See `annotate-blacklist-major-mode'."
       (annotate-shutdown)
       (setq annotate-mode nil))
      (annotate-mode
-      (when (not (annotate-annotations-exist-p))
-        (annotate-initialize)))
+      (annotate-initialize))
      (t
       (annotate-shutdown)))))
 
@@ -1332,10 +1334,13 @@ buffer is not on info-mode"
 (cl-defun annotate-indirect-buffer-p (&optional (buffer (current-buffer)))
   (buffer-base-buffer buffer))
 
+(defun annotate-indirect-buffer-current-p ()
+  (annotate-indirect-buffer-p))
+
 (defun annotate-actual-file-name ()
   "Get the actual file name of the current buffer."
   (cond
-   ((annotate-indirect-buffer-p)
+   ((annotate-indirect-buffer-current-p)
     nil)
    (t
     (substring-no-properties (or (annotate-info-actual-filename)
@@ -1451,6 +1456,26 @@ essentially what you get from:
              (with-current-buffer annotated-buffer
                (annotate-save-annotations)))))
 
+(cl-defun annotate--dump-indirect-buffer (annotations &optional (indirect-buffer (current-buffer)))
+  (when annotations
+    (let* ((new-buffer-name  (generate-new-buffer-name (concat (buffer-name indirect-buffer)
+                                                               annotate-dump-from-indirect-bugger-suffix)))
+           (new-buffer           (get-buffer-create new-buffer-name))
+           (indirect-content (with-current-buffer (current-buffer)
+                               (buffer-string))))
+      (with-current-buffer new-buffer
+        (annotate-mode -1)
+        (insert indirect-content)
+        (cl-loop for annotation in annotations do
+                 (let ((annotation-start (annotate-beginning-of-annotation annotation))
+                       (annotation-end   (annotate-ending-of-annotation annotation))
+                       (annotation-text  (annotate-annotation-string annotation)))
+                   (annotate-create-annotation annotation-start
+                                               annotation-end
+                                               annotation-text
+                                               nil)))
+        (annotate-mode 1)))))
+
 (defun annotate-save-annotations ()
   "Save all annotations to disk."
   (interactive)
@@ -1460,30 +1485,33 @@ essentially what you get from:
                                         (annotate-describe-annotations)))
         (all-annotations  (annotate-load-annotation-data t))
         (filename         (annotate-guess-filename-for-dump (annotate-actual-file-name))))
-    (if filename
-        (progn
-          (if (assoc-string filename all-annotations)
-              (setcdr (assoc-string filename all-annotations)
-                      (list file-annotations
-                            (annotate-buffer-checksum)))
-            (setq all-annotations
-                  (push (list filename
-                              file-annotations
-                              (annotate-buffer-checksum))
-                        all-annotations)))
-          ;; remove duplicate entries (a user reported seeing them)
-          (dolist (entry all-annotations)
-            (delete-dups entry))
-          ;; skip files with no annotations
-          (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
-                                                         (null (annotate-annotations-from-dump entry)))
-                                                       all-annotations))
-          (when annotate-use-messages
-            (message "Annotations saved.")))
-      (lwarn '(annotate-mode)
-             :warning
-             annotate-warn-buffer-has-no-valid-file
-             (current-buffer)))))
+    (cond
+       (filename
+        (if (assoc-string filename all-annotations)
+            (setcdr (assoc-string filename all-annotations)
+                    (list file-annotations
+                          (annotate-buffer-checksum)))
+          (setq all-annotations
+                (push (list filename
+                            file-annotations
+                            (annotate-buffer-checksum))
+                      all-annotations)))
+        ;; remove duplicate entries (a user reported seeing them)
+        (dolist (entry all-annotations)
+          (delete-dups entry))
+        ;; skip files with no annotations
+        (annotate-dump-annotation-data (cl-remove-if (lambda (entry)
+                                                       (null (annotate-annotations-from-dump entry)))
+                                                     all-annotations))
+        (when annotate-use-messages
+          (message "Annotations saved.")))
+       ((annotate-indirect-buffer-current-p)
+        (annotate--dump-indirect-buffer file-annotations))
+       (t
+        (lwarn '(annotate-mode)
+               :warning
+               annotate-warn-buffer-has-no-valid-file
+               (current-buffer))))))
 
 (defun annotate-load-annotation-old-format ()
   "Load all annotations from disk in old format."
