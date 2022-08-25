@@ -130,6 +130,10 @@ that Emacs passes to the diff program."
   "Whether status messages may appear in the minibuffer."
   :type 'boolean)
 
+(defcustom annotate-popup-warning-indirect-buffer t
+  "Whether an information popup message is shown when killing an annotated indirect buffer."
+  :type 'boolean)
+
 (defcustom annotate-integrate-marker " ANNOTATION: "
   "Marker that is written before every integrated annotation."
   :type 'string)
@@ -245,6 +249,16 @@ an annotations could not be restored.")
   "The message to warn the user that a buffer it is not visiting
  a valid file to be annotated.")
 
+(defconst annotate-popup-warn-killing-an-indirect-buffer
+  (concat "You killed an indirect buffer that contains annotation.\n"
+          "Annotate mode can not save annotation in an indirect buffer.\n"
+          "The buffer's content has been saved in a regular buffer "
+          "(together with its annotations) named:\n\n%S\n\n"
+          "If you want you can save that buffer in a file and "
+          "the annotations will be saved as well.")
+  "The message to warn the user that an annotated indirect buffer
+ has been killed.")
+
 (defconst annotate-error-summary-win-filename-invalid
   "Error: File not found or in an unsupported format"
  "The message to warn the user that file can not be show in
@@ -342,7 +356,8 @@ See `annotate-blacklist-major-mode'."
       (annotate-shutdown)
       (setq annotate-mode nil))
      (annotate-mode
-      (annotate-initialize))
+      (when (not (annotate-annotations-exist-p))
+        (annotate-initialize)))
      (t
       (annotate-shutdown)))))
 
@@ -1466,6 +1481,12 @@ essentially what you get from:
       (with-current-buffer new-buffer
         (annotate-mode -1)
         (insert indirect-content)
+        ;; when launching the command `(annotate-mode 1)' annotate
+        ;; mode refuses to add the hooks if annotations are already
+        ;; present in the buffer.
+        ;; So the right way here is: first activate the mode and then
+        ;; add the annotations
+        (annotate-mode 1)
         (cl-loop for annotation in annotations do
                  (let ((annotation-start (annotate-beginning-of-annotation annotation))
                        (annotation-end   (annotate-ending-of-annotation annotation))
@@ -1474,7 +1495,15 @@ essentially what you get from:
                                                annotation-end
                                                annotation-text
                                                nil)))
-        (annotate-mode 1)))))
+        (pop-to-buffer new-buffer)
+        (let* ((info-message (message annotate-popup-warn-killing-an-indirect-buffer
+                                      (buffer-name new-buffer)))
+               (user-choice  (when annotate-popup-warning-indirect-buffer
+                               (x-popup-dialog t (list info-message
+                                                       (cons "OK" :ok)
+                                                       (cons "Never show again" :bury))))))
+          (when (eq user-choice :bury)
+            (customize-save-variable 'annotate-popup-warning-indirect-buffer nil)))))))
 
 (defun annotate-save-annotations ()
   "Save all annotations to disk."
