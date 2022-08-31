@@ -1,3 +1,33 @@
+2022-08-31 cage
+
+        * NEWS.org,
+        * annotate.el:
+
+        - updated, and added if missing, docstrings.
+        - updated NEWS.org.
+        - removed a duplicated label using a constant.
+
+2022-08-25 cage
+
+        * annotate.el:
+
+        - shown a warning when killing an indirect buffer;
+        - reverted code in initialization procedure.
+
+2022-08-23 cage
+
+        * annotate.el:
+
+        - create a proper buffer from an indirect one that has been annotated.
+
+2022-08-22 cage
+
+        * annotate.el:
+
+        - signalled  a warning,  not an  error, when  annotated buffer  is not
+        visiting a file supported by annotate mode.
+        - returned nil as the actual filename of an indirect buffer.
+
 2022-08-10 cage
 
         * NEWS.org,
