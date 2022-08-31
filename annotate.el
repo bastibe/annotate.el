@@ -313,6 +313,9 @@ annotation as defined in the database."
 (defconst annotate-message-annotation-loaded "Annotations loaded."
   "The message shown when annotations has been loaded")
 
+(defconst annotate-message-annotations-not-found "No annotations found."
+  "The message shown when no annotations has been loaded from the database.")
+
 ;;;; custom errors
 
 (define-error 'annotate-error "Annotation error")
@@ -1560,7 +1563,7 @@ essentially what you get from:
                                     annotations))
     (when (and (null annotations)
                annotate-use-messages)
-      (message "No annotations found."))
+      (message annotate-message-annotations-not-found))
     (when (not (null annotations))
       (save-excursion
         (dolist (annotation annotations)
@@ -1630,7 +1633,7 @@ example:
         (cond
          ((and (null annotations)
                annotate-use-messages)
-          (message "No annotations found."))
+          (message annotate-message-annotations-not-found))
         (annotations
          (save-excursion
            (dolist (annotation annotations)
