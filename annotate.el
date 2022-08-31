@@ -147,10 +147,10 @@ that Emacs passes to the diff program."
   :type 'string)
 
 (defcustom annotate-blacklist-major-mode '()
-  "Major modes in which to prevent auto-activation of `annotate-mode'.
+  "Major modes in which to prevent auto-activation of command `annotate-mode'.
 This is consulted when visiting a file.
 It can be useful when some mode does not work well with
-annotate (like source blocks in org-mode) as this ensure that it
+annotate (like source blocks in `org-mode') as this ensure that it
 will be never loaded, see `annotate-initialize-maybe'."
   :type  '(repeat symbol))
 
@@ -247,7 +247,7 @@ an annotations could not be restored.")
 (defconst annotate-warn-buffer-has-no-valid-file
   "Annotations can not be saved: unable to find a file for buffer %S"
   "The message to warn the user that a buffer it is not visiting
- a valid file to be annotated.")
+a valid file to be annotated.")
 
 (defconst annotate-popup-warn-killing-an-indirect-buffer
   (concat "You killed an indirect buffer that contains annotation.\n"
@@ -257,7 +257,7 @@ an annotations could not be restored.")
           "If you want you can save that buffer in a file and "
           "the annotations will be saved as well.")
   "The message to warn the user that an annotated indirect buffer
- has been killed.")
+has been killed.")
 
 (defconst annotate-error-summary-win-filename-invalid
   "Error: File not found or in an unsupported format"
@@ -296,7 +296,7 @@ annotation as defined in the database."
   "The name of the buffer for summary window.")
 
 (defconst annotate-dump-from-indirect-bugger-suffix "-was-annotated-indirect-buffer"
-  "Append this suffix to a buffer generated from an annotated indirect buffer")
+  "Append this suffix to a buffer generated from an annotated indirect buffer.")
 
 (defconst annotate-annotation-prompt "Annotation: "
   "The prompt when asking user for annotation modification.")
@@ -380,7 +380,7 @@ position (so that it is unchanged after this function is called)."
     (point)))
 
 (defun annotate-annotated-text-empty-p (annotation)
-  "Does this annotation contains annotated text?"
+  "Does this `ANNOTATION' contains annotated text?"
   (= (overlay-start annotation)
      (overlay-end   annotation)))
 
@@ -471,7 +471,7 @@ note that the argument `FRAME' is ignored"
   (font-lock-flush))
 
 (defun annotate--filepath->local-database-name (filepath)
- "Generates the file path of the local database form `FILEPATH'"
+ "Generates the file path of the local database form `FILEPATH'."
   (concat (file-name-nondirectory filepath)
           "."
           annotate-buffer-local-database-extension))
@@ -534,7 +534,7 @@ local version (i.e. a different database for each annotated file"
   (annotate-overlay-filled-p overlay))
 
 (cl-defmacro annotate-ensure-annotation ((overlay) &body body)
-  "Runs body only if `OVERLAY' is an annotation (i.e. passes annotationp)."
+  "Runs `BODY' only if `OVERLAY' is an annotation (i.e. passes annotationp)."
   `(and (annotationp ,overlay)
         (progn ,@body)))
 
@@ -1347,9 +1347,11 @@ buffer is not on info-mode"
   (annotate-guess-filename-for-dump Info-current-file nil))
 
 (cl-defun annotate-indirect-buffer-p (&optional (buffer (current-buffer)))
+  "Returns non nil if `BUFFER' (default the current buffer) is an indirect buffer."
   (buffer-base-buffer buffer))
 
 (defun annotate-indirect-buffer-current-p ()
+"Returns non nil if the current buffer is an indirect buffer."
   (annotate-indirect-buffer-p))
 
 (defun annotate-actual-file-name ()
@@ -1465,13 +1467,16 @@ essentially what you get from:
        (nth 3 annotation)))
 
 (defun annotate-save-all-annotated-buffers ()
-  "Save the annotations for all buffer where annotate-mode is active"
+  "Save the annotations for all buffer where `annotate-mode' is active."
   (let ((all-annotated-buffers (annotate-buffers-annotate-mode)))
     (cl-loop for annotated-buffer in all-annotated-buffers do
              (with-current-buffer annotated-buffer
                (annotate-save-annotations)))))
 
 (cl-defun annotate--dump-indirect-buffer (annotations &optional (indirect-buffer (current-buffer)))
+"Clone an annotated indirect buffer into a new buffer.
+`ANNOTATIONS' containd the annotations and `INDIRECT-BUFFER'
+\(default the current buffer) is the buffer to be cloned."
   (when annotations
     (let* ((new-buffer-name  (generate-new-buffer-name (concat (buffer-name indirect-buffer)
                                                                annotate-dump-from-indirect-bugger-suffix)))
@@ -1939,25 +1944,25 @@ in a chain of annotations as last."
           (reverse results))))))
 
 (defun annotate-annotations-chain-at (pos)
-  "Find all annotation that are parts of the chain that overlaps at `point'."
+  "Find all annotation that are parts of the chain that overlaps at `POS'."
   (annotate-find-chain (annotate-annotation-at pos)))
 
 (defun annotate-create-annotation (start end annotation-text annotated-text)
-  "Create a new annotation for selected region.
+  "Create a new annotation for selected region (from `START' to  `END'.
 
-Here the argument 'annotation-text' is the string that appears
+Here the argument 'ANNOTATION-TEXT' is the string that appears
 on the margin of the window and 'annotated-text' is the string
 that is underlined.
 
 If this function is called from procedure
-'annotate-load-annotations' the argument 'annotated-text'
+'annotate-load-annotations' the argument `ANNOTATED-TEXT'
 should be not null. In this case we know that an annotation
 existed in a text interval defined in the database
 metadata (the database located in the file specified by the
 variable 'annotate-file') and should just be
 restored. Sometimes the annotated text (see above) can not be
 found in said interval because the annotated file's content
-changed and annotate-mode could not track the
+changed and `annotate-mode' could not track the
 changes (e.g. save the file when annotate-mode was not
 active/loaded) in this case the matching
 text ('annotated-text') is searched in a region surrounding the
@@ -2220,7 +2225,7 @@ point)."
         (font-lock-flush)))))
 
 (defun annotate-change-annotation (pos)
-  "Change annotation at point. If empty, delete annotation."
+  "Change annotation at `POS'.  If empty, delete annotation."
   (let* ((highlight       (annotate-annotation-at pos))
          (annotation-text (read-from-minibuffer annotate-annotation-prompt
                                                 (overlay-get highlight 'annotation))))
@@ -2396,12 +2401,12 @@ The format is suitable for database dump."
                   all-annotations))))
 
 (defun annotate-info-root-dir-p (filename)
-  "Is the name of this file equals to the info root node?"
+  "Is the name of this file (`FILENAME') equals to the info root node?"
   (string= filename
            annotate-info-root-name))
 
 (defun annotate-guess-file-format (filename)
-  "Try to guess the file format.
+  "Try to guess the file format from `FILENAME'.
 Non nil if the file format is supported from 'annotate' in a more
 sophisticated way than plain text."
   (cl-labels ((file-contents ()
@@ -2788,7 +2793,7 @@ The format is a proper list where:
  `match-beginning' and `match-end'.
 
 Note that spaces are ignored and all the tokens except `re' must
-not be prefixed with a backslash to match. So, for example not ->
+not be prefixed with a backslash to match.  So, for example not ->
 will match the token type 'not but \not will match the token 're;
 this way we can 'protect' a regexp that contains reserved
 keyword (aka escaping).
@@ -3368,7 +3373,7 @@ using `ANNOTATE--DB-MERGE-ANNOTATIONS'."
                                         (push first-record accum)))))))
 
 (defun annotate-import-annotations ()
-"Prompt user for an annotation database file and merge it int
+"Prompt user for an annotation database file and merge it into
 their personal database."
   (interactive)
   (cl-flet ((deserialize-db (file)
