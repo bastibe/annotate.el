@@ -310,6 +310,9 @@ annotation as defined in the database."
 (defconst annotate-confirm-deleting-annotation-prompt  "Delete this annotation? "
   "Prompt to be shown when asking for annotation deletion confirm.")
 
+(defconst annotate-message-annotation-loaded "Annotations loaded."
+  "The message shown when annotations has been loaded")
+
 ;;;; custom errors
 
 (define-error 'annotate-error "Annotation error")
@@ -1567,7 +1570,7 @@ essentially what you get from:
             (annotate-create-annotation start end annotation-string nil)))))
     (font-lock-flush)
     (when annotate-use-messages
-      (message "Annotations loaded."))))
+      (message annotate-message-annotation-loaded))))
 
 (defun annotate-load-annotations ()
   "Load all annotations from disk and redraw the buffer to render the annotations.
@@ -1641,7 +1644,7 @@ example:
                                            annotated-text))))))
         (font-lock-flush)
         (when annotate-use-messages
-          (message "Annotations loaded."))))))
+          (message annotate-message-annotation-loaded))))))
 
 (defun annotate-db-clean-records (records-db)
   "Remove records from arg `RECORDS-DB' that have empty annotation, example:
