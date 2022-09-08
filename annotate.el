@@ -70,6 +70,15 @@
     (define-key map (kbd "C-c [")   #'annotate-goto-previous-annotation)
     map))
 
+(defun annotate-timer-print-annotation ()
+  (with-current-buffer (current-buffer)
+    (when annotate-mode
+      (when-let ((annotation (annotate-annotation-at (point))))
+        (message (overlay-get annotation 'annotation))))))
+
+(defvar-local annotate-echo-annotation-timer
+  (run-with-idle-timer 0.1 t #'annotate-timer-print-annotation))
+
 ;;;###autoload
 (define-minor-mode annotate-mode
   "Toggle Annotate mode.
