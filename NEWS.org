@@ -1,3 +1,12 @@
+- 2022-08-02 v1.7.2 cage ::
+
+  This version  removed an error  signalled when closing  an annotated
+  indirect  buffer.  Instead,  when  an annotated  indirect buffer  is
+  killed annotate-mode will clone it into a new regular buffer so that
+  the user can decide to save it in a file or discard it completely.
+
+  Thanks JuanManuelM!
+
 - 2022-08-02 v1.7.1 cage ::
 
   This version fix  a bug that prevented saving  some annotations when
