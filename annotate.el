@@ -216,6 +216,13 @@ annotate-use-echo-area must be non nil"
    annotate-print-annotation-under-cursor is non nil"
   :type 'string)
 
+(defcustom annotate-print-annotation-under-cursor-delay 0.5
+ "The delay (in seconds) after an annotation id printed in the
+minibuffer, when the pursor is placed over an annotated text.
+
+This variable works only if `annotate-print-annotation-under-cursor' is non nil"
+  :type 'float)
+
 (defcustom annotate-warn-if-hash-mismatch t
  "Whether a warning message should be printed if a mismatch
 occurs, for an annotated file, between the hash stored in the
@@ -525,7 +532,9 @@ local version (i.e. a different database for each annotated file"
 (defun annotate--maybe-make-timer-print-annotation ()
   (when (annotate-print-annotation-under-cursor-p)
     (setf annotate-echo-annotation-timer
-          (run-with-idle-timer 0.1 t #'annotate-timer-print-annotation-function))))
+          (run-with-idle-timer annotate-print-annotation-under-cursor-delay
+                               t
+                               #'annotate-timer-print-annotation-function))))
 
 (defun annotate--maybe-cancel-timer-print-annotation ()
   (when (and (annotate-print-annotation-under-cursor-p)
