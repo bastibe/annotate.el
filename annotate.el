@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.7.2
+;; Version: 1.8.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.7.2"
+  :version "1.8.0"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -201,7 +201,27 @@ otherwise."
  "Whether annotation text should appear in the echo area only when mouse
 id positioned over the annotated text instead of positioning them in
 the the buffer (the default)."
+ :type 'boolean)
+
+(defcustom annotate-print-annotation-under-cursor nil
+  "Whether annotation text should appear in the minibuffer when
+the cursor is positioned over an annotated text (default: nil).
+
+Important note: for this changes to take effect also
+annotate-use-echo-area must be non nil"
   :type 'boolean)
+
+(defcustom annotate-print-annotation-under-cursor-prefix "ANNOTATION: "
+  "Prefix that is printed before annotation in the minibuffer when
+   annotate-print-annotation-under-cursor is non nil"
+  :type 'string)
+
+(defcustom annotate-print-annotation-under-cursor-delay 0.5
+ "The delay (in seconds) after an annotation id printed in the
+minibuffer, when the pursor is placed over an annotated text.
+
+This variable works only if `annotate-print-annotation-under-cursor' is non nil"
+  :type 'float)
 
 (defcustom annotate-warn-if-hash-mismatch t
  "Whether a warning message should be printed if a mismatch
@@ -315,6 +335,11 @@ annotation as defined in the database."
 
 (defconst annotate-message-annotations-not-found "No annotations found."
   "The message shown when no annotations has been loaded from the database.")
+
+;;;; buffer locals variables
+
+(defvar-local annotate-echo-annotation-timer nil
+  "The buffer local variable bound to a timer that is in charge to print the annotation under cursor on the echo area")
 
 ;;;; custom errors
 
@@ -492,9 +517,35 @@ local version (i.e. a different database for each annotated file"
                 (db-name (annotate--filepath->local-database-name buffer-file-path)))
       (setq-local annotate-file db-name))))
 
+(defun annotate-timer-print-annotation-function ()
+  (with-current-buffer (current-buffer)
+    (when annotate-mode
+      (when-let ((annotation (annotate-annotation-at (point))))
+        (message "%s%s"
+                 annotate-print-annotation-under-cursor-prefix
+                 (overlay-get annotation 'annotation))))))
+
+(defun annotate-print-annotation-under-cursor-p ()
+  (and annotate-use-echo-area
+       annotate-print-annotation-under-cursor))
+
+(defun annotate--maybe-make-timer-print-annotation ()
+  (when (annotate-print-annotation-under-cursor-p)
+    (setf annotate-echo-annotation-timer
+          (run-with-idle-timer annotate-print-annotation-under-cursor-delay
+                               t
+                               #'annotate-timer-print-annotation-function))))
+
+(defun annotate--maybe-cancel-timer-print-annotation ()
+  (when (and (annotate-print-annotation-under-cursor-p)
+             annotate-echo-annotation-timer
+             (timerp annotate-echo-annotation-timer))
+    (cancel-timer annotate-echo-annotation-timer)))
+
 (defun annotate-initialize ()
   "Load annotations and set up save and display hooks."
   (annotate--maybe-database-set-buffer-local)
+  (annotate--maybe-make-timer-print-annotation)
   (annotate-load-annotations)
   (add-hook 'kill-buffer-hook                 #'annotate-save-annotations t t)
   (add-hook 'kill-emacs-hook                  #'annotate-save-all-annotated-buffers t nil)
@@ -515,6 +566,7 @@ local version (i.e. a different database for each annotated file"
 (defun annotate-shutdown ()
   "Clear annotations and remove save and display hooks."
   (annotate-clear-annotations)
+  (annotate--maybe-cancel-timer-print-annotation)
   (remove-hook 'kill-buffer-hook                 #'annotate-save-annotations t)
   (remove-hook 'kill-emacs-hook                  #'annotate-save-all-annotated-buffers nil)
   (remove-hook 'window-size-change-functions     #'on-window-size-change t)

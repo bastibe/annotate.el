@@ -1,11 +1,37 @@
+2022-09-21 cage
+
+        * NEWS.org,
+        * README.org,
+        * annotate.el:
+
+        - added a customizable  variable to switch on and off  the printing of
+        annotations in the minibuffer;
+        - updated version number;
+        - updated NEWS.org;
+        - updated README.org.
+
+2022-09-16 cage
+
+
+        Merge pull request #135 from cage2/fix-closing-indirect-buffer
+        Merge branch 'master' into print-message-annotate-under-point
+
+2022-09-08 cage
+
+        * annotate.el:
+
+        - added idle timer to print annotation under point.
+
 2022-08-31 cage
 
+        * Changelog,
         * NEWS.org,
         * annotate.el:
 
         - updated, and added if missing, docstrings.
         - updated NEWS.org.
         - removed a duplicated label using a constant.
+        - updated changelog.
 
 2022-08-25 cage
 
