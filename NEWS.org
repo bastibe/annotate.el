@@ -1,3 +1,8 @@
+- 2022-10-20 v1.8.1 cage ::
+
+  This version  fix the command  ~annotate-integrate-annotations~ that
+  was corrupting the buffer containing the annotations, when used.
+
 - 2022-09-21 v1.8.0 cage ::
 
   This version  allows printing  of the  annotation in  the minibuffer
