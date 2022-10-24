@@ -1,5 +1,27 @@
+022-10-20 cage
+
+        * annotate.el:
+
+        - fixed  integration of  annotation when  the buffer  was modified  to
+        accommodate the annotations text;
+        - fixed typo.
+
+2022-09-30 cage2
+
+
+        Merge pull request #137 from cage2/print-message-annotate-under-point
+
+2022-09-28 cage
+
+        * README.org,
+        * annotate.el:
+
+        - made delay before printing annotations on minibuffer customizable;
+        - updated README.org.
+
 2022-09-21 cage
 
+        * Changelog,
         * NEWS.org,
         * README.org,
         * annotate.el:
@@ -9,6 +31,7 @@
         - updated version number;
         - updated NEWS.org;
         - updated README.org.
+        - updated Changelog.
 
 2022-09-16 cage
 
