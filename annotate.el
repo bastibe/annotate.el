@@ -1329,7 +1329,8 @@ a        a**"
 (defun annotate--remove-annotation-property (_begin end)
   "Cleans up annotation properties associated within a region
 surrounded by `BEGIN' and `END'."
-  (when (and (> (buffer-size) 0)
+  (when (and annotate-mode
+             (> (buffer-size) 0)
              (not (buffer-narrowed-p)))
     (with-silent-modifications
       (annotate-with-disable-read-only
