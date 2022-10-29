@@ -1741,7 +1741,7 @@ annotation."
   "Return a sexp from the annotation database contained in `FILE'."
   (with-temp-buffer
     (let* ((annotations-file file)
-           (attributes    (file-attributes annotations-file)))
+           (attributes       (file-attributes annotations-file)))
       (cond
        ((not (file-exists-p annotations-file))
         (signal 'annotate-db-file-not-found (list annotations-file)))
@@ -2482,8 +2482,7 @@ sophisticated way than plain text."
                                       (separator-re    "\^L?\^_\^L?\^J")
                                       (has-separator-p (string-match separator-re file-contents))
                                       (has-node-p      (string-match "Node:" file-contents)))
-                                 (if (or (annotate-info-root-dir-p filename)
-                                         (and has-separator-p
+                                 (if (or (and has-separator-p
                                               has-node-p)
                                          (and has-separator-p
                                               has-info-p))
