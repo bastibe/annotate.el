@@ -2482,9 +2482,8 @@ sophisticated way than plain text."
                                       (separator-re    "\^L?\^_\^L?\^J")
                                       (has-separator-p (string-match separator-re file-contents))
                                       (has-node-p      (string-match "Node:" file-contents)))
-                                 (if (or (and has-separator-p
-                                              has-node-p)
-                                         (and has-separator-p
+                                 (if (and has-separator-p
+                                          (or has-node-p
                                               has-info-p))
                                      :info
                                    nil)))))
