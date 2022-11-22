@@ -1,3 +1,11 @@
+- 2022-10-20 v1.8.2 cage ::
+
+  This version fixed a crash that occurred when visiting an annotated
+  buffer using TRAMP.
+
+  Thanks  to  gsingh93  for  discovering  the  bug  and  providing  an
+  immensely useful help.
+
 - 2022-10-20 v1.8.1 cage ::
 
   This version  fix the command  ~annotate-integrate-annotations~ that

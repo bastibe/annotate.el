@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.8.1
+;; Version: 1.8.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.8.1"
+  :version "1.8.2"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -1329,7 +1329,8 @@ a        a**"
 (defun annotate--remove-annotation-property (_begin end)
   "Cleans up annotation properties associated within a region
 surrounded by `BEGIN' and `END'."
-  (when (and (> (buffer-size) 0)
+  (when (and annotate-mode
+             (> (buffer-size) 0)
              (not (buffer-narrowed-p)))
     (with-silent-modifications
       (annotate-with-disable-read-only
@@ -1740,7 +1741,7 @@ annotation."
   "Return a sexp from the annotation database contained in `FILE'."
   (with-temp-buffer
     (let* ((annotations-file file)
-           (attributes    (file-attributes annotations-file)))
+           (attributes       (file-attributes annotations-file)))
       (cond
        ((not (file-exists-p annotations-file))
         (signal 'annotate-db-file-not-found (list annotations-file)))
@@ -2481,10 +2482,8 @@ sophisticated way than plain text."
                                       (separator-re    "\^L?\^_\^L?\^J")
                                       (has-separator-p (string-match separator-re file-contents))
                                       (has-node-p      (string-match "Node:" file-contents)))
-                                 (if (or (annotate-info-root-dir-p filename)
-                                         (and has-separator-p
-                                              has-node-p)
-                                         (and has-separator-p
+                                 (if (and has-separator-p
+                                          (or has-node-p
                                               has-info-p))
                                      :info
                                    nil)))))
