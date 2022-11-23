@@ -1728,8 +1728,8 @@ annotation."
   (let* ((short-filename  (annotate-filename-from-dump    record))
          (annotations     (annotate-annotations-from-dump record))
          (file-checksum   (annotate-checksum-from-dump    record))
-         (expand-p        (not (eq (ignore-errors (annotate-guess-file-format short-filename))
-                                   :info)))
+         (expand-p        (not (or (file-remote-p short-filename)
+                                   (annotate-info-root-dir-p short-filename))))
          (actual-filename (if expand-p
                               (expand-file-name short-filename)
                             short-filename)))
