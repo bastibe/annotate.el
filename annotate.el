@@ -1330,8 +1330,7 @@ a        a**"
   "Cleans up annotation properties associated within a region
 surrounded by `BEGIN' and `END'."
   (when (and annotate-mode
-             (> (buffer-size) 0)
-             (not (buffer-narrowed-p)))
+             (> (buffer-size) 0))
     (with-silent-modifications
       (annotate-with-disable-read-only
        ;; copy undo list
@@ -1344,7 +1343,9 @@ surrounded by `BEGIN' and `END'."
            ;; annotated newline used to be
            (end-of-line)
            ;; strip dangling display property
-           (remove-text-properties (point) (1+ (point)) '(display nil)))
+           (when (< (1+ (point))
+                    (point-max))
+             (remove-text-properties (point) (1+ (point)) '(display nil))))
          ;; restore undo list
          (setf buffer-undo-list saved-undo-list)
          (buffer-enable-undo))))))
