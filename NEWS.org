@@ -1,3 +1,9 @@
+- 2022-11-30 v1.8.3 cage ::
+
+  This versions fixed a bug that prevented annotations of info files.
+
+  Also opening of annotated remote files should be faster.
+
 - 2022-10-20 v1.8.2 cage ::
 
   This version fixed a crash that occurred when visiting an annotated

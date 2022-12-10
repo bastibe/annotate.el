@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.8.2
+;; Version: 1.8.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.8.2"
+  :version "1.8.3"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -1330,8 +1330,7 @@ a        a**"
   "Cleans up annotation properties associated within a region
 surrounded by `BEGIN' and `END'."
   (when (and annotate-mode
-             (> (buffer-size) 0)
-             (not (buffer-narrowed-p)))
+             (> (buffer-size) 0))
     (with-silent-modifications
       (annotate-with-disable-read-only
        ;; copy undo list
@@ -1344,7 +1343,9 @@ surrounded by `BEGIN' and `END'."
            ;; annotated newline used to be
            (end-of-line)
            ;; strip dangling display property
-           (remove-text-properties (point) (1+ (point)) '(display nil)))
+           (when (< (1+ (point))
+                    (point-max))
+             (remove-text-properties (point) (1+ (point)) '(display nil))))
          ;; restore undo list
          (setf buffer-undo-list saved-undo-list)
          (buffer-enable-undo))))))
@@ -1728,9 +1729,9 @@ annotation."
   (let* ((short-filename  (annotate-filename-from-dump    record))
          (annotations     (annotate-annotations-from-dump record))
          (file-checksum   (annotate-checksum-from-dump    record))
-         (expand-p        (not (eq (ignore-errors (annotate-guess-file-format short-filename))
-                                   :info)))
-         (actual-filename (if expand-p
+         (expandp         (not (or (file-remote-p short-filename)
+                                   (annotate-info-root-dir-p short-filename))))
+         (actual-filename (if expandp
                               (expand-file-name short-filename)
                             short-filename)))
     (annotate-make-record actual-filename
