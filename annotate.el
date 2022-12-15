@@ -1601,7 +1601,7 @@ essentially what you get from:
           (message "Annotations saved.")))
        ((annotate-indirect-buffer-current-p)
         (annotate--dump-indirect-buffer file-annotations))
-       (t
+       (file-annotations
         (lwarn '(annotate-mode)
                :warning
                annotate-warn-buffer-has-no-valid-file
