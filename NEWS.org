@@ -1,3 +1,14 @@
+- 2022-12-15 v1.8.4 cage ::
+
+  This versions prevented printing of a warning
+
+  `annotate-save-annotations' printed a warning  if the buffer was not
+  based on a file's contents. But  the warning was printed even if the
+  buffer contained no annotations at all.
+
+  This  version prints  the warning  about  missing file  only if  the
+  buffer is annotated (i.e. contains at least an annotation).
+
 - 2022-11-30 v1.8.3 cage ::
 
   This versions fixed a bug that prevented annotations of info files.
