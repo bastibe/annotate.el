@@ -1,21 +1,42 @@
+2022-12-15 cage
+
+        * annotate.el:
+
+        - prevented printing of warning when saving a buffer that has no file
+          under the hood and no annotation.
+          `annotate-save-annotations' printed  a warning if the  buffer was not
+          based on a file's contents. But  the warning was printed even if the
+          buffer contained no annotations at all.
+          this patch prints the warning about  missing file only if the buffer
+          is annotated (i.e. contains at least an annotation).
+
+2022-11-30 cage
+
+        * Changelog,
+        * NEWS.org,
+        * annotate.el:
+
+        - increased version number;
+        - update NEWS.org and Changelog.
+
 2022-11-23 cage
 
-	* annotate.el:
+        * annotate.el:
 
-	- restored annotation of info files.
-	- renamed variable to respect a stylistic convention.
-	- do not skip 'annotate--remove-annotation-property' for narrowed
-	buffer.
-	Previously  the   function  above  just  skipped   narrowed  buffer,
-	effectively preventing delete of  annotation's text. This patch just
-	prevents the  function to try  to move  the cursor beyond  the buffer
-	limit that would leads to a crash.
-	The  test  for  narrowed  buffer was  added  because  command  like:
-	'comment-dwim' narrows the buffer beyond  the curtains, but my patch
-	was too  radical, this  changes supposed to  fix annotation  of info
-	files and does not interferes with 'comment-dwim'.
+        - restored annotation of info files.
+        - renamed variable to respect a stylistic convention.
+        - do not skip 'annotate--remove-annotation-property' for narrowed
+        buffer.
+        Previously  the   function  above  just  skipped   narrowed  buffer,
+        effectively preventing delete of  annotation's text. This patch just
+        prevent the  function to try  to move  the cursor beyond  the buffer
+        limit that would leads to a crash.
+        The  test  for  narrowed  buffer was  added  because  command  like:
+        'comment-dwim' narrows the buffer beyond  the curtains, but my patch
+        was too  radical, this  changes supposed to  fix annotation  of info
+        files and does not interferes with 'comment-dwim'.
 
-2022-11-22 cage2
+2022-11-22 cage
 
 
 	Merge pull request #140 from cage2/fix-tramp-crash
