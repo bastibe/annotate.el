@@ -1,3 +1,8 @@
+- 2022-12-15 v1.8.5 cage ::
+
+  This version fixed a regression that prevented to delete annotations
+  when disabling annotation-mode.
+
 - 2022-12-15 v1.8.4 cage ::
 
   This versions prevented printing of a warning
