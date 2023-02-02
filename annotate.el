@@ -381,17 +381,20 @@ annotation as defined in the database."
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist.
 See `annotate-blacklist-major-mode'."
-  (let ((annotate-allowed-p (with-current-buffer (current-buffer)
-                              (not (apply #'derived-mode-p annotate-blacklist-major-mode)))))
-    (cond
-     ((not annotate-allowed-p)
-      (annotate-shutdown)
-      (setq annotate-mode nil))
-     (annotate-mode
-      (when (not (annotate-annotations-exist-p))
-        (annotate-initialize)))
-     (t
-      (annotate-shutdown)))))
+  (cl-flet ((shutdown ()
+              (setq annotate-mode t)
+              (annotate-shutdown)
+              (setq annotate-mode nil)))
+    (let ((annotate-allowed-p (with-current-buffer (current-buffer)
+                                (not (apply #'derived-mode-p annotate-blacklist-major-mode)))))
+      (cond
+       ((not annotate-allowed-p)
+        (shutdown))
+       (annotate-mode
+        (when (not (annotate-annotations-exist-p))
+          (annotate-initialize)))
+       (t
+        (shutdown))))))
 
 (cl-defun annotate-buffer-checksum (&optional (object (current-buffer)))
   "Calculate an hash for the argument `OBJECT'."
