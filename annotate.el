@@ -362,15 +362,16 @@ annotation as defined in the database."
   'annotate-error)
 
 (cl-defmacro annotate-with-disable-read-only (&body body)
-"Run `BODY' with `READ-ONLY-MODE' temporary disabled."
-  `(let ((read-mode-p (if buffer-read-only
-                          1
-                        -1)))
-     (when (= read-mode-p 1)
+  "Run `BODY' with `READ-ONLY-MODE' temporary disabled."
+  (let ((read-mode-p (gensym)))
+  `(let ((,read-mode-p (if buffer-read-only
+                           1
+                         -1)))
+     (when (= ,read-mode-p 1)
        (read-only-mode -1))
      ,@body
-     (when (= read-mode-p 1)
-       (read-only-mode 1))))
+     (when (= ,read-mode-p 1)
+       (read-only-mode 1)))))
 
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
@@ -1343,7 +1344,7 @@ surrounded by `BEGIN' and `END'."
            ;; annotated newline used to be
            (end-of-line)
            ;; strip dangling display property
-           (when (< (1+ (point))
+           (when (< (point)
                     (point-max))
              (remove-text-properties (point) (1+ (point)) '(display nil))))
          ;; restore undo list
