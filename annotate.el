@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.8.4
+;; Version: 1.8.5
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.8.4"
+  :version "1.8.5"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -362,15 +362,16 @@ annotation as defined in the database."
   'annotate-error)
 
 (cl-defmacro annotate-with-disable-read-only (&body body)
-"Run `BODY' with `READ-ONLY-MODE' temporary disabled."
-  `(let ((read-mode-p (if buffer-read-only
-                          1
-                        -1)))
-     (when (= read-mode-p 1)
+  "Run `BODY' with `READ-ONLY-MODE' temporary disabled."
+  (let ((read-mode-p (gensym)))
+  `(let ((,read-mode-p (if buffer-read-only
+                           1
+                         -1)))
+     (when (= ,read-mode-p 1)
        (read-only-mode -1))
      ,@body
-     (when (= read-mode-p 1)
-       (read-only-mode 1))))
+     (when (= ,read-mode-p 1)
+       (read-only-mode 1)))))
 
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
@@ -380,17 +381,20 @@ annotation as defined in the database."
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist.
 See `annotate-blacklist-major-mode'."
-  (let ((annotate-allowed-p (with-current-buffer (current-buffer)
-                              (not (apply #'derived-mode-p annotate-blacklist-major-mode)))))
-    (cond
-     ((not annotate-allowed-p)
-      (annotate-shutdown)
-      (setq annotate-mode nil))
-     (annotate-mode
-      (when (not (annotate-annotations-exist-p))
-        (annotate-initialize)))
-     (t
-      (annotate-shutdown)))))
+  (cl-flet ((shutdown ()
+              (setq annotate-mode t)
+              (annotate-shutdown)
+              (setq annotate-mode nil)))
+    (let ((annotate-allowed-p (with-current-buffer (current-buffer)
+                                (not (apply #'derived-mode-p annotate-blacklist-major-mode)))))
+      (cond
+       ((not annotate-allowed-p)
+        (shutdown))
+       (annotate-mode
+        (when (not (annotate-annotations-exist-p))
+          (annotate-initialize)))
+       (t
+        (shutdown))))))
 
 (cl-defun annotate-buffer-checksum (&optional (object (current-buffer)))
   "Calculate an hash for the argument `OBJECT'."
@@ -1343,7 +1347,7 @@ surrounded by `BEGIN' and `END'."
            ;; annotated newline used to be
            (end-of-line)
            ;; strip dangling display property
-           (when (< (1+ (point))
+           (when (< (point)
                     (point-max))
              (remove-text-properties (point) (1+ (point)) '(display nil))))
          ;; restore undo list

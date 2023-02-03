@@ -1,3 +1,20 @@
+2023-02-02 cage
+
+        * annotate.el:
+
+        - fixed limit for deleting text-property (the annotation's text).
+        - prevented capure of a variable in macro
+        'annotate-with-disable-read-only'.
+        - fixed procedures to have a clean exit from this mode.
+        Toggling annotate-mode (M-x annotate-mode  in a buffer with annotate
+        mode active), was not removing the annotation's text.
+
+2022-12-19 cage2
+
+
+        Merge pull request #144 from cage2/no-warning-if-no-annotations-save
+
+
 2022-12-15 cage
 
         * annotate.el:
