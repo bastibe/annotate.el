@@ -240,6 +240,19 @@ annotate the whole line before (or after if the line is composed
 by the newline character only) instead."
   :type 'boolean)
 
+(defcustom annotate-search-region-lines-delta 2
+ "When the annotated file is out of sync with its annotation
+database the software looks for annotated text in the region with
+delta equals to the value of this variable. Units are in number
+of lines. The center of the region is the position of the
+annotation as defined in the database."
+  :type 'number)
+
+(defcustom annotate-hide-annotations-text nil
+  "Whether the text shuld not be rendered in the buffer, default
+is nil"
+  :type 'boolean)
+
 (defconst annotate-prop-chain-position
   'position)
 
@@ -288,14 +301,6 @@ summary window because does not exist or is in an unsupported
 (defconst annotate-info-valid-file-extensions
   '(".info" ".info.gz" ".gz")
  "The valid extension for files that contains info document.")
-
-(defcustom annotate-search-region-lines-delta 2
- "When the annotated file is out of sync with its annotation
-database the software looks for annotated text in the region with
-delta equals to the value of this variable. Units are in number
-of lines. The center of the region is the position of the
-annotation as defined in the database."
-  :type 'number)
 
 (defconst annotate-summary-list-prefix "    "
   "The string used as prefix for each text annotation item in summary window.")
@@ -823,6 +828,16 @@ specified by `FROM' and `TO'."
                         (goto-char (annotate-end-of-line-pos))
                         (annotate-annotate)))))))))))))))
 
+(defun annotate-toggle-annotation-text ()
+  (interactive)
+  (setf annotate-hide-annotations-text (not annotate-hide-annotations-text))
+  (let ((chains (annotate-annotations-chain-in-range 0 (buffer-size))))
+    (dolist (chain chains)
+      (if annotate-hide-annotations-text
+          (annotate-chain-hide-text chain)
+          (annotate-chain-show-text chain))))
+  (font-lock-flush))
+
 (cl-defun annotate-goto-next-annotation (&key (startingp t))
   "Move point to the next annotation."
   (interactive)
@@ -1247,7 +1262,8 @@ a        a**"
             (eol                (progn (end-of-line) (point)))
             (annotation-text    "")
             (overlays           nil)
-            (annotation-counter 1))
+            (annotation-counter 1)
+            (hidden-text        nil))
         ;; include previous line if point is at bol:
         (when (null (overlays-in bol eol))
           (setq bol (1- bol)))
@@ -1299,7 +1315,11 @@ a        a**"
                                                   (length overlays))
                                                "\n"
                                              "")
-                                         "\n")))
+                                         "\n"))
+                 (last-ring-p          (annotate-chain-last-p ov))
+                 (tail-hidden-text-p   (and last-ring-p
+                                            (annotate-tail-overlay-hide-text-p ov))))
+            (setf hidden-text tail-hidden-text-p)
             (cl-incf annotation-counter)
             (overlay-put ov 'face face-highlight)
             (overlay-put ov 'annotation-face face)
@@ -1309,6 +1329,7 @@ a        a**"
                              'face
                              (overlay-get first-in-chain 'face))))
             (when (and (not annotate-use-echo-area)
+                       (not hidden-text)
                        (annotate-chain-last-p ov))
                 (when position-new-line-p
                   (setf prefix-first " \n"))
@@ -2010,6 +2031,21 @@ in a chain of annotations as last."
 (defun annotate-annotations-chain-at (pos)
   "Find all annotation that are parts of the chain that overlaps at `POS'."
   (annotate-find-chain (annotate-annotation-at pos)))
+
+(defun annotate-chain-hide-text (chain)
+  (let ((last-ring (annotate-chain-last (cl-first chain))))
+    (overlay-put last-ring 'hide-text t)))
+
+(defun annotate-chain-show-text (chain)
+  (let ((last-ring (annotate-chain-last (cl-first chain))))
+    (overlay-put last-ring 'hide-text nil)))
+
+(defun annotate-chain-hide-text-p (chain)
+  (let ((last-ring (annotate-chain-last (cl-first chain))))
+    (overlay-get last-ring 'hide-text)))
+
+(defun annotate-tail-overlay-hide-text-p (overlay)
+  (overlay-get overlay 'hide-text))
 
 (defun annotate-create-annotation (start end annotation-text annotated-text)
   "Create a new annotation for selected region (from `START' to  `END'.
