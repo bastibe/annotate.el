@@ -131,7 +131,8 @@ that Emacs passes to the diff program."
   :type 'boolean)
 
 (defcustom annotate-popup-warning-indirect-buffer t
-  "Whether an information popup message is shown when killing an annotated indirect buffer."
+  "Whether an information popup message is shown when killing an
+annotated indirect buffer."
   :type 'boolean)
 
 (defcustom annotate-integrate-marker " ANNOTATION: "
@@ -213,7 +214,7 @@ annotate-use-echo-area must be non nil"
 
 (defcustom annotate-print-annotation-under-cursor-prefix "ANNOTATION: "
   "Prefix that is printed before annotation in the minibuffer when
-   annotate-print-annotation-under-cursor is non nil"
+annotate-print-annotation-under-cursor is non nil"
   :type 'string)
 
 (defcustom annotate-print-annotation-under-cursor-delay 0.5
@@ -331,7 +332,7 @@ summary window because does not exist or is in an unsupported
   "Prompt to be shown when asking for annotation deletion confirm.")
 
 (defconst annotate-message-annotation-loaded "Annotations loaded."
-  "The message shown when annotations has been loaded")
+  "The message shown when annotations has been loaded.")
 
 (defconst annotate-message-annotations-not-found "No annotations found."
   "The message shown when no annotations has been loaded from the database.")
@@ -339,7 +340,8 @@ summary window because does not exist or is in an unsupported
 ;;;; buffer locals variables
 
 (defvar-local annotate-echo-annotation-timer nil
-  "The buffer local variable bound to a timer that is in charge to print the annotation under cursor on the echo area")
+  "The buffer local variable bound to a timer that is in charge to print
+the annotation under cursor on the echo area.")
 
 ;;;; custom errors
 
@@ -433,7 +435,7 @@ See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
   (overlay-get annotation 'force-newline-policy))
 
 (defun annotate-chain-last-ring (chain)
-  "Get the last ring of `CHAIN'"
+  "Get the last ring of `CHAIN'."
   (car (last chain)))
 
 (defun annotate--remap-chain-pos (annotations)
@@ -526,6 +528,11 @@ local version (i.e. a different database for each annotated file"
       (setq-local annotate-file db-name))))
 
 (defun annotate-timer-print-annotation-function ()
+  "Print annotation under point in the minibuffer.
+Used by the timer set in `annotate--maybe-make-timer-print-annotation'.
+
+See also the customizable variables: `annotate-echo-annotation-timer' and
+`annotate-print-annotation-under-cursor'."
   (with-current-buffer (current-buffer)
     (when annotate-mode
       (when-let ((annotation (annotate-annotation-at (point))))
@@ -534,10 +541,14 @@ local version (i.e. a different database for each annotated file"
                  (overlay-get annotation 'annotation))))))
 
 (defun annotate-print-annotation-under-cursor-p ()
+  "Non nil if the user configured the package to print
+annotation's text in the minibuffer."
   (and annotate-use-echo-area
        annotate-print-annotation-under-cursor))
 
 (defun annotate--maybe-make-timer-print-annotation ()
+  "Set the timer to print the annotation's text in the minibuffer.
+Used when the mode is activated."
   (when (annotate-print-annotation-under-cursor-p)
     (setf annotate-echo-annotation-timer
           (run-with-idle-timer annotate-print-annotation-under-cursor-delay
@@ -545,6 +556,8 @@ local version (i.e. a different database for each annotated file"
                                #'annotate-timer-print-annotation-function))))
 
 (defun annotate--maybe-cancel-timer-print-annotation ()
+  "Cancel the timer to print the annotation's' text in the minibuffer.
+Used when the mode is deactivated."
   (when (and (annotate-print-annotation-under-cursor-p)
              annotate-echo-annotation-timer
              (timerp annotate-echo-annotation-timer))
@@ -828,7 +841,7 @@ specified by `FROM' and `TO'."
                         (annotate-annotate)))))))))))))))
 
 (defun annotate-toggle-annotation-text ()
-  "Hide annotation's text at current cursor's point, if such annotation exists"
+  "Hide annotation's text at current cursor's point, if such annotation exists."
   (interactive)
   (when-let* ((chain     (annotate-chain-at (point)))
               (last-ring (annotate-chain-last-ring chain)))
@@ -838,6 +851,7 @@ specified by `FROM' and `TO'."
     (font-lock-flush)))
 
 (defun annotate-toggle-all-annotations-text ()
+"Hide annototation's text in the whole buffer."
   (interactive)
   (let ((chains (annotate-annotations-chain-in-range 0 (buffer-size))))
     (dolist (chain chains)
@@ -2041,18 +2055,24 @@ in a chain of annotations as last."
   (annotate-find-chain (annotate-annotation-at pos)))
 
 (defun annotate-chain-hide-text (chain)
+  "Sets an overlay properties of the last ring of `CHAIN' so that
+the annotation's text will not be rendered."
   (let ((last-ring (annotate-chain-last-ring chain)))
     (overlay-put last-ring 'hide-text t)))
 
 (defun annotate-chain-show-text (chain)
+  "Sets an overlay properties of the last ring of `CHAIN' so that
+the annotation's text will be rendered."
   (let ((last-ring (annotate-chain-last-ring chain)))
     (overlay-put last-ring 'hide-text nil)))
 
 (defun annotate-chain-hide-text-p (chain)
+"Non nil if the annotation's text must not be rendered."
   (let ((last-ring (annotate-chain-last (cl-first chain))))
     (overlay-get last-ring 'hide-text)))
 
 (defun annotate-tail-overlay-hide-text-p (overlay)
+  "Get the property for hiding the annotation text from `overlay'."
   (overlay-get overlay 'hide-text))
 
 (defun annotate-create-annotation (start end annotation-text annotated-text)
