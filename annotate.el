@@ -432,6 +432,10 @@ annotated text?
 See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
   (overlay-get annotation 'force-newline-policy))
 
+(defun annotate-chain-last-ring (chain)
+  "Get the last ring of `CHAIN'"
+  (car (last chain)))
+
 (defun annotate--remap-chain-pos (annotations)
   "Remap `ANNOTATIONS' as an annotation 'chain'.
 
@@ -827,7 +831,7 @@ specified by `FROM' and `TO'."
   "Hide annotation's text at current cursor's point, if such annotation exists"
   (interactive)
   (when-let* ((chain     (annotate-chain-at (point)))
-              (last-ring (car (last chain))))
+              (last-ring (annotate-chain-last-ring chain)))
     (if (annotate-tail-overlay-hide-text-p last-ring)
         (annotate-chain-show-text chain)
       (annotate-chain-hide-text chain))
@@ -837,7 +841,7 @@ specified by `FROM' and `TO'."
   (interactive)
   (let ((chains (annotate-annotations-chain-in-range 0 (buffer-size))))
     (dolist (chain chains)
-      (if (annotate-tail-overlay-hide-text-p (car (last chain)))
+      (if (annotate-tail-overlay-hide-text-p (annotate-chain-last-ring chain))
           (annotate-chain-show-text chain)
         (annotate-chain-hide-text chain))))
   (font-lock-flush))
@@ -2037,11 +2041,11 @@ in a chain of annotations as last."
   (annotate-find-chain (annotate-annotation-at pos)))
 
 (defun annotate-chain-hide-text (chain)
-  (let ((last-ring (car (last chain))))
+  (let ((last-ring (annotate-chain-last-ring chain)))
     (overlay-put last-ring 'hide-text t)))
 
 (defun annotate-chain-show-text (chain)
-  (let ((last-ring (car (last chain))))
+  (let ((last-ring (annotate-chain-last-ring chain)))
     (overlay-put last-ring 'hide-text nil)))
 
 (defun annotate-chain-hide-text-p (chain)
