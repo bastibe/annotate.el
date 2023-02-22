@@ -2069,7 +2069,7 @@ the annotation's text will be rendered."
 (defun annotate-chain-hide-text-p (chain)
 "Non nil if the annotation's text must not be rendered."
   (let ((last-ring (annotate-chain-last (cl-first chain))))
-    (overlay-get last-ring 'hide-text)))
+    (annotate-tail-overlay-hide-text-p last-ring)))
 
 (defun annotate-tail-overlay-hide-text-p (overlay)
   "Get the property for hiding the annotation text from `overlay'."
