@@ -1,3 +1,25 @@
+2023-02-22 cage
+
+        * annotate.el:
+
+        - added command 'annotate-toggle-annotation-text';
+        - removed customizable variable 'annotate-hide-annotations-text'.
+        - wrapped raw chain manipulation with 'annotate-chain-last-ring' to
+        get the last segment of a chain.
+        - added missing docstrings.
+        - removed repeated code.
+
+2023-02-15 cage
+
+        * annotate.el:
+
+        - added a new command 'annotate-toggle-annotation-text' (and related
+        functions/variables).
+
+2023-02-03 cage
+
+        Merge pull request #146 from cage2/fix-annotate-shutdown
+
 2023-02-02 cage
 
         * annotate.el:
