@@ -248,11 +248,6 @@ of lines. The center of the region is the position of the
 annotation as defined in the database."
   :type 'number)
 
-(defcustom annotate-hide-annotations-text nil
-  "Whether the text shuld not be rendered in the buffer, default
-is nil"
-  :type 'boolean)
-
 (defconst annotate-prop-chain-position
   'position)
 
@@ -829,13 +824,22 @@ specified by `FROM' and `TO'."
                         (annotate-annotate)))))))))))))))
 
 (defun annotate-toggle-annotation-text ()
+  "Hide annotation's text at current cursor's point, if such annotation exists"
   (interactive)
-  (setf annotate-hide-annotations-text (not annotate-hide-annotations-text))
+  (when-let* ((chain     (annotate-chain-at (point)))
+              (last-ring (car (last chain))))
+    (if (annotate-tail-overlay-hide-text-p last-ring)
+        (annotate-chain-show-text chain)
+      (annotate-chain-hide-text chain))
+    (font-lock-flush)))
+
+(defun annotate-toggle-all-annotations-text ()
+  (interactive)
   (let ((chains (annotate-annotations-chain-in-range 0 (buffer-size))))
     (dolist (chain chains)
-      (if annotate-hide-annotations-text
-          (annotate-chain-hide-text chain)
-          (annotate-chain-show-text chain))))
+      (if (annotate-tail-overlay-hide-text-p (car (last chain)))
+          (annotate-chain-show-text chain)
+        (annotate-chain-hide-text chain))))
   (font-lock-flush))
 
 (cl-defun annotate-goto-next-annotation (&key (startingp t))
@@ -2033,11 +2037,11 @@ in a chain of annotations as last."
   (annotate-find-chain (annotate-annotation-at pos)))
 
 (defun annotate-chain-hide-text (chain)
-  (let ((last-ring (annotate-chain-last (cl-first chain))))
+  (let ((last-ring (car (last chain))))
     (overlay-put last-ring 'hide-text t)))
 
 (defun annotate-chain-show-text (chain)
-  (let ((last-ring (annotate-chain-last (cl-first chain))))
+  (let ((last-ring (car (last chain))))
     (overlay-put last-ring 'hide-text nil)))
 
 (defun annotate-chain-hide-text-p (chain)
