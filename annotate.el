@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.8.5
+;; Version: 1.9.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.8.5"
+  :version "1.9.0"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -131,7 +131,8 @@ that Emacs passes to the diff program."
   :type 'boolean)
 
 (defcustom annotate-popup-warning-indirect-buffer t
-  "Whether an information popup message is shown when killing an annotated indirect buffer."
+  "Whether an information popup message is shown when killing an
+annotated indirect buffer."
   :type 'boolean)
 
 (defcustom annotate-integrate-marker " ANNOTATION: "
@@ -213,7 +214,7 @@ annotate-use-echo-area must be non nil"
 
 (defcustom annotate-print-annotation-under-cursor-prefix "ANNOTATION: "
   "Prefix that is printed before annotation in the minibuffer when
-   annotate-print-annotation-under-cursor is non nil"
+annotate-print-annotation-under-cursor is non nil"
   :type 'string)
 
 (defcustom annotate-print-annotation-under-cursor-delay 0.5
@@ -239,6 +240,14 @@ has been modified outside Emacs."
 annotate the whole line before (or after if the line is composed
 by the newline character only) instead."
   :type 'boolean)
+
+(defcustom annotate-search-region-lines-delta 2
+ "When the annotated file is out of sync with its annotation
+database the software looks for annotated text in the region with
+delta equals to the value of this variable. Units are in number
+of lines. The center of the region is the position of the
+annotation as defined in the database."
+  :type 'number)
 
 (defconst annotate-prop-chain-position
   'position)
@@ -289,14 +298,6 @@ summary window because does not exist or is in an unsupported
   '(".info" ".info.gz" ".gz")
  "The valid extension for files that contains info document.")
 
-(defcustom annotate-search-region-lines-delta 2
- "When the annotated file is out of sync with its annotation
-database the software looks for annotated text in the region with
-delta equals to the value of this variable. Units are in number
-of lines. The center of the region is the position of the
-annotation as defined in the database."
-  :type 'number)
-
 (defconst annotate-summary-list-prefix "    "
   "The string used as prefix for each text annotation item in summary window.")
 
@@ -331,7 +332,7 @@ annotation as defined in the database."
   "Prompt to be shown when asking for annotation deletion confirm.")
 
 (defconst annotate-message-annotation-loaded "Annotations loaded."
-  "The message shown when annotations has been loaded")
+  "The message shown when annotations has been loaded.")
 
 (defconst annotate-message-annotations-not-found "No annotations found."
   "The message shown when no annotations has been loaded from the database.")
@@ -339,7 +340,8 @@ annotation as defined in the database."
 ;;;; buffer locals variables
 
 (defvar-local annotate-echo-annotation-timer nil
-  "The buffer local variable bound to a timer that is in charge to print the annotation under cursor on the echo area")
+  "The buffer local variable bound to a timer that is in charge to print
+the annotation under cursor on the echo area.")
 
 ;;;; custom errors
 
@@ -432,6 +434,10 @@ annotated text?
 See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
   (overlay-get annotation 'force-newline-policy))
 
+(defun annotate-chain-last-ring (chain)
+  "Get the last ring of `CHAIN'."
+  (car (last chain)))
+
 (defun annotate--remap-chain-pos (annotations)
   "Remap `ANNOTATIONS' as an annotation 'chain'.
 
@@ -522,6 +528,11 @@ local version (i.e. a different database for each annotated file"
       (setq-local annotate-file db-name))))
 
 (defun annotate-timer-print-annotation-function ()
+  "Print annotation under point in the minibuffer.
+Used by the timer set in `annotate--maybe-make-timer-print-annotation'.
+
+See also the customizable variables: `annotate-echo-annotation-timer' and
+`annotate-print-annotation-under-cursor'."
   (with-current-buffer (current-buffer)
     (when annotate-mode
       (when-let ((annotation (annotate-annotation-at (point))))
@@ -530,10 +541,14 @@ local version (i.e. a different database for each annotated file"
                  (overlay-get annotation 'annotation))))))
 
 (defun annotate-print-annotation-under-cursor-p ()
+  "Non nil if the user configured the package to print
+annotation's text in the minibuffer."
   (and annotate-use-echo-area
        annotate-print-annotation-under-cursor))
 
 (defun annotate--maybe-make-timer-print-annotation ()
+  "Set the timer to print the annotation's text in the minibuffer.
+Used when the mode is activated."
   (when (annotate-print-annotation-under-cursor-p)
     (setf annotate-echo-annotation-timer
           (run-with-idle-timer annotate-print-annotation-under-cursor-delay
@@ -541,6 +556,8 @@ local version (i.e. a different database for each annotated file"
                                #'annotate-timer-print-annotation-function))))
 
 (defun annotate--maybe-cancel-timer-print-annotation ()
+  "Cancel the timer to print the annotation's' text in the minibuffer.
+Used when the mode is deactivated."
   (when (and (annotate-print-annotation-under-cursor-p)
              annotate-echo-annotation-timer
              (timerp annotate-echo-annotation-timer))
@@ -822,6 +839,26 @@ specified by `FROM' and `TO'."
                         (forward-line 1)
                         (goto-char (annotate-end-of-line-pos))
                         (annotate-annotate)))))))))))))))
+
+(defun annotate-toggle-annotation-text ()
+  "Hide annotation's text at current cursor's point, if such annotation exists."
+  (interactive)
+  (when-let* ((chain     (annotate-chain-at (point)))
+              (last-ring (annotate-chain-last-ring chain)))
+    (if (annotate-tail-overlay-hide-text-p last-ring)
+        (annotate-chain-show-text chain)
+      (annotate-chain-hide-text chain))
+    (font-lock-flush)))
+
+(defun annotate-toggle-all-annotations-text ()
+"Hide annototation's text in the whole buffer."
+  (interactive)
+  (let ((chains (annotate-annotations-chain-in-range 0 (buffer-size))))
+    (dolist (chain chains)
+      (if (annotate-tail-overlay-hide-text-p (annotate-chain-last-ring chain))
+          (annotate-chain-show-text chain)
+        (annotate-chain-hide-text chain))))
+  (font-lock-flush))
 
 (cl-defun annotate-goto-next-annotation (&key (startingp t))
   "Move point to the next annotation."
@@ -1247,7 +1284,8 @@ a        a**"
             (eol                (progn (end-of-line) (point)))
             (annotation-text    "")
             (overlays           nil)
-            (annotation-counter 1))
+            (annotation-counter 1)
+            (hidden-text        nil))
         ;; include previous line if point is at bol:
         (when (null (overlays-in bol eol))
           (setq bol (1- bol)))
@@ -1299,7 +1337,11 @@ a        a**"
                                                   (length overlays))
                                                "\n"
                                              "")
-                                         "\n")))
+                                         "\n"))
+                 (last-ring-p          (annotate-chain-last-p ov))
+                 (tail-hidden-text-p   (and last-ring-p
+                                            (annotate-tail-overlay-hide-text-p ov))))
+            (setf hidden-text tail-hidden-text-p)
             (cl-incf annotation-counter)
             (overlay-put ov 'face face-highlight)
             (overlay-put ov 'annotation-face face)
@@ -1309,6 +1351,7 @@ a        a**"
                              'face
                              (overlay-get first-in-chain 'face))))
             (when (and (not annotate-use-echo-area)
+                       (not hidden-text)
                        (annotate-chain-last-p ov))
                 (when position-new-line-p
                   (setf prefix-first " \n"))
@@ -2010,6 +2053,27 @@ in a chain of annotations as last."
 (defun annotate-annotations-chain-at (pos)
   "Find all annotation that are parts of the chain that overlaps at `POS'."
   (annotate-find-chain (annotate-annotation-at pos)))
+
+(defun annotate-chain-hide-text (chain)
+  "Sets an overlay properties of the last ring of `CHAIN' so that
+the annotation's text will not be rendered."
+  (let ((last-ring (annotate-chain-last-ring chain)))
+    (overlay-put last-ring 'hide-text t)))
+
+(defun annotate-chain-show-text (chain)
+  "Sets an overlay properties of the last ring of `CHAIN' so that
+the annotation's text will be rendered."
+  (let ((last-ring (annotate-chain-last-ring chain)))
+    (overlay-put last-ring 'hide-text nil)))
+
+(defun annotate-chain-hide-text-p (chain)
+"Non nil if the annotation's text must not be rendered."
+  (let ((last-ring (annotate-chain-last (cl-first chain))))
+    (annotate-tail-overlay-hide-text-p last-ring)))
+
+(defun annotate-tail-overlay-hide-text-p (overlay)
+  "Get the property for hiding the annotation text from `overlay'."
+  (overlay-get overlay 'hide-text))
 
 (defun annotate-create-annotation (start end annotation-text annotated-text)
   "Create a new annotation for selected region (from `START' to  `END'.

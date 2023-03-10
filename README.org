@@ -250,13 +250,19 @@ buffer) beyond the current cursor position.
 
 ** annotate-switch-db
 
-This command will ask the user for a new annotation database files,
-load it and refresh all the annotations contained in each buffer where
-annotate minor mode is active.
+   This command will ask the user for a new annotation database files,
+   load it and refresh all the annotations contained in each buffer where
+   annotate minor mode is active.
 
-See the docstring for more information and
-[[https://github.com/bastibe/annotate.el/issues/68][this thread]]
-for a possible workflow where this command could be useful.
+   See the docstring for more information and
+   [[https://github.com/bastibe/annotate.el/issues/68][this thread]]
+   for a possible workflow where this command could be useful.
+
+** annotate-toggle-annotation-text
+   Shows or hides annotation's text under cursor.
+
+** annotate-toggle-all-annotations-text
+   Shows or hides the annotation's text in the whole buffer.
 
 * More documentation
 
