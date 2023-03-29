@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.9.0
+;; Version: 2.0.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.9.0"
+  :version "2.0.0"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -94,18 +94,12 @@ name of the local database annotation"
   :type 'string)
 
 (defcustom annotate-highlight-faces '((:underline "coral")
-                                      (:underline "khaki")
-                                      (:underline "green"))
-
+                                      (:underline "khaki"))
   "List of faces for annotated text."
   :type 'list)
 
-(defcustom annotate-annotation-text-faces '((:background "coral"
-                                             :foreground "black")
-                                            (:background "khaki"
-                                             :foreground "red")
-                                            (:background "green"
-                                             :foreground "blue"))
+(defcustom annotate-annotation-text-faces '((:background "coral" :foreground "black")
+                                            (:background "khaki" :foreground "black"))
   "List of faces for annotation's text."
   :type 'list)
 
