@@ -1,6 +1,11 @@
+- 2023-03-22 v2.0.0 cage ::
+
+  This version modify the command ~annotate-annotate~ to allow setting specific colors
+  for each annotation.
+
 - 2023-02-22 v1.9.0 cage ::
 
-  This version added two new commands to hide/show the tannotation's text:
+  This version added two new commands to hide/show the annotation's text:
 
   - annotate-toggle-annotation-text :: shows or hides annotation's text under cursor;
   - annotate-toggle-all-annotations-text :: shows or hides the annotation's text in the whole buffer.

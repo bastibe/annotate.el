@@ -1,3 +1,40 @@
+2023-03-29 cage
+
+        * NEWS.org,
+        * README.org,
+        * annotate.el:
+
+        - updated version number.
+        - updated documentation.
+
+2023-03-15 cage
+
+        * annotate.el:
+
+        - added support for a virually unlimited number of colors for
+        annotations.
+
+2023-03-10 cage
+
+
+        Merge pull request #150 from cage2/hide-annotation-text
+
+2023-02-22 cage <cage>
+
+        * Changelog,
+        * NEWS.org,
+        * README.org,
+        * annotate.el:
+
+        - added command 'annotate-toggle-all-annotations-text';
+        - removed customizable variable 'annotate-hide-annotations-text'.
+        - wrapped raw chain manipulation with 'annotate-chain-last-ring' to
+        get the last segment of a chain.
+        - added missing docstrings.
+        - removed repeated code.
+        - increased version number;
+        - updated documentations, news and changelog.
+
 2023-02-22 cage
 
         * annotate.el:

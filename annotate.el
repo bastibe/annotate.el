@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 1.9.0
+;; Version: 2.0.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "1.9.0"
+  :version "2.0.0"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -93,21 +93,15 @@ same directory that contains `filename'."
 name of the local database annotation"
   :type 'string)
 
-(defface annotate-highlight
-  '((t (:underline "coral")))
-  "Face for annotation highlights.")
+(defcustom annotate-highlight-faces '((:underline "coral")
+                                      (:underline "khaki"))
+  "List of faces for annotated text."
+  :type 'list)
 
-(defface annotate-highlight-secondary
-  '((t (:underline "khaki")))
-  "Face for secondary annotation highlights.")
-
-(defface annotate-annotation
-  '((t (:background "coral" :foreground "black" :inherit default)))
-  "Face for annotations.")
-
-(defface annotate-annotation-secondary
-  '((t (:background "khaki" :foreground "black" :inherit default)))
-  "Face for secondary annotations.")
+(defcustom annotate-annotation-text-faces '((:background "coral" :foreground "black")
+                                            (:background "khaki" :foreground "black"))
+  "List of faces for annotation's text."
+  :type 'list)
 
 (defface annotate-prefix
   '((t (:inherit default)))
@@ -342,6 +336,13 @@ summary window because does not exist or is in an unsupported
 (defvar-local annotate-echo-annotation-timer nil
   "The buffer local variable bound to a timer that is in charge to print
 the annotation under cursor on the echo area.")
+
+(defvar-local annotate-colors-index-counter 0
+  "An always increasing value to address annotation colors
+in the customizable colors lists:
+
+- annotate-highlight-faces
+- annotate-annotation-text-faces.")
 
 ;;;; custom errors
 
@@ -683,16 +684,23 @@ specified by `FROM' and `TO'."
   (cl-count-if (lambda (a) (char-equal a ?\n))
                (buffer-substring-no-properties from to)))
 
-(defun annotate-annotate ()
-  "Create, modify, or delete annotation."
-  (interactive)
+(defun annotate-annotate (&optional color-index)
+  "Create, modify, or delete annotation.
+if `COLOR-INDEX' is not null must be an index that adresses an element both in
+- `annotate-highlight-faces'
+and
+- `annotate-annotation-text-faces'"
+  (interactive "P")
+  (when color-index
+    (setf color-index (min (max (1- color-index) 0)
+                           (1- (length annotate-highlight-faces)))))
   (cl-labels ((create-new-annotation ()
                ;; create a new annotation in the region returned by `annotate-bound'
                (cl-destructuring-bind (start end)
                    (annotate-bounds)
                  (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
                    (condition-case nil
-                       (annotate-create-annotation start end annotation-text nil)
+                       (annotate-create-annotation start end annotation-text nil color-index)
                      (annotate-empty-annotation-text-error
                       (user-error "Annotation text is empty"))))))
               (cut-right (region-beg region-stop &optional delete-enclosed)
@@ -1268,6 +1276,18 @@ a        a**"
                (boxed            (boxify-multiline lineated nil)))
           (annotate--split-lines boxed))))))
 
+(defun annotate--current-highlight-face ()
+  "Reurns the current annotation color theme."
+  (elt annotate-highlight-faces
+       (mod annotate-colors-index-counter
+            (length annotate-highlight-faces))))
+
+(defun annotate--current-annotation-text-face ()
+  "Reurns the current annotation's text color theme."
+  (elt annotate-annotation-text-faces
+       (mod annotate-colors-index-counter
+            (length annotate-annotation-text-faces))))
+
 (defun annotate--annotation-builder ()
   "Searches the line before point for annotations, and returns a
 'facespec' with the annotation in its 'display' property."
@@ -1284,7 +1304,7 @@ a        a**"
             (eol                (progn (end-of-line) (point)))
             (annotation-text    "")
             (overlays           nil)
-            (annotation-counter 1)
+            (overlays-counter   1)
             (hidden-text        nil))
         ;; include previous line if point is at bol:
         (when (null (overlays-in bol eol))
@@ -1299,25 +1319,9 @@ a        a**"
         ;; or right margin) is indicated by the value of the
         ;; variable: `annotate-annotation-position-policy'.
         (dolist (ov overlays)
-          (let* ((face                (cond
-                                       ((annotate-previous-annotation ov)
-                                        (let* ((previous (annotate-previous-annotation ov))
-                                               (prev-face (overlay-get previous
-                                                                       'annotation-face)))
-                                          (if (eq prev-face
-                                                  'annotate-annotation)
-                                              'annotate-annotation-secondary
-                                            'annotate-annotation)))
-                                       ((not (annotate-chain-first-p ov))
-                                        (let ((first-in-chain (annotate-chain-first ov)))
-                                          (overlay-get first-in-chain
-                                                       'annotation-face)))
-                                       (t
-                                        'annotate-annotation)))
-                 (face-highlight      (if (eq face
-                                              'annotate-annotation)
-                                          'annotate-highlight
-                                        'annotate-highlight-secondary))
+          (let* ((last-ring-p          (annotate-chain-last-p ov))
+                 (annotation-face      (overlay-get ov 'face)) ; added by annotate-create-annotation
+                 (annotation-text-face (overlay-get ov 'annotation-face)) ; added by annotate-create-annotation
                  (annotation-long-p   (> (string-width (overlay-get ov 'annotation))
                                          annotate-annotation-max-size-not-place-new-line))
                  (position-new-line-p (cl-case annotate-annotation-position-policy
@@ -1333,23 +1337,17 @@ a        a**"
                                                                         eol
                                                                         position-new-line-p))
                  (annotation-stopper   (if position-new-line-p
-                                           (if (= annotation-counter
+                                           (if (= overlays-counter
                                                   (length overlays))
                                                "\n"
                                              "")
                                          "\n"))
-                 (last-ring-p          (annotate-chain-last-p ov))
                  (tail-hidden-text-p   (and last-ring-p
                                             (annotate-tail-overlay-hide-text-p ov))))
             (setf hidden-text tail-hidden-text-p)
-            (cl-incf annotation-counter)
-            (overlay-put ov 'face face-highlight)
-            (overlay-put ov 'annotation-face face)
-            (when (not (annotate-chain-first-p ov))
-              (let ((first-in-chain (annotate-chain-first ov)))
-                (overlay-put ov
-                             'face
-                             (overlay-get first-in-chain 'face))))
+            (cl-incf overlays-counter)
+            (overlay-put ov 'face annotation-face)
+            (overlay-put ov 'annotation-face annotation-text-face)
             (when (and (not annotate-use-echo-area)
                        (not hidden-text)
                        (annotate-chain-last-p ov))
@@ -1359,7 +1357,7 @@ a        a**"
                   (setq annotation-text
                         (concat annotation-text
                                 prefix-first
-                                (propertize l 'face face)
+                                (propertize l 'face annotation-text-face)
                                 annotation-stopper))
                   ;; white space before for all but the first annotation line
                   (if position-new-line-p
@@ -2067,15 +2065,16 @@ the annotation's text will be rendered."
     (overlay-put last-ring 'hide-text nil)))
 
 (defun annotate-chain-hide-text-p (chain)
-"Non nil if the annotation's text must not be rendered."
+"Non nil if the annotation's text contained in the last ring of `CHAIN' must not be rendered."
   (let ((last-ring (annotate-chain-last (cl-first chain))))
     (annotate-tail-overlay-hide-text-p last-ring)))
 
 (defun annotate-tail-overlay-hide-text-p (overlay)
-  "Get the property for hiding the annotation text from `overlay'."
+  "Get the property for hiding the annotation text from `OVERLAY'."
   (overlay-get overlay 'hide-text))
 
-(defun annotate-create-annotation (start end annotation-text annotated-text)
+(defun annotate-create-annotation (start end annotation-text annotated-text
+                                         &optional color-index)
   "Create a new annotation for selected region (from `START' to  `END'.
 
 Here the argument 'ANNOTATION-TEXT' is the string that appears
@@ -2099,6 +2098,7 @@ interval and, if found, the buffer is annotated right there.
 The searched interval can be customized setting the variable:
 'annotate-search-region-lines-delta'."
   (cl-labels ((create-annotation (start end annotation-text)
+               (cl-incf annotate-colors-index-counter)
                (save-excursion
                  (let ((all-overlays ()))
                    (while (< start end)
@@ -2112,9 +2112,18 @@ The searched interval can be customized setting the variable:
                              (let* ((end-overlay (if (/= (point) end)
                                                      (1- (point))
                                                    (point)))
-                                    (highlight (make-overlay start end-overlay)))
-                               (overlay-put highlight 'face 'annotate-highlight)
+                                    (highlight (make-overlay start end-overlay))
+                                    (highlight-face (if color-index
+                                                        (elt annotate-highlight-faces
+                                                             color-index)
+                                                      (annotate--current-highlight-face)))
+                                    (annotation-face (if color-index
+                                                         (elt annotate-annotation-text-faces
+                                                              color-index)
+                                                       (annotate--current-annotation-text-face))))
+                               (overlay-put highlight 'face highlight-face)
                                (overlay-put highlight 'annotation annotation-text)
+                               (overlay-put highlight 'annotation-face annotation-face)
                                (annotate-overlay-maybe-set-help-echo highlight
                                                                      annotation-text)
                                (annotate-annotation-chain-position highlight
