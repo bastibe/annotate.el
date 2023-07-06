@@ -1,3 +1,9 @@
+- 2023-07-06 v2.0.1 cage ::
+
+  This version ensures that querying the database will search in all the annotated buffers on the current Emacs session.
+
+  A phrase regarding the annotation of the newline character has been corrected in README.org
+
 - 2023-03-22 v2.0.0 cage ::
 
   This version modify the command ~annotate-annotate~ to allow setting specific colors
