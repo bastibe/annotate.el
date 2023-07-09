@@ -251,8 +251,7 @@ The summary window can shows results filtered by criteria specified with a very 
 
 where:
 
-  - file-mask :: is a regular expression that should match the path of file
-the annotation refers to;
+  - file-mask :: is a regular expression that should match the path of file the annotation refers to;
   - and, or, not :: you guess? Classics logical operators;
   - regex-note :: the text of annotation must match this regular expression.
 
