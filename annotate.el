@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 2.0.0
+;; Version: 2.0.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "2.0.0"
+  :version "2.0.1"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -2823,7 +2823,7 @@ results can be filtered with a simple query language: see
                               (t
                                ".*"))))
     (when save-annotations
-      (annotate-save-annotations))
+      (annotate-save-all-annotated-buffers))
     (let* ((filter-query (get-query))
            (dump         (annotate-summary-filter-db (annotate-load-annotation-data t)
                                                      filter-query

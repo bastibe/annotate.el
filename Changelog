@@ -1,11 +1,28 @@
+2023-07-06 cage
+
+        * README.org,
+        * annotate.el:
+
+        - ensured the database is in sync with the annotated buffers, before
+        executing the search query;
+        - increased version number.
+        - made cosmetic fix to README, also corrected a wrong phrase.
+
+2023-04-01 cage2
+
+
+        Merge pull request #151 from cage2/multiple-colors
+
 2023-03-29 cage
 
+        * Changelog,
         * NEWS.org,
         * README.org,
         * annotate.el:
 
         - updated version number.
         - updated documentation.
+        - updated changelog.
 
 2023-03-15 cage
 
