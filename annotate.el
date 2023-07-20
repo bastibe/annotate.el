@@ -403,41 +403,41 @@ See `annotate-blacklist-major-mode'."
   "Calculate an hash for the argument `OBJECT'."
   (secure-hash 'md5 object))
 
-(defun annotate-end-of-line-pos ()
+(define-inline annotate-end-of-line-pos ()
  "Get the position of the end of line and rewind the point's
 position (so that it is unchanged after this function is called)."
-  (save-excursion
-    (end-of-line)
-    (point)))
+ (inline-quote (line-end-position)))
 
-(defun annotate-beginning-of-line-pos ()
+(define-inline annotate-beginning-of-line-pos ()
   "Get the position of the beginning of line and rewind the point's
 position (so that it is unchanged after this function is called)."
-  (save-excursion
-    (beginning-of-line)
-    (point)))
+  (inline-quote (line-beginning-position)))
 
-(defun annotate-annotated-text-empty-p (annotation)
+(define-inline annotate-annotated-text-empty-p (annotation)
   "Does this `ANNOTATION' contains annotated text?"
-  (= (overlay-start annotation)
-     (overlay-end   annotation)))
+  (inline-letevals (annotation)
+    (inline-quote (= (overlay-start ,annotation)
+                     (overlay-end   ,annotation)))))
 
-(defun annotate-annotation-force-newline-policy (annotation)
+(define-inline annotate-annotation-force-newline-policy (annotation)
   "Force annotate to place `ANNOTATION' on the line after the annotated text.
 
 See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
-  (overlay-put annotation 'force-newline-policy t))
+  (inline-letevals (annotation)
+    (inline-quote (overlay-put ,annotation 'force-newline-policy t))))
 
-(defun annotate-annotation-newline-policy-forced-p (annotation)
+(define-inline annotate-annotation-newline-policy-forced-p (annotation)
   "Is `ANNOTATION' forced to place annotation on the line after the
 annotated text?
 
 See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
-  (overlay-get annotation 'force-newline-policy))
+  (inline-letevals (annotation)
+    (inline-quote (overlay-get ,annotation 'force-newline-policy))))
 
-(defun annotate-chain-last-ring (chain)
+(define-inline annotate-chain-last-ring (chain)
   "Get the last ring of `CHAIN'."
-  (car (last chain)))
+  (inline-letevals (chain)
+    (inline-quote (car (last ,chain)))))
 
 (defun annotate--remap-chain-pos (annotations)
   "Remap `ANNOTATIONS' as an annotation 'chain'.
@@ -541,11 +541,12 @@ See also the customizable variables: `annotate-echo-annotation-timer' and
                  annotate-print-annotation-under-cursor-prefix
                  (overlay-get annotation 'annotation))))))
 
-(defun annotate-print-annotation-under-cursor-p ()
+(define-inline annotate-print-annotation-under-cursor-p ()
   "Non nil if the user configured the package to print
 annotation's text in the minibuffer."
-  (and annotate-use-echo-area
-       annotate-print-annotation-under-cursor))
+  (inline-quote
+   (and annotate-use-echo-area
+        annotate-print-annotation-under-cursor)))
 
 (defun annotate--maybe-make-timer-print-annotation ()
   "Set the timer to print the annotation's text in the minibuffer.
@@ -609,9 +610,10 @@ Used when the mode is deactivated."
        (overlayp overlay)
        (overlay-get overlay 'annotation)))
 
-(defun annotationp (overlay)
+(define-inline annotationp (overlay)
   "Is `OVERLAY' an annotation?"
-  (annotate-overlay-filled-p overlay))
+  (inline-letevals (overlay)
+    (inline-quote (annotate-overlay-filled-p ,overlay))))
 
 (cl-defmacro annotate-ensure-annotation ((overlay) &body body)
   "Runs `BODY' only if `OVERLAY' is an annotation (i.e. passes annotationp)."
@@ -914,17 +916,17 @@ and
             (goto-char (overlay-end chain-last)))
         (annotate-goto-previous-annotation :startingp t)))))
 
-(defun annotate-actual-comment-start ()
+(define-inline annotate-actual-comment-start ()
   "String for comment start related to current buffer's major
 mode."
-  (or comment-start
-      annotate-fallback-comment))
+  (inline-quote (or comment-start
+                    annotate-fallback-comment)))
 
-(defun annotate-actual-comment-end ()
+(define-inline annotate-actual-comment-end ()
   "String for comment ends, if any, related to current buffer's
 major mode."
-  (or comment-end
-      ""))
+  (inline-quote (or comment-end
+                    "")))
 
 (defun annotate-comments-length ()
   "Total length of the comment markers (start and end) strings."
@@ -1506,37 +1508,43 @@ file."
   (and (> (length record) 2)
        (nth 2 record)))
 
-(defun annotate-annotations-from-dump (record)
+(define-inline annotate-annotations-from-dump (record)
   "Get the annotations field from an annotation list loaded from a
 file."
-  (nth 1 record))
+  (inline-letevals (record)
+    (inline-quote (nth 1 ,record))))
 
-(defun annotate-filename-from-dump (record)
+(define-inline annotate-filename-from-dump (record)
   "Get the filename field from an annotation list loaded from a
 file."
-  (cl-first record))
+  (inline-letevals (record)
+    (inline-quote (cl-first ,record))))
 
-(defun annotate-beginning-of-annotation (annotation)
+(define-inline annotate-beginning-of-annotation (annotation)
   "Get the starting point of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
 \(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
-  (cl-first annotation))
+  (inline-letevals (annotation)
+    (inline-quote (cl-first ,annotation))))
 
-(defun annotate-ending-of-annotation (annotation)
+(define-inline annotate-ending-of-annotation (annotation)
   "Get the ending point of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
 \(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
-  (cl-second annotation))
+  (inline-letevals (annotation)
+    (inline-quote (cl-second ,annotation))))
 
-(defun annotate--interval-left-limit (a)
+(define-inline annotate--interval-left-limit (a)
   "Given an annotation record `A' returns the left limit of the annotated text."
-  (cl-first a))
+  (inline-letevals (a)
+    (inline-quote (cl-first ,a))))
 
-(defun annotate--interval-right-limit (a)
+(define-inline annotate--interval-right-limit (a)
   "Given an annotation record `A' returns the right limit of the annotated text."
-  (cl-second a))
+    (inline-letevals (a)
+      (inline-quote (cl-second ,a))))
 
 (defun annotate--make-interval (left-limit right-limit)
   "Make an interval from `LEFT-LIMIT' and `RIGHT-LIMIT'."
@@ -1556,12 +1564,13 @@ this function return is closed on the left and open on the right side."
   (annotate--make-interval (annotate-beginning-of-annotation annotation)
                            (1- (annotate-ending-of-annotation annotation))))
 
-(defun annotate-annotation-string (annotation)
+(define-inline annotate-annotation-string (annotation)
   "Get the text of an annotation. The arg 'annotation' must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
 \(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
-  (nth 2 annotation))
+  (inline-letevals (annotation)
+    (inline-quote (nth 2 ,annotation))))
 
 (defun annotate-annotated-text (annotation)
   "Get the annotated text of an annotation. The arg `ANNOTATION' must be a single
@@ -2232,13 +2241,15 @@ The searched interval can be customized setting the variable:
           (goto-char end)
           (font-lock-fontify-block 1))))))
 
-(defun annotate-overlay-put-echo-help (overlay text)
+(define-inline annotate-overlay-put-echo-help (overlay text)
   "Set the property `HELP-ECHO' to `TEXT' in overlay `OVERLAY'."
-  (overlay-put overlay 'help-echo text))
+  (inline-letevals (overlay text)
+    (inline-quote (overlay-put ,overlay 'help-echo ,text))))
 
-(defun annotate-overlay-get-echo-help (overlay)
+(define-inline annotate-overlay-get-echo-help (overlay)
   "Set the property `HELP-ECHO' from overlay `OVERLAY'."
-  (overlay-get overlay 'help-echo))
+  (inline-letevals (overlay)
+    (inline-quote (overlay-get ,overlay 'help-echo))))
 
 (defun annotate-overlay-maybe-set-help-echo (overlay annotation-text)
   "Set the property `HELP-ECHO' to `TEXT' in overlay `OVERLAY' if
@@ -2873,24 +2884,27 @@ summary window is shown.")
 (defvar annotate-summary-query-current-token nil
   "Holds the next token of the query in `ANNOTATE-SUMMARY-QUERY'.")
 
-(defun annotate-summary-query-lexer-symbol (res)
+(define-inline annotate-summary-query-lexer-symbol (res)
   "The symbol identifying the token (e.g. 'and)."
-  (elt res 0))
+  (inline-letevals (res)
+    (inline-quote (elt ,res 0))))
 
-(defun annotate-summary-query-lexer-string (res)
+(define-inline annotate-summary-query-lexer-string (res)
   "The string associated with this token."
-  (elt res 1))
+  (inline-letevals (res)
+    (inline-quote (elt ,res 1))))
 
-(defun annotate-summary-query-lexer-start (res)
- "The starting point of the substring of
+(define-inline annotate-summary-query-lexer-start (res)
+  "The starting point of the substring of
 `annotate-summary-query' for this token."
-  (elt res 2))
+  (inline-letevals (res)
+    (inline-quote (elt ,res 2))))
 
-(defun annotate-summary-query-lexer-end (res)
+(define-inline annotate-summary-query-lexer-end (res)
   "The ending point of the substring of
 `annotate-summary-query' for this token."
-
-  (elt res 3))
+  (inline-letevals (res)
+    (inline-quote (elt ,res 3))))
 
 (cl-defun annotate-summary-lexer (&optional (look-ahead-p nil))
   "The lexer for `annotate-summary-query'.
@@ -2989,9 +3003,10 @@ example:
             (cut-query res))
           res)))))
 
-(defun annotate-summary-query-parse-end-input-p (token)
+(define-inline annotate-summary-query-parse-end-input-p (token)
   "Non nil if there are no more tokens in `ANNOTATE-SUMMARY-QUERY'."
-  (eq token :no-more-tokens))
+  (inline-letevals (token)
+    (inline-quote (eq ,token :no-more-tokens))))
 
 (defun annotate-summary-token-symbol-match (looking-symbol token)
   "Return non nil if `LOOKING-SYMBOL' is 'eq' to the symbol
