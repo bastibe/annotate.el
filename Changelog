@@ -1,5 +1,24 @@
+2023-07-20 cage
+
+        * NEWS.org,
+        * annotate.el:
+
+        - used functions  from standard library intead  of reimplementing them
+        ('line-end-position' and 'line-beginning-position');
+        - inlined trivial functions.
+        - increased version number.
+
+2023-07-09 cage
+
+        * README.org:
+
+        - fixed README's layout.
+        Merge pull request #155 from cage2/save-db-before-query
+
 2023-07-06 cage
 
+        * Changelog,
+        * NEWS.org,
         * README.org,
         * annotate.el:
 
@@ -7,6 +26,7 @@
         executing the search query;
         - increased version number.
         - made cosmetic fix to README, also corrected a wrong phrase.
+        - updated Changelog and NEWS files.
 
 2023-04-01 cage2
 
