@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 2.0.1
+;; Version: 2.0.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "2.0.1"
+  :version "2.0.2"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -406,9 +406,7 @@ See `annotate-blacklist-major-mode'."
 (defun annotate-end-of-line-pos ()
  "Get the position of the end of line and rewind the point's
 position (so that it is unchanged after this function is called)."
-  (save-excursion
-    (end-of-line)
-    (point)))
+ (line-end-position))
 
 (defun annotate-beginning-of-line-pos ()
   "Get the position of the beginning of line and rewind the point's
