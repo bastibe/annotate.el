@@ -2426,7 +2426,7 @@ annotation exists."
  (annotate-previous-annotation-ends (overlay-start (annotate-chain-first annotation))))
 
 (defun annotate-next-annotation-starts (pos)
-  "Return the previous annotation that ends before `POS' or nil if no annotation
+  "Return the next annotation that starts after `POS' or nil if no annotation
 was found.
 NOTE this assumes that annotations never overlaps."
   (cl-labels ((next-annotation-ends (start)
