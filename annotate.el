@@ -433,6 +433,22 @@ annotated text?
 See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
   (overlay-get annotation 'force-newline-policy))
 
+(defun annotate-annotation-set-face (annotation face)
+  "Set property face to `FACE' for `ANNOTATION'."
+  (overlay-put annotation 'face face))
+
+(defun annotate-annotation-face (annotation)
+  "Get property face from `ANNOTATION'."
+  (overlay-get annotation 'face))
+
+(defun annotate-annotation-set-annotation-face (annotation face)
+  "Set property annotation-face to `FACE' for `ANNOTATION'."
+  (overlay-put annotation 'annotation-face face))
+
+(defun annotate-annotation-property-annotation-face (annotation)
+  "Get property annotation-face from `ANNOTATION'."
+  (overlay-get annotation 'annotation-face))
+
 (defun annotate-chain-last-ring (chain)
   "Get the last ring of `CHAIN'."
   (car (last chain)))
@@ -2095,7 +2111,24 @@ interval and, if found, the buffer is annotated right there.
 
 The searched interval can be customized setting the variable:
 'annotate-search-region-lines-delta'."
-  (cl-labels ((create-annotation (start end annotation-text)
+  (cl-labels ((face-index-annotation-shifting-point (position shifting-direction-function)
+                (when-let* ((annotation       (funcall shifting-direction-function
+                                                       position))
+                            (annotation-face  (annotate-annotation-face annotation)))
+                  (cl-position-if (lambda (a) (cl-equalp annotation-face a))
+                                  annotate-highlight-faces)))
+              (face-index-annotation-before-point (position)
+                (face-index-annotation-shifting-point position
+                                                      #'annotate-previous-annotation-ends))
+              (face-index-annotation-after-point (position)
+                (face-index-annotation-shifting-point position
+                                                      #'annotate-next-annotation-starts))
+              (create-annotation (start end annotation-text)
+                (when (null color-index)
+                  (when-let ((used-face-index (or (face-index-annotation-before-point (point))
+                                                  (face-index-annotation-after-point (point)))))
+                    (setf annotate-colors-index-counter
+                          used-face-index)))
                (cl-incf annotate-colors-index-counter)
                (save-excursion
                  (let ((all-overlays ()))
