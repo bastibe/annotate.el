@@ -1,22 +1,48 @@
+2023-09-25 cage <cage>
+
+	* annotate.el:
+
+	- fixed docstring.
+	- prevented using the same color on adjacent annotations;
+	To reproduce the issue (assuming the variable
+	'annotate-highlight-faces' is bound to a list of two elements):
+
+	1. annotate the first line of a buffer (C-a)
+	2. annotate the second line of the same buffer (C-a)
+	3. delete the annotation on the second line (C-d)
+	4. annotate again the second line (C-a)
+	   the annotations in both lines got the same colors.
+
+	- fixed indentation of local functions definitions.
+
+2023-08-09 cage
+
+	* Changelog,
+	* NEWS.org,
+	* annotate.el:
+
+	- used line-end-position;
+	- updated NEWS and Changelog files.
+
 2023-07-09 cage
 
-        * README.org:
+	* README.org:
 
-        - fixed README's layout.
-        Merge pull request #155 from cage2/save-db-before-query
+	- fixed README's layout.
+	Merge pull request #155 from cage2/save-db-before-query
 
 2023-07-06 cage
 
-        * Changelog,
-        * NEWS.org,
-        * README.org,
-        * annotate.el:
+	* Changelog,
+	* NEWS.org,
+	* README.org,
+	* annotate.el:
 
-        - ensured the database is in sync with the annotated buffers, before
-        executing the search query;
-        - increased version number.
-        - made cosmetic fix to README, also corrected a wrong phrase.
-        - updated Changelog and NEWS files.
+	- ensured the database is in sync with the annotated buffers, before
+	executing the search query;
+	- increased version number.
+	- made cosmetic fix to README, also corrected a wrong phrase.
+	- updated Changelog and NEWS files.
 
 2023-04-01 cage2
 
