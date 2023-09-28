@@ -2125,8 +2125,8 @@ The searched interval can be customized setting the variable:
                                                       #'annotate-next-annotation-starts))
               (create-annotation (start end annotation-text)
                 (when (null color-index)
-                  (when-let ((used-face-index (or (face-index-annotation-before-point (point))
-                                                  (face-index-annotation-after-point (point)))))
+                  (when-let ((used-face-index (or (face-index-annotation-before-point start)
+                                                  (face-index-annotation-after-point end))))
                     (setf annotate-colors-index-counter
                           used-face-index)))
                 (cl-incf annotate-colors-index-counter)
