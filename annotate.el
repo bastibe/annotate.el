@@ -93,13 +93,15 @@ same directory that contains `filename'."
 name of the local database annotation"
   :type 'string)
 
-(defcustom annotate-highlight-faces '((:underline "coral")
-                                      (:underline "khaki"))
+(defcustom annotate-highlight-faces '((:underline "#EEF192")
+                                      (:underline "#92EEF1")
+                                      (:underline "#F192EE"))
   "List of faces for annotated text."
   :type 'list)
 
-(defcustom annotate-annotation-text-faces '((:background "coral" :foreground "black")
-                                            (:background "khaki" :foreground "black"))
+(defcustom annotate-annotation-text-faces '((:background "#EEF192"  :foreground "black")
+                                            (:background "#92EEF1"  :foreground "black")
+                                            (:background "#F192EE"  :foreground "black"))
   "List of faces for annotation's text."
   :type 'list)
 
@@ -2111,25 +2113,29 @@ interval and, if found, the buffer is annotated right there.
 
 The searched interval can be customized setting the variable:
 'annotate-search-region-lines-delta'."
-  (cl-labels ((face-index-annotation-shifting-point (position shifting-direction-function)
+  (cl-labels ((face-annotation-shifting-point (position shifting-direction-function)
                 (when-let* ((annotation       (funcall shifting-direction-function
                                                        position))
                             (annotation-face  (annotate-annotation-face annotation)))
-                  (cl-position-if (lambda (a) (cl-equalp annotation-face a))
-                                  annotate-highlight-faces)))
-              (face-index-annotation-before-point (position)
-                (face-index-annotation-shifting-point position
-                                                      #'annotate-previous-annotation-ends))
-              (face-index-annotation-after-point (position)
-                (face-index-annotation-shifting-point position
-                                                      #'annotate-next-annotation-starts))
+                  (cl-find-if (lambda (a) (cl-equalp annotation-face a))
+                              annotate-highlight-faces)))
+              (face-annotation-before-point (position)
+                (face-annotation-shifting-point position
+                                                #'annotate-previous-annotation-ends))
+              (face-annotation-after-point (position)
+                (face-annotation-shifting-point position
+                                                #'annotate-next-annotation-starts))
+              (available-face-index (&rest used-faces)
+                (cl-position-if-not (lambda (a)
+                                      (cl-member a used-faces :test #'cl-equalp))
+                                    annotate-highlight-faces))
               (create-annotation (start end annotation-text)
-                (when (null color-index)
-                  (when-let ((used-face-index (or (face-index-annotation-before-point start)
-                                                  (face-index-annotation-after-point end))))
-                    (setf annotate-colors-index-counter
-                          used-face-index)))
-                (cl-incf annotate-colors-index-counter)
+                (if (null color-index)
+                    (when-let ((new-face-index (available-face-index (face-annotation-before-point start)
+                                                                     (face-annotation-after-point end))))
+                      (setf annotate-colors-index-counter
+                            new-face-index))
+                  (cl-incf annotate-colors-index-counter))
                 (save-excursion
                   (let ((all-overlays ()))
                     (while (< start end)
