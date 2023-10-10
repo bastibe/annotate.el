@@ -91,7 +91,7 @@ If point is the newline character and the customizable variable ~annotate-endlin
 
 If the line contains a single annotation that cover all the line, annotating the newline will ask to edit the annotation. If ~annotate-endline-annotate-whole-line~ is nil annotating a newline will signal an error.
 
-With a numeric prefix the annotations will be displayed with the faces indicated in ~annotate-endline-annotate-whole-line~ and ~annotate-annotation-text-faces~, respectively. The numeric prefix is used as index in the lists bound to the aforementioned variables.
+With a numeric prefix the annotations will be displayed with the faces indicated in ~annotate-highlight-faces~ and ~annotate-annotation-text-faces~, respectively. The numeric prefix is used as index in the lists bound to the aforementioned variables.
 
 The first theme can be addressed by the prefix ~1~, the second by the prefix ~2~ and so on.
 
@@ -101,6 +101,7 @@ The first theme can be addressed by the prefix ~1~, the second by the prefix ~2~
      - ~annotate-annotation-max-size-not-place-new-line~;
      - ~annotate-annotation-position-policy~;
      - ~annotate-endline-annotate-whole-line~;
+     - ~annotate-highlight-faces~;
      - ~annotate-annotation-text-faces~.
 
 *** ~C-c C-d~
