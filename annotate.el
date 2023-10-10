@@ -1516,6 +1516,12 @@ buffer is not on info-mode"
   "Make an annotation record: see `annotate-load-annotations'."
   (annotate-make-annotation-dump-entry filename file-annotations checksum))
 
+(defun annotate-color-index-from-dump (record)
+  "Get the checksum field from an annotation list loaded from a
+file."
+  (and (> (length record) 3)
+       (nth 4 record)))
+
 (defun annotate-checksum-from-dump (record)
   "Get the checksum field from an annotation list loaded from a
 file."
@@ -1647,9 +1653,9 @@ essentially what you get from:
                     (list file-annotations
                           (annotate-buffer-checksum)))
           (setq all-annotations
-                (push (list filename
-                            file-annotations
-                            (annotate-buffer-checksum))
+                (push (annotate-make-annotation-dump-entry filename
+                                                           file-annotations
+                                                           (annotate-buffer-checksum))
                       all-annotations)))
         ;; remove duplicate entries (a user reported seeing them)
         (dolist (entry all-annotations)
@@ -1715,16 +1721,17 @@ annotations:
 
 finally annotation is:
 
-\(START END ANNOTATION-STRING ANNOTATED-TEXT)
+\(START END ANNOTATION-STRING ANNOTATED-TEXT COLOR-INDEX)
 
 START:             the buffer position where annotated text start
 END:               the buffer position where annotated text ends
 ANNOTATION-STRING: the text of annotation
 ANNOTATED-TEXT:    the substring of buffer from START to END (as above)
-
+COLOR-INDEX:       the index position in `annotate-annotation-text-faces' and
+                   `annotate-highlight-faces' to chode the annotation's visual
 example:
 
-\\='(\"/foo/bar\" ((0 9 \"note\" \"annotated\")) hash-as-hex-string)."
+\\='(\"/foo/bar\" ((0 9 \"note\" \"annotated\" 0)) hash-as-hex-string)."
   (interactive)
   (cl-labels ((old-format-p (annotation)
                 (not (stringp (cl-first (last annotation))))))
@@ -1752,14 +1759,21 @@ example:
         (annotations
          (save-excursion
            (dolist (annotation annotations)
-             (let ((start             (annotate-beginning-of-annotation annotation))
-                   (end               (annotate-ending-of-annotation    annotation))
-                   (annotation-string (annotate-annotation-string       annotation))
-                   (annotated-text    (annotate-annotated-text          annotation)))
+             (let* ((start             (annotate-beginning-of-annotation annotation))
+                    (end               (annotate-ending-of-annotation    annotation))
+                    (annotation-string (annotate-annotation-string       annotation))
+                    (annotated-text    (annotate-annotated-text          annotation))
+                    (dump-color-index  (annotate-color-index-from-dump   annotation))
+                    (color-index       (if (and dump-color-index
+                                                (< dump-color-index
+                                                   (length annotate-highlight-faces)))
+                                           dump-color-index
+                                         nil)))
                (annotate-create-annotation start
                                            end
                                            annotation-string
-                                           annotated-text))))))
+                                           annotated-text
+                                           color-index))))))
         (font-lock-flush)
         (when annotate-use-messages
           (message annotate-message-annotation-loaded))))))
@@ -2113,7 +2127,11 @@ text (\"annotated-text\") is searched in a region surrounding the
 interval and, if found, the buffer is annotated right there.
 
 The searched interval can be customized setting the variable:
-\"annotate-search-region-lines-delta\"."
+\"annotate-search-region-lines-delta\".
+
+Finally `COLOR-INDEX`, if non-null (default nil), is used as index to address
+elements both in `annotate-color-index-from-dump'
+and `annotate-color-index-from-dump' to specify annotation appearance."
   (cl-labels ((face-annotation-shifting-point (position shifting-direction-function)
                 (when-let* ((annotation       (funcall shifting-direction-function
                                                        position))
@@ -2563,7 +2581,10 @@ The format is suitable for database dump."
                            (chain-first (annotate-chain-first annotation))
                            (chain-last  (annotate-chain-last annotation))
                            (from        (overlay-start chain-first))
-                           (to          (overlay-end   chain-last)))
+                           (to          (overlay-end   chain-last))
+                           (face        (annotate-annotation-face chain-first))
+                           (color-index (cl-position-if (lambda (a) (cl-equalp face a))
+                                                        annotate-highlight-faces)))
                       (when (not (cl-find-if (lambda (a)
                                                (eq (cl-first chain)
                                                    (cl-first a)))
@@ -2572,7 +2593,8 @@ The format is suitable for database dump."
                         (list from
                               to
                               (overlay-get annotation 'annotation)
-                              (buffer-substring-no-properties from to)))))
+                              (buffer-substring-no-properties from to)
+                              color-index))))
                   all-annotations))))
 
 (defun annotate-info-root-dir-p (filename)
