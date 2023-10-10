@@ -1,3 +1,9 @@
+- 2023-10-10 v2.1.0 cage ::
+
+  This version ensures that the color scheme for each annotation (both
+  underline color of the annotated text and colors of the annotation),
+  is kept when reopening an annotated file.
+
 - 2023-09-27 v2.0.3 cage ::
 
   This version fixed a bug that could render with the same color two adjacent annotations.
