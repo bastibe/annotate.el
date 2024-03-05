@@ -451,6 +451,12 @@ See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
   "Get property annotation-face from `ANNOTATION'."
   (overlay-get annotation 'annotation-face))
 
+(defun annotate-annotation-set-annotation-text (annotation annotation-text)
+  (overlay-put annotation 'annotation annotation-text))
+
+(defun annotate-annotation-get-annotation-text (annotation)
+  (overlay-get annotation 'annotation))
+
 (defun annotate-chain-last-ring (chain)
   "Get the last ring of `CHAIN'."
   (car (last chain)))
@@ -555,7 +561,7 @@ See also the customizable variables: `annotate-echo-annotation-timer' and
       (when-let ((annotation (annotate-annotation-at (point))))
         (message "%s%s"
                  annotate-print-annotation-under-cursor-prefix
-                 (overlay-get annotation 'annotation))))))
+                 (annotate-annotation-get-annotation-text annotation))))))
 
 (defun annotate-print-annotation-under-cursor-p ()
   "Non nil if the user configured the package to print
@@ -623,7 +629,7 @@ Used when the mode is deactivated."
   "Does this `OVERLAY' contains an \"annotation\" property?"
   (and overlay
        (overlayp overlay)
-       (overlay-get overlay 'annotation)))
+       (annotate-annotation-get-annotation-text overlay)))
 
 (defun annotationp (overlay)
   "Is `OVERLAY' an annotation?"
@@ -1028,8 +1034,8 @@ annotate-actual-comment-end."
                              (padding         (if (<= (1- relative-start) 0)
                                                   ""
                                                 (make-string (1- relative-start) ? )))
-                             (annotated-lines (annotate--split-lines (overlay-get overlay
-                                                                                  'annotation)))
+                             (annotated-lines (annotate--split-lines
+                                               (annotate-annotation-get-annotation-text overlay)))
                              (ov-length       (- relative-end relative-start))
                              (underline       (make-string ov-length
                                                            annotate-integrate-highlight)))
@@ -1265,7 +1271,7 @@ with spaces so that a \"box\" surround the text without seams, e.g:
 aaa      aaa
 aa   ->  aa*
 a        a**"
-  (let ((annotation-text (overlay-get annotation-overlay 'annotation)))
+  (let ((annotation-text (annotate-annotation-get-annotation-text annotation-overlay)))
     (cl-labels ((boxify-multiline (raw-annotation-text &optional add-space-at-end)
                   (let* ((lines         (annotate--split-lines raw-annotation-text))
                          (lines-widths  (mapcar #'string-width lines))
@@ -1336,9 +1342,9 @@ a        a**"
         ;; variable: `annotate-annotation-position-policy'.
         (dolist (ov overlays)
           (let* ((last-ring-p          (annotate-chain-last-p ov))
-                 (annotation-face      (overlay-get ov 'face)) ; added by annotate-create-annotation
-                 (annotation-text-face (overlay-get ov 'annotation-face)) ; added by annotate-create-annotation
-                 (annotation-long-p   (> (string-width (overlay-get ov 'annotation))
+                 (annotation-face      (annotate-annotation-face ov)) ; added by annotate-create-annotation
+                 (annotation-text-face (annotate-annotation-property-annotation-face ov)) ; added by annotate-create-annotation
+                 (annotation-long-p   (> (string-width (annotate-annotation-get-annotation-text ov))
                                          annotate-annotation-max-size-not-place-new-line))
                  (position-new-line-p (cl-case annotate-annotation-position-policy
                                         (:new-line
@@ -1362,8 +1368,8 @@ a        a**"
                                             (annotate-tail-overlay-hide-text-p ov))))
             (setf hidden-text tail-hidden-text-p)
             (cl-incf overlays-counter)
-            (overlay-put ov 'face annotation-face)
-            (overlay-put ov 'annotation-face annotation-text-face)
+            (annotate-annotation-set-face ov annotation-face)
+            (annotate-annotation-set-annotation-face ov annotation-text-face)
             (when (and (not annotate-use-echo-area)
                        (not hidden-text)
                        (annotate-chain-last-p ov))
@@ -2177,9 +2183,9 @@ and `annotate-color-index-from-dump' to specify annotation appearance."
                                                           (elt annotate-annotation-text-faces
                                                                color-index)
                                                         (annotate--current-annotation-text-face))))
-                                (overlay-put highlight 'face highlight-face)
-                                (overlay-put highlight 'annotation annotation-text)
-                                (overlay-put highlight 'annotation-face annotation-face)
+                                (annotate-annotation-set-face highlight highlight-face)
+                                (annotate-annotation-set-annotation-text highlight annotation-text)
+                                (annotate-annotation-set-annotation-face highlight annotation-face)
                                 (annotate-overlay-maybe-set-help-echo highlight
                                                                       annotation-text)
                                 (annotate-annotation-chain-position highlight
@@ -2421,12 +2427,12 @@ point)."
   "Change annotation at `POS'.  If empty, delete annotation."
   (let* ((highlight       (annotate-annotation-at pos))
          (annotation-text (read-from-minibuffer annotate-annotation-prompt
-                                                (overlay-get highlight 'annotation))))
+                                                (annotate-annotation-get-annotation-text highlight))))
     (cl-labels ((change (annotation)
                   (let ((chain (annotate-find-chain annotation)))
                     (dolist (single-element chain)
                       (annotate-overlay-maybe-set-help-echo single-element annotation-text)
-                      (overlay-put single-element 'annotation annotation-text)))))
+                      (annotate-annotation-set-annotation-text single-element annotation-text)))))
       (save-excursion
         (cond
          ;; annotation was cancelled:
@@ -2592,7 +2598,7 @@ The format is suitable for database dump."
                         (push chain chain-visited)
                         (list from
                               to
-                              (overlay-get annotation 'annotation)
+                              (annotate-annotation-get-annotation-text annotation)
                               (buffer-substring-no-properties from to)
                               color-index))))
                   all-annotations))))
