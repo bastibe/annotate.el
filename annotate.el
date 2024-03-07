@@ -179,6 +179,9 @@ placed on the right margin of the window instead of its own line
  after the annotated text."
   :type  'number)
 
+(defconst annotate-allowed-positioning-policy
+  '(:by-length :margin :new-line))
+
 (defcustom annotate-annotation-position-policy :by-length
   "Policy for annotation's position:
 - :new-line
@@ -933,6 +936,22 @@ and
             (goto-char (overlay-end chain-last)))
         (annotate-goto-previous-annotation :startingp t)))))
 
+(defun annotate-change-annotation-text-position ()
+  (interactive)
+  (when-let ((annotation (annotate-annotation-at (point))))
+    (let ((current-position (annotate-annotation-get-position annotation)))
+      (if (null current-position)
+          (annotate-annotation-set-position annotation
+                                            (cl-first annotate-allowed-positioning-policy))
+        (when-let ((current-position-index (cl-position current-position
+                                                        annotate-allowed-positioning-policy))
+                   (next-position-index    (mod (1+ current-position-index)
+                                                (length annotate-allowed-positioning-policy))))
+          (annotate-annotation-set-position annotation
+                                            (elt annotate-allowed-positioning-policy
+                                                 next-position-index)))))
+    (font-lock-flush)))
+
 (defun annotate-actual-comment-start ()
   "String for comment start related to current buffer's major
 mode."
@@ -1334,7 +1353,7 @@ a        a**"
                     (lambda (x y)
                       (< (overlay-end x) (overlay-end y)))))
         ;; configure each annotation's properties and place it on the
-        ;; the window. The actual position of the annotation (newline
+        ;; the window. The default position of the annotation (newline
         ;; or right margin) is indicated by the value of the
         ;; variable: `annotate-annotation-position-policy'.
         (dolist (ov overlays)
@@ -1350,6 +1369,8 @@ a        a**"
                      (setf position-new-line-p t))
                     (:by-length
                      (setf position-new-line-p nil))
+                    (:margin
+                     (setf position-new-line-p :margin))
                     (otherwise
                      nil)))
               (let* ((annotation-long-p  (> (string-width (annotate-annotation-get-annotation-text ov))
@@ -1365,7 +1386,8 @@ a        a**"
                                                                           bol
                                                                           eol
                                                                           position-new-line-p))
-                   (annotation-stopper   (if position-new-line-p
+                   (annotation-stopper   (if (and position-new-line-p
+                                                  (not (eq position-new-line-p :margin)))
                                              (if (= overlays-counter
                                                     (length overlays))
                                                  "\n"
@@ -1380,7 +1402,8 @@ a        a**"
               (when (and (not annotate-use-echo-area)
                          (not hidden-text)
                          (annotate-chain-last-p ov))
-                (when position-new-line-p
+                (when (and position-new-line-p
+                           (not (eq position-new-line-p :margin)))
                   (setf prefix-first " \n"))
                 (dolist (l multiline-annotation)
                   (setq annotation-text
@@ -2275,7 +2298,7 @@ and `annotate-color-index-from-dump' to specify annotation appearance."
                                       all-faces-height))
                     (when force-newline-p
                       (annotate-annotation-set-position annotation :new-line)))
-                    annotation))))
+                    annotation)))
     (if (annotate-string-empty-p annotation-text)
         (signal 'annotate-empty-annotation-text-error t)
       (progn
@@ -2285,7 +2308,7 @@ and `annotate-color-index-from-dump' to specify annotation appearance."
               (if (and text-to-match
                        (string= text-to-match annotated-text))
                   (create-annotation start end annotation-text)
-                (let* ((starting-point-matching (go-backward start))
+                (let* ((starting-point-macthing (go-backward start))
                        (ending-point-match      (go-forward  start))
                        (length-match            (- end start))
                        (new-match               (guess-match-and-add starting-point-matching
