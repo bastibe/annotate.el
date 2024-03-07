@@ -1361,33 +1361,30 @@ a        a**"
                  (annotation-face      (annotate-annotation-face ov)) ; added by annotate-create-annotation
                  (annotation-text-face (annotate-annotation-property-annotation-face ov)) ; added by annotate-create-annotation
                  (position             (annotate-annotation-get-position ov))
-                 (position-new-line-p  nil))
-            (if position
-                (progn
-                  (cl-case position
-                    (:new-line
-                     (setf position-new-line-p t))
-                    (:by-length
-                     (setf position-new-line-p nil))
-                    (:margin
-                     (setf position-new-line-p :margin))
-                    (otherwise
-                     nil)))
-              (let* ((annotation-long-p  (> (string-width (annotate-annotation-get-annotation-text ov))
-                                            annotate-annotation-max-size-not-place-new-line)))
-                (setf position-new-line-p (cl-case annotate-annotation-position-policy
-                                            (:new-line
-                                             t)
-                                            (:by-length
-                                             annotation-long-p)
-                                            (otherwise
-                                             nil)))))
+                 (annotation-long-p  (> (string-width (annotate-annotation-get-annotation-text ov))
+                                        annotate-annotation-max-size-not-place-new-line))
+                 (new-position-policy  position))
+            (if (null position)
+                (setf new-position-policy
+                      (if (eq annotate-annotation-position-policy
+                              :by-length)
+                          (if annotation-long-p
+                              :new-line
+                            :margin)
+                        annotate-annotation-position-policy))
+              (setf new-position-policy
+                    (if (eq position
+                            :by-length)
+                        (if annotation-long-p
+                            :new-line
+                          :margin)
+                      position)))
             (let* ((multiline-annotation (annotate-wrap-annotation-in-box ov
                                                                           bol
                                                                           eol
-                                                                          position-new-line-p))
-                   (annotation-stopper   (if (and position-new-line-p
-                                                  (not (eq position-new-line-p :margin)))
+                                                                          new-position-policy))
+                   (annotation-stopper   (if (not (eq new-position-policy
+                                                      :margin))
                                              (if (= overlays-counter
                                                     (length overlays))
                                                  "\n"
@@ -1402,8 +1399,8 @@ a        a**"
               (when (and (not annotate-use-echo-area)
                          (not hidden-text)
                          (annotate-chain-last-p ov))
-                (when (and position-new-line-p
-                           (not (eq position-new-line-p :margin)))
+                (when (and new-position-policy
+                           (not (eq new-position-policy :margin)))
                   (setf prefix-first " \n"))
                 (dolist (l multiline-annotation)
                   (setq annotation-text
@@ -1412,7 +1409,8 @@ a        a**"
                                 (propertize l 'face annotation-text-face)
                                 annotation-stopper))
                   ;; white space before for all but the first annotation line
-                  (if position-new-line-p
+                  (if (eq new-position-policy
+                          :new-line)
                       (setq prefix-first (concat prefix-first prefix-rest))
                     (setq prefix-first prefix-rest)))))))
         (when (not annotate-use-echo-area)
