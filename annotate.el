@@ -422,19 +422,6 @@ position (so that it is unchanged after this function is called)."
   (= (overlay-start annotation)
      (overlay-end   annotation)))
 
-(defun annotate-annotation-force-newline-policy (annotation)
-  "Force annotate to place `ANNOTATION' on the line after the annotated text.
-
-See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
-  (overlay-put annotation 'force-newline-policy t))
-
-(defun annotate-annotation-newline-policy-forced-p (annotation)
-  "Is `ANNOTATION' forced to place annotation on the line after the
-annotated text?
-
-See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
-  (overlay-get annotation 'force-newline-policy))
-
 (defun annotate-annotation-set-face (annotation face)
   "Set property face to `FACE' for `ANNOTATION'."
   (overlay-put annotation 'face face))
@@ -456,6 +443,16 @@ See: `ANNOTATE-ANNOTATION-POSITION-POLICY'."
 
 (defun annotate-annotation-get-annotation-text (annotation)
   (overlay-get annotation 'annotation))
+
+(defun annotate-annotation-set-position (annotation position)
+  (overlay-put annotation 'annotate-position position))
+
+(defun annotate-annotation-get-position (annotation)
+  (overlay-get annotation 'annotate-position))
+
+(defun annotate-overlay-maybe-set-position (overlay position)
+  (when position
+    (annotate-annotation-set-position overlay position)))
 
 (defun annotate-chain-last-ring (chain)
   "Get the last ring of `CHAIN'."
@@ -1315,7 +1312,7 @@ a        a**"
 \"facespec\" with the annotation in its \"display\" property."
   (save-excursion
     ;; (let ((newline-position (point)))
-      (goto-char (1- (point))) ; we start at the start of the previous line
+    (goto-char (1- (point))) ; we start at the start of the previous line
       ;; find overlays in the preceding line
       (let ((prefix-first       (annotate-make-prefix)) ; white spaces
                                                         ; before first
@@ -1344,35 +1341,45 @@ a        a**"
           (let* ((last-ring-p          (annotate-chain-last-p ov))
                  (annotation-face      (annotate-annotation-face ov)) ; added by annotate-create-annotation
                  (annotation-text-face (annotate-annotation-property-annotation-face ov)) ; added by annotate-create-annotation
-                 (annotation-long-p   (> (string-width (annotate-annotation-get-annotation-text ov))
-                                         annotate-annotation-max-size-not-place-new-line))
-                 (position-new-line-p (cl-case annotate-annotation-position-policy
-                                        (:new-line
-                                         t)
-                                        (:by-length
-                                         (or (annotate-annotation-newline-policy-forced-p ov)
-                                             annotation-long-p))
-                                        (otherwise
-                                         nil)))
-                 (multiline-annotation (annotate-wrap-annotation-in-box ov
-                                                                        bol
-                                                                        eol
-                                                                        position-new-line-p))
-                 (annotation-stopper   (if position-new-line-p
-                                           (if (= overlays-counter
-                                                  (length overlays))
-                                               "\n"
-                                             "")
-                                         "\n"))
-                 (tail-hidden-text-p   (and last-ring-p
-                                            (annotate-tail-overlay-hide-text-p ov))))
-            (setf hidden-text tail-hidden-text-p)
-            (cl-incf overlays-counter)
-            (annotate-annotation-set-face ov annotation-face)
-            (annotate-annotation-set-annotation-face ov annotation-text-face)
-            (when (and (not annotate-use-echo-area)
-                       (not hidden-text)
-                       (annotate-chain-last-p ov))
+                 (position             (annotate-annotation-get-position ov))
+                 (position-new-line-p  nil))
+            (if position
+                (progn
+                  (cl-case position
+                    (:new-line
+                     (setf position-new-line-p t))
+                    (:by-length
+                     (setf position-new-line-p nil))
+                    (otherwise
+                     nil)))
+              (let* ((annotation-long-p  (> (string-width (annotate-annotation-get-annotation-text ov))
+                                            annotate-annotation-max-size-not-place-new-line)))
+                (setf position-new-line-p (cl-case annotate-annotation-position-policy
+                                            (:new-line
+                                             t)
+                                            (:by-length
+                                             annotation-long-p)
+                                            (otherwise
+                                             nil)))))
+            (let* ((multiline-annotation (annotate-wrap-annotation-in-box ov
+                                                                          bol
+                                                                          eol
+                                                                          position-new-line-p))
+                   (annotation-stopper   (if position-new-line-p
+                                             (if (= overlays-counter
+                                                    (length overlays))
+                                                 "\n"
+                                               "")
+                                           "\n"))
+                   (tail-hidden-text-p   (and last-ring-p
+                                              (annotate-tail-overlay-hide-text-p ov))))
+              (setf hidden-text tail-hidden-text-p)
+              (cl-incf overlays-counter)
+              (annotate-annotation-set-face ov annotation-face)
+              (annotate-annotation-set-annotation-face ov annotation-text-face)
+              (when (and (not annotate-use-echo-area)
+                         (not hidden-text)
+                         (annotate-chain-last-p ov))
                 (when position-new-line-p
                   (setf prefix-first " \n"))
                 (dolist (l multiline-annotation)
@@ -1384,7 +1391,7 @@ a        a**"
                   ;; white space before for all but the first annotation line
                   (if position-new-line-p
                       (setq prefix-first (concat prefix-first prefix-rest))
-                    (setq prefix-first prefix-rest))))))
+                    (setq prefix-first prefix-rest)))))))
         (when (not annotate-use-echo-area)
           ;; build facespec with the annotation text as display property
           (if (string= annotation-text "")
@@ -1527,6 +1534,12 @@ buffer is not on info-mode"
 file."
   (and (> (length record) 3)
        (nth 4 record)))
+
+(defun annotate-placement-policy-from-dump (record)
+  "Get the checksum field from an annotation list loaded from a
+file."
+  (and (> (length record) 4)
+       (nth 5 record)))
 
 (defun annotate-checksum-from-dump (record)
   "Get the checksum field from an annotation list loaded from a
@@ -1774,12 +1787,14 @@ example:
                                                 (< dump-color-index
                                                    (length annotate-highlight-faces)))
                                            dump-color-index
-                                         nil)))
+                                         nil))
+                    (position          (annotate-placement-policy-from-dump annotation)))
                (annotate-create-annotation start
                                            end
                                            annotation-string
                                            annotated-text
-                                           color-index))))))
+                                           color-index
+                                           position))))))
         (font-lock-flush)
         (when annotate-use-messages
           (message annotate-message-annotation-loaded))))))
@@ -2111,7 +2126,7 @@ must not be rendered."
   (overlay-get overlay 'hide-text))
 
 (defun annotate-create-annotation (start end annotation-text annotated-text
-                                         &optional color-index)
+                                         &optional color-index position)
   "Create a new annotation for selected region (from `START' to  `END'.
 
 Here the argument `ANNOTATION-TEXT' is the string that appears
@@ -2186,6 +2201,7 @@ and `annotate-color-index-from-dump' to specify annotation appearance."
                                 (annotate-annotation-set-face highlight highlight-face)
                                 (annotate-annotation-set-annotation-text highlight annotation-text)
                                 (annotate-annotation-set-annotation-face highlight annotation-face)
+                                (annotate-overlay-maybe-set-position  highlight position)
                                 (annotate-overlay-maybe-set-help-echo highlight
                                                                       annotation-text)
                                 (annotate-annotation-chain-position highlight
@@ -2258,7 +2274,7 @@ and `annotate-color-index-from-dump' to specify annotation appearance."
                           (cl-find-if (lambda (a) (/= a default-face-height))
                                       all-faces-height))
                     (when force-newline-p
-                      (annotate-annotation-force-newline-policy annotation))
+                      (annotate-annotation-set-position annotation :new-line)))
                     annotation))))
     (if (annotate-string-empty-p annotation-text)
         (signal 'annotate-empty-annotation-text-error t)
@@ -2590,7 +2606,8 @@ The format is suitable for database dump."
                            (to          (overlay-end   chain-last))
                            (face        (annotate-annotation-face chain-first))
                            (color-index (cl-position-if (lambda (a) (cl-equalp face a))
-                                                        annotate-highlight-faces)))
+                                                        annotate-highlight-faces))
+                           (position    (annotate-annotation-get-position annotation)))
                       (when (not (cl-find-if (lambda (a)
                                                (eq (cl-first chain)
                                                    (cl-first a)))
@@ -2600,7 +2617,8 @@ The format is suitable for database dump."
                               to
                               (annotate-annotation-get-annotation-text annotation)
                               (buffer-substring-no-properties from to)
-                              color-index))))
+                              color-index
+                              position))))
                   all-annotations))))
 
 (defun annotate-info-root-dir-p (filename)
