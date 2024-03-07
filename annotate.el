@@ -1379,10 +1379,11 @@ a        a**"
                             :new-line
                           :margin)
                       position)))
-            (let* ((multiline-annotation (annotate-wrap-annotation-in-box ov
+            (let* ((wrap-in-a-new-line   (eq new-position-policy :new-line))
+                   (multiline-annotation (annotate-wrap-annotation-in-box ov
                                                                           bol
                                                                           eol
-                                                                          new-position-policy))
+                                                                          wrap-in-a-new-line))
                    (annotation-stopper   (if (not (eq new-position-policy
                                                       :margin))
                                              (if (= overlays-counter
