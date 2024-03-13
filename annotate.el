@@ -65,6 +65,8 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-a") #'annotate-annotate)
     (define-key map (kbd "C-c C-d") #'annotate-delete-annotation)
+    (define-key map (kbd "C-c C-.") #'annotate-change-annotation-text-position)
+    (define-key map (kbd "C-c C-c")  #'annotate-change-annotation-colors)
     (define-key map (kbd "C-c C-s") #'annotate-show-annotation-summary)
     (define-key map (kbd "C-c ]")   #'annotate-goto-next-annotation)
     (define-key map (kbd "C-c [")   #'annotate-goto-previous-annotation)
@@ -950,7 +952,32 @@ and
           (annotate-annotation-set-position annotation
                                             (elt annotate-allowed-positioning-policy
                                                  next-position-index)))))
+    (message "New position policy for this annotation is %s"
+             (annotate-annotation-get-position annotation))
     (font-lock-flush)))
+
+(defun annotate-change-annotation-colors ()
+  (interactive)
+  (cl-flet ((new-color-index (annotation)
+              (let ((current-annotation-face (annotate-annotation-property-annotation-face annotation)))
+                (if current-annotation-face
+                    (let* ((current-color-index (cl-position-if (lambda (a)
+                                                                  (cl-equalp current-annotation-face
+                                                                             a))
+                                                            annotate-annotation-text-faces))
+                           (new-color-index     (mod (1+ current-color-index)
+                                                     (length annotate-annotation-text-faces))))
+                      new-color-index)
+                  0))))
+  (when-let ((annotation (annotate-annotation-at (point))))
+    (let ((new-color-index (new-color-index annotation)))
+      (annotate-annotation-set-annotation-face annotation
+                                               (elt annotate-annotation-text-faces
+                                                    new-color-index))
+      (annotate-annotation-set-face annotation
+                                    (elt annotate-highlight-faces
+                                         new-color-index))
+      (font-lock-flush)))))
 
 (defun annotate-actual-comment-start ()
   "String for comment start related to current buffer's major
