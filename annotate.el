@@ -65,7 +65,7 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-a") #'annotate-annotate)
     (define-key map (kbd "C-c C-d") #'annotate-delete-annotation)
-    (define-key map (kbd "C-c C-.") #'annotate-change-annotation-text-position)
+    (define-key map (kbd "C-c C-p") #'annotate-change-annotation-text-position)
     (define-key map (kbd "C-c C-c") #'annotate-change-annotation-colors)
     (define-key map (kbd "C-c C-s") #'annotate-show-annotation-summary)
     (define-key map (kbd "C-c ]")   #'annotate-goto-next-annotation)
@@ -182,7 +182,8 @@ placed on the right margin of the window instead of its own line
   :type  'number)
 
 (defconst annotate-allowed-positioning-policy
-  '(:by-length :margin :new-line))
+  '(:by-length :margin :new-line)
+  "The allowed values for annotation positioning")
 
 (defcustom annotate-annotation-position-policy :by-length
   "Policy for annotation's position:
