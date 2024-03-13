@@ -1,3 +1,12 @@
+- 2023-10-10 v2.2.0 cage ::
+
+  This version adds two new commands:
+
+  - annotate-change-annotation-text-position;
+  - annotate-change-annotation-colors.
+
+  To force positioning or color, respectively, for a single annotation.
+
 - 2023-10-10 v2.1.0 cage ::
 
   This version ensures that the color theme for each annotation (both underline color of the annotated text and colors of the annotation), is saved when a an annotated file (or Emacs) is closed. The same color theme will be restored together with the annotations when, for example, the annotated file will be visited again.
