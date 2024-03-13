@@ -1,17 +1,59 @@
+2024-03-13 cage
+
+	* README.org,
+	* annotate.el:
+
+	- added new command 'annotate-change-annotation-color';
+	- printed message with current policy for annotation when changing
+	positioning. using 'annotate-change-annotation-text-position';
+	- update keymap to accomodate new commands.
+	- fixed variable name.
+	- updated docstrings.
+	- updated README.
+	- changed keybinding for 'annotate-change-annotation-text-position';
+	- added missing docstring.
+	- increased version number.
+
+2024-03-07 cage
+
+	* annotate.el:
+
+	- allowed different positioning of annotated text on the same buffer.
+	- added command 'annotate-change-annotation-text-position'.
+	- fixed position policy layout in builder.
+	- fixed wrapping of annotation in a 'box'.
+
+2024-03-05 cage
+
+	* annotate.el:
+
+	- preferred wrapping functions instead of call to 'overlay-put' and
+	'overlay-get'.
+
+2023-11-02 cage
+
+
+	Merge pull request #159 from cage2/master
+
 2023-10-10 cage
 
-        * NEWS.org,
-        * annotate.el:
+	* Changelog,
+	* NEWS.org,
+	* README.org,
+	* annotate.el:
 
-        - fixed procedure for coloring annotations (adjacent annotations with
-          the same colors was still possible).
-        - removed warning about unused parameter in function
-          'on-window-size-change';
-        - removed warnings about escaping in docstrings;
-        - used accented character instead of apostrophe.
-        - added saving of annotation face on the database.
-        - increased version number.
-        - updated NEWS file.
+	- fixed procedure for coloring annotations (adjacent annotations with
+	the same colors was still possible).
+	- removed warning about unused parameter in function
+	'on-window-size-change';
+	- removed warnings about escaping in docstrings;
+	- used accented character instead of apostrophe.
+	- added saving of annotation face on the database.
+	- increased version number.
+	- updated NEWS file.
+	- updated Changelog.
+	- rephrased NEWS file entry.
+	- fixed README.
 
 2023-09-30 cage2
 
@@ -105,7 +147,7 @@
 
         Merge pull request #150 from cage2/hide-annotation-text
 
-2023-02-22 cage <cage>
+2023-02-22 cage
 
         * Changelog,
         * NEWS.org,
