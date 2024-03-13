@@ -66,7 +66,7 @@
     (define-key map (kbd "C-c C-a") #'annotate-annotate)
     (define-key map (kbd "C-c C-d") #'annotate-delete-annotation)
     (define-key map (kbd "C-c C-.") #'annotate-change-annotation-text-position)
-    (define-key map (kbd "C-c C-c")  #'annotate-change-annotation-colors)
+    (define-key map (kbd "C-c C-c") #'annotate-change-annotation-colors)
     (define-key map (kbd "C-c C-s") #'annotate-show-annotation-summary)
     (define-key map (kbd "C-c ]")   #'annotate-goto-next-annotation)
     (define-key map (kbd "C-c [")   #'annotate-goto-previous-annotation)
@@ -2334,7 +2334,7 @@ and `annotate-color-index-from-dump' to specify annotation appearance."
               (if (and text-to-match
                        (string= text-to-match annotated-text))
                   (create-annotation start end annotation-text)
-                (let* ((starting-point-macthing (go-backward start))
+                (let* ((starting-point-matching (go-backward start))
                        (ending-point-match      (go-forward  start))
                        (length-match            (- end start))
                        (new-match               (guess-match-and-add starting-point-matching
