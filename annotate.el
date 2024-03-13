@@ -444,18 +444,24 @@ position (so that it is unchanged after this function is called)."
   (overlay-get annotation 'annotation-face))
 
 (defun annotate-annotation-set-annotation-text (annotation annotation-text)
+  "Set the annotation's content for `ANNOTATION` to `ANNOTATION-TEXT`."
   (overlay-put annotation 'annotation annotation-text))
 
 (defun annotate-annotation-get-annotation-text (annotation)
+  "Get the annotation's content for `ANNOTATION`."
   (overlay-get annotation 'annotation))
 
 (defun annotate-annotation-set-position (annotation position)
+  "Set the annotation's position policy for `ANNOTATION` to the value bound to `POSITION`."
   (overlay-put annotation 'annotate-position position))
 
 (defun annotate-annotation-get-position (annotation)
+  "Get the annotation's position policy for `ANNOTATION`."
   (overlay-get annotation 'annotate-position))
 
 (defun annotate-overlay-maybe-set-position (overlay position)
+  "Set the annotation's position policy for `ANNOTATION` to the value bound to `POSITION`,
+but only if the value of the property 'position is not null."
   (when position
     (annotate-annotation-set-position overlay position)))
 
@@ -939,6 +945,7 @@ and
         (annotate-goto-previous-annotation :startingp t)))))
 
 (defun annotate-change-annotation-text-position ()
+  "Change the policy positioning for the annotation under point."
   (interactive)
   (when-let ((annotation (annotate-annotation-at (point))))
     (let ((current-position (annotate-annotation-get-position annotation)))
@@ -957,6 +964,7 @@ and
     (font-lock-flush)))
 
 (defun annotate-change-annotation-colors ()
+  "Change the colors for the annotation under point."
   (interactive)
   (cl-flet ((new-color-index (annotation)
               (let ((current-annotation-face (annotate-annotation-property-annotation-face annotation)))
@@ -2184,14 +2192,14 @@ that is underlined.
 
 If this function is called from procedure
 \"annotate-load-annotations\" the argument `ANNOTATED-TEXT'
-should be not null. In this case we know that an annotation
+should be not null.  In this case we know that an annotation
 existed in a text interval defined in the database
 metadata (the database located in the file specified by the
 variable \"annotate-file\") and should just be
-restored. Sometimes the annotated text (see above) can not be
+restored.  Sometimes the annotated text (see above) can not be
 found in said interval because the annotated file's content
 changed and `annotate-mode' could not track the
-changes (e.g. save the file when annotate-mode was not
+changes (e.g. save the file when `annotate-mode' was not
 active/loaded) in this case the matching
 text (\"annotated-text\") is searched in a region surrounding the
 interval and, if found, the buffer is annotated right there.
@@ -2199,9 +2207,11 @@ interval and, if found, the buffer is annotated right there.
 The searched interval can be customized setting the variable:
 \"annotate-search-region-lines-delta\".
 
-Finally `COLOR-INDEX`, if non-null (default nil), is used as index to address
+`COLOR-INDEX`, if non-null (default nil), is used as index to address
 elements both in `annotate-color-index-from-dump'
-and `annotate-color-index-from-dump' to specify annotation appearance."
+and `annotate-color-index-from-dump' to specify annotation appearance.
+
+Finally `POSITION` indicates the positioning policy for the annotation, if null the value bound to `annotate-annotation-position-policy` is used."
   (cl-labels ((face-annotation-shifting-point (position shifting-direction-function)
                 (when-let* ((annotation       (funcall shifting-direction-function
                                                        position))
