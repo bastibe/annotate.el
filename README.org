@@ -131,6 +131,18 @@ The annotation text can be pressed to and will open the annotated file, placing 
 **** related customizable variable
      - ~annotate-summary-ask-query~.
 
+*** ~C-c C-c~ (function annotate-change-annotation-colors)
+
+Change the color of the annotation below point (both higlight and annotation text colors are changed).
+
+These changes are kept after the buffer is killed.
+
+*** ~C-c C-p~ (function annotate-change-annotation-text-position)
+
+Change the policy positioning the annotation below point, a message with the new policy is printed.
+
+These changes are kept after the buffer is killed.
+
 * Exporting
 
 Annotations can be exported ~annotate-export-annotations~ as commented unified diffs, like this:
