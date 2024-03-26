@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 2.2.0
+;; Version: 2.2.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "2.2.0"
+  :version "2.2.1"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -1806,9 +1806,12 @@ ANNOTATION-STRING: the text of annotation
 ANNOTATED-TEXT:    the substring of buffer from START to END (as above)
 COLOR-INDEX:       the index position in `annotate-annotation-text-faces' and
                    `annotate-highlight-faces' to chode the annotation's visual
+POSITIONING-POLICY a keyword representing the startegy for the annotation's text position;
+                   the allowed values are specified in: annotate-allowed-positioning-policy
+
 example:
 
-\\='(\"/foo/bar\" ((0 9 \"note\" \"annotated\" 0)) hash-as-hex-string)."
+\\='(\"/foo/bar\" ((0 9 \"note\" \"annotated\" 0 :margin)) hash-as-hex-string)."
   (interactive)
   (cl-labels ((old-format-p (annotation)
                 (not (stringp (cl-first (last annotation))))))

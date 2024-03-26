@@ -1,3 +1,7 @@
+- 2024-03-23 v2.2.1 cage ::
+
+  This version added missing information from documentation about annotations database file format.
+
 - 2023-10-10 v2.2.0 cage ::
 
   This version adds two new commands:
