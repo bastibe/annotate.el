@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 2.2.1
+;; Version: 2.2.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "2.2.1"
+  :version "2.2.2"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -2226,7 +2226,8 @@ Finally `POSITION` indicates the positioning policy for the annotation, if null 
                 (face-annotation-shifting-point position
                                                 #'annotate-previous-annotation-ends))
               (face-annotation-after-point (position)
-                (face-annotation-shifting-point position
+		(face-annotation-shifting-point (max (point-min)
+						     (1- position))
                                                 #'annotate-next-annotation-starts))
               (available-face-index (&rest used-faces)
                 (cl-position-if-not (lambda (a)

@@ -1,5 +1,42 @@
+2024-05-08 cage
+
+	* annotate.el:
+
+	- increased version number.
+
+2024-04-17 cage
+
+	* annotate.el:
+
+	- fixed color's annotation when the new annotated text end border lays
+	just next to an already annotated text
+	for example:
+	foo-bar
+	⏶  ^^^ ← annotated text
+	|
+	`cursor position
+	annotating  "foo-"  ("C-c  C-a")  would  set a  color  for  the  new
+	annotation  equals to  the one  on the  left, the  correct behaviour
+	would be to set a different color.
+
+2024-03-23 cage
+
+	* NEWS.org,
+	* annotate.el:
+
+	- increased version number;
+	- added missing information from docstring;
+	- updated NEWS.org.
+
+2024-03-20 cage2
+
+
+	Merge pull request #160 from cage2/master
+
 2024-03-13 cage
 
+	* Changelog,
+	* NEWS.org,
 	* README.org,
 	* annotate.el:
 
@@ -13,6 +50,8 @@
 	- changed keybinding for 'annotate-change-annotation-text-position';
 	- added missing docstring.
 	- increased version number.
+	- updated changelog.
+	- updated NEWS.
 
 2024-03-07 cage
 
