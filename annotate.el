@@ -1,5 +1,5 @@
 ;;; annotate.el --- annotate files without changing them  -*- lexical-binding: t; -*-
-;; Copyright (C) 2015 Bastian Bechtold and contributors:
+;; Copyright © 2015 Bastian Bechtold and contributors:
 ;; Naoya Yamashita (2018)
 ;; Università degli Studi di Palermo (2019)
 
@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 2.2.2
+;; Version: 2.2.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "2.2.2"
+  :version "2.2.3"
   :group 'text)
 
 (defvar annotate-mode-map
