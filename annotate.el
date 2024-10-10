@@ -46,7 +46,7 @@
 ;; the previous annotation.  Use M-x annotate-export-annotations to
 ;; save annotations as a no-difference diff file.
 
-;; Important note: annotation can not overlaps and newline character
+;; Important note for developers: annotation can not overlaps and newline character
 ;; can not be annotated.
 
 ;;; Code:
@@ -358,6 +358,10 @@ in the customizable colors lists:
 
 (define-error 'annotate-empty-annotation-text-error
   "Empty annotation text"
+  'annotate-error)
+
+(define-error 'annotate-no-new-line-at-end-file-error
+  "No newline found at the end of the buffer"
   'annotate-error)
 
 (define-error 'annotate-db-file-not-found
@@ -732,6 +736,8 @@ and
                   (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
                     (condition-case nil
                         (annotate-create-annotation start end annotation-text nil color-index)
+                      (annotate-no-new-line-at-end-file-error
+                       (user-error "Missing newline at the end of the buffer"))
                       (annotate-empty-annotation-text-error
                        (user-error "Annotation text is empty"))))))
               (cut-right (region-beg region-stop &optional delete-enclosed)
@@ -1117,8 +1123,8 @@ An example might look like this:"
   "Export all annotations as a unified diff file.
 An example might look like this:
 
---- .../annotate.el/annotate.el	2015-06-19 15:13:36.718796738 +0200
-+++ .../annotate.el/annotate.el	2015-06-19 15:13:36.718796738 +0200
+--- .../annotate.el/annotate.el 2015-06-19 15:13:36.718796738 +0200
++++ .../annotate.el/annotate.el 2015-06-19 15:13:36.718796738 +0200
 @@ -73,5 +73,5 @@
  ;;;###autoload
  (defface annotate-highlight
@@ -2226,8 +2232,8 @@ Finally `POSITION` indicates the positioning policy for the annotation, if null 
                 (face-annotation-shifting-point position
                                                 #'annotate-previous-annotation-ends))
               (face-annotation-after-point (position)
-		(face-annotation-shifting-point (max (point-min)
-						     (1- position))
+                (face-annotation-shifting-point (max (point-min)
+                                                     (1- position))
                                                 #'annotate-next-annotation-starts))
               (available-face-index (&rest used-faces)
                 (cl-position-if-not (lambda (a)
@@ -2339,40 +2345,47 @@ Finally `POSITION` indicates the positioning policy for the annotation, if null 
                                       all-faces-height))
                     (when force-newline-p
                       (annotate-annotation-set-position annotation :new-line)))
-                    annotation)))
-    (if (annotate-string-empty-p annotation-text)
-        (signal 'annotate-empty-annotation-text-error t)
-      (progn
-        (if (not (annotate-string-empty-p annotated-text))
-            (let ((text-to-match (ignore-errors
-                                   (buffer-substring-no-properties start end))))
-              (if (and text-to-match
-                       (string= text-to-match annotated-text))
-                  (create-annotation start end annotation-text)
-                (let* ((starting-point-matching (go-backward start))
-                       (ending-point-match      (go-forward  start))
-                       (length-match            (- end start))
-                       (new-match               (guess-match-and-add starting-point-matching
-                                                                     (+ starting-point-matching
-                                                                        length-match)
-                                                                     annotated-text
-                                                                     ending-point-match)))
-                  (and new-match
-                       (create-annotation new-match
-                                          (+ new-match length-match)
-                                          annotation-text)))
-                (lwarn '(annotate-mode) ; if matches annotated text failed
-                       :warning
-                       annotate-warn-file-searching-annotation-failed-control-string
-                       (annotate-actual-file-name)
-                       annotation-text
-                       text-to-match)))
-          (create-annotation start end annotation-text)) ; create new annotation
-        (when (use-region-p)
-          (deactivate-mark))
-        (save-excursion
-          (goto-char end)
-          (font-lock-fontify-block 1))))))
+                  annotation))
+              (next-to-a-line-terminator-p ()
+                (save-excursion
+                  (goto-char end)
+                  (re-search-forward "\n" nil t))))
+    (cond
+     ((not (next-to-a-line-terminator-p))
+      (signal 'annotate-no-new-line-at-end-file-error t))
+     ((annotate-string-empty-p annotation-text)
+      (signal 'annotate-empty-annotation-text-error t))
+     (t
+      (if (not (annotate-string-empty-p annotated-text))
+          (let ((text-to-match (ignore-errors
+                                 (buffer-substring-no-properties start end))))
+            (if (and text-to-match
+                     (string= text-to-match annotated-text))
+                (create-annotation start end annotation-text)
+              (let* ((starting-point-matching (go-backward start))
+                     (ending-point-match      (go-forward  start))
+                     (length-match            (- end start))
+                     (new-match               (guess-match-and-add starting-point-matching
+                                                                   (+ starting-point-matching
+                                                                      length-match)
+                                                                   annotated-text
+                                                                   ending-point-match)))
+                (and new-match
+                     (create-annotation new-match
+                                        (+ new-match length-match)
+                                        annotation-text)))
+              (lwarn '(annotate-mode) ; if matches annotated text failed
+                     :warning
+                     annotate-warn-file-searching-annotation-failed-control-string
+                     (annotate-actual-file-name)
+                     annotation-text
+                     text-to-match)))
+        (create-annotation start end annotation-text)) ; create new annotation
+      (when (use-region-p)
+        (deactivate-mark))
+      (save-excursion
+        (goto-char end)
+        (font-lock-fontify-block 1))))))
 
 (defun annotate-overlay-put-echo-help (overlay text)
   "Set the property `HELP-ECHO' to `TEXT' in overlay `OVERLAY'."
