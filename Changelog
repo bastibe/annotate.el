@@ -1,8 +1,25 @@
-2024-05-08 cage
+2024-10-10 cage
 
 	* annotate.el:
 
+	- prevented an annotation to appears on the last line of a buffer if
+	the buffer does not ends with a newline character.
+	- increased version number;
+	- changed '(C) with the copyright character.
+
+2024-05-09 cage2
+
+
+	Merge pull request #162 from cage2/master
+
+2024-05-08 cage
+
+	* Changelog,
+	* NEWS.org,
+	* annotate.el:
+
 	- increased version number.
+	- updated news and changelog files.
 
 2024-04-17 cage
 
