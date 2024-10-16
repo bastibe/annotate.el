@@ -1,6 +1,6 @@
 - 2024-10-10 v2.2.3 cage ::
 
-  This version prevents to annotate the last line of a buffer if such buffer does not terminates with a new line character (in previous versions the annotated text was highlighted but the annotation text was not shown).
+  This version contains code that asks the user to append a newline character to the end of a buffer if such buffer does not terminates with a newline character (if the newline is not present the annotated text is highlighted but the annotation text is not shown).
 
 - 2024-05-08 v2.2.2 cage ::
 
