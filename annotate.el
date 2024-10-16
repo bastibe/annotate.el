@@ -333,6 +333,9 @@ summary window because does not exist or is in an unsupported
 (defconst annotate-confirm-deleting-annotation-prompt  "Delete this annotation? "
   "Prompt to be shown when asking for annotation deletion confirm.")
 
+(defconst annotate-confirm-appending-newline-prompt "No newline character at the end of the buffer %S, annotation will not be displayed properly: append one? "
+  "Prompt to be shown when asking for appending a newline at the end of the buffer.")
+
 (defconst annotate-message-annotation-loaded "Annotations loaded."
   "The message shown when annotations has been loaded.")
 
@@ -2351,10 +2354,19 @@ Finally `POSITION` indicates the positioning policy for the annotation, if null 
                   (goto-char end)
                   (re-search-forward "\n" nil t))))
     (cond
-     ((not (next-to-a-line-terminator-p))
-      (signal 'annotate-no-new-line-at-end-file-error t))
      ((annotate-string-empty-p annotation-text)
       (signal 'annotate-empty-annotation-text-error t))
+     ((and (not (or annotate-use-echo-area
+                    (next-to-a-line-terminator-p)))
+           (annotate--confirm-append-newline-at-the-end-of-buffer))
+      (save-excursion
+        (goto-char (point-max))
+        (insert "\n"))
+      (annotate-create-annotation start
+                                  end
+                                  annotation-text
+                                  annotated-text
+                                  color-index position))
      (t
       (if (not (annotate-string-empty-p annotated-text))
           (let ((text-to-match (ignore-errors
@@ -2515,6 +2527,11 @@ point)."
       (when delete-confirmed-p
         (annotate--delete-annotation-chain annotation)
         (font-lock-flush)))))
+
+(defun annotate--confirm-append-newline-at-the-end-of-buffer ()
+  "Prompt user for appending newline confirmation.
+This function is not part of the public API."
+  (y-or-n-p (format annotate-confirm-appending-newline-prompt (buffer-name))))
 
 (defun annotate-change-annotation (pos)
   "Change annotation at `POS'.  If empty, delete annotation."
