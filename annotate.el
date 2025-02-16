@@ -251,6 +251,11 @@ of lines. The center of the region is the position of the
 annotation as defined in the database."
   :type 'number)
 
+(defcustom annotate-autosave t
+  "Whether annotations should be saved after each user action,
+e.g. new annotation created, existing one amenede or deleted."
+  :type 'boolean)
+
 (defconst annotate-prop-chain-position
   'position)
 
@@ -886,7 +891,8 @@ and
                                             ; with proper text
                         (forward-line 1)
                         (goto-char (annotate-end-of-line-pos))
-                        (annotate-annotate)))))))))))))))
+                        (annotate-annotate))))))))))))
+      (if annotate-autosave (annotate-save-annotations)))))
 
 (defun annotate-toggle-annotation-text ()
   "Hide annotation's text at current cursor's point, if such annotation exists."
@@ -2526,7 +2532,8 @@ point)."
     (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
       (when delete-confirmed-p
         (annotate--delete-annotation-chain annotation)
-        (font-lock-flush)))))
+        (font-lock-flush)))
+    (if annotate-autosave (annotate-save-annotations))))
 
 (defun annotate--confirm-append-newline-at-the-end-of-buffer ()
   "Prompt user for appending newline confirmation.
