@@ -253,7 +253,7 @@ annotation as defined in the database."
 
 (defcustom annotate-autosave nil
   "Whether annotations should be saved after each user action,
-e.g. new annotation created, existing one amenede or deleted."
+e.g. new annotation created, existing one amended or deleted."
   :type 'boolean)
 
 (defconst annotate-prop-chain-position
@@ -892,7 +892,8 @@ and
                         (forward-line 1)
                         (goto-char (annotate-end-of-line-pos))
                         (annotate-annotate))))))))))))
-      (if annotate-autosave (annotate-save-annotations)))))
+      (when annotate-autosave
+	(annotate-save-annotations)))))
 
 (defun annotate-toggle-annotation-text ()
   "Hide annotation's text at current cursor's point, if such annotation exists."
@@ -2533,7 +2534,8 @@ point)."
       (when delete-confirmed-p
         (annotate--delete-annotation-chain annotation)
         (font-lock-flush)))
-    (if annotate-autosave (annotate-save-annotations))))
+    (when annotate-autosave
+      (annotate-save-annotations))))
 
 (defun annotate--confirm-append-newline-at-the-end-of-buffer ()
   "Prompt user for appending newline confirmation.
