@@ -159,7 +159,6 @@ Alternatively, they can be integrated ~annotate-integrate-annotations~ as commen
      - ~annotate-integrate-highlight~
      - ~annotate-fallback-comment~
 
-
 * Importing
 
 An annotation database file can be imported using the command ~annotate-import-annotations~.
@@ -216,6 +215,11 @@ Shows or hides annotation's text under cursor.
 
 ** annotate-toggle-all-annotations-text
 Shows or hides the annotation's text in the whole buffer.
+
+* Other customization variables
+
+**  annotate-autosave
+Whether annotations should be saved after each user action, e.g. new annotation created, existing one amended or deleted. Boolean value, default is ~nil~ i.e. do not perform autosave and update the annotations in a buffer, just after killing buffer or quitting Emacs.
 
 * More documentation
 
