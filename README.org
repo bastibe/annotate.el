@@ -133,7 +133,7 @@ The annotation text can be pressed to and will open the annotated file, placing 
 
 *** ~C-c C-c~ (function annotate-change-annotation-colors)
 
-Change the color of the annotation below point (both higlight and annotation text colors are changed).
+Change the color of the annotation below point (both highlight and annotation text colors are changed).
 
 These changes are kept after the buffer is killed.
 
