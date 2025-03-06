@@ -1,3 +1,45 @@
+2025-03-05 cage
+
+        * README.org:
+
+        Merge pull request #165 from krvkir/master
+        - fixed typo in README.
+        - updated README.
+
+2025-03-02 krvkir
+
+        * annotate.el:
+
+        [fix] a typo in the doc, if -> when, improved formatting
+
+2025-02-21 krvkir
+
+        * annotate.el:
+
+        [fix] make autosave disabled by default
+
+2025-02-17 krvkir
+
+        * annotate.el:
+
+        [add] autosave option
+
+2024-10-17 cage2
+
+
+        Merge pull request #163 from cage2/master
+
+2024-10-16 cage
+
+        * Changelog,
+        * NEWS.org,
+        * annotate.el:
+
+        - added the chance to append a newline character at the end of a
+        buffer when it does not terminate with a proper line.
+        - updated news file.
+        - updated changelog.
+
 2024-10-16 cage
 
         * NEWS.org,
@@ -1294,6 +1336,7 @@
 	  available  overlay.   So  the annotated  text  contained  multiple
 	  overlays and an  annotation was not the first we  missed the last,
 	  This means, for example, that the annotation was not modifiable.
+
 2020-03-16 Bastian Bechtold, cage
         * annotate.el (annotate-create-annotation)
 
