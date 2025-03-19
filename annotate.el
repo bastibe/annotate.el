@@ -1501,18 +1501,21 @@ surrounded by `BEGIN' and `END'."
 (defun annotate-annotations-overlay-in-range (from-position to-position)
   "Return the annotations overlays that are enclosed in the range
 defined by `FROM-POSITION' and `TO-POSITION'."
-  (let ((annotations ()))
-    (cl-loop for  i
-             from (max 0 (1- from-position))
-             to   to-position
-             do
-      (let ((annotation (annotate-next-annotation-starts i)))
-        (annotate-ensure-annotation (annotation)
-          (let ((chain-end   (overlay-end   (annotate-chain-last  annotation)))
-                (chain-start (overlay-start (annotate-chain-first annotation))))
-            (when (and (>= chain-start from-position)
-                       (<= chain-end   to-position))
-              (cl-pushnew annotation annotations))))))
+  (let ((annotations ())
+	(counter (max 0 (1- from-position))))
+    (catch 'scan-loop
+      (while (<= counter
+                 to-position)
+	(cl-incf counter)
+	(let ((annotation (annotate-next-annotation-starts counter)))
+          (if (annotationp annotation)
+              (let ((chain-end   (overlay-end   (annotate-chain-last  annotation)))
+                    (chain-start (overlay-start (annotate-chain-first annotation))))
+		(setf counter chain-end)
+		(when (and (>= chain-start from-position)
+			   (<= chain-end   to-position))
+		  (cl-pushnew annotation annotations)))
+	    (throw 'scan-loop t)))))
     (reverse annotations)))
 
 (defun annotate-annotations-chain-in-range (from-position to-position)
