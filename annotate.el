@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 2.3.0
+;; Version: 2.3.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "2.3.0"
+  :version "2.3.1"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -906,7 +906,7 @@ and
     (font-lock-flush)))
 
 (defun annotate-toggle-all-annotations-text ()
-"Hide annototation's text in the whole buffer."
+"Hide annotation's text in the whole buffer."
   (interactive)
   (let ((chains (annotate-annotations-chain-in-range 0 (buffer-size))))
     (dolist (chain chains)
