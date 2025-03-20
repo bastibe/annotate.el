@@ -1,10 +1,30 @@
+2025-03-19 cage
+
+	* annotate.el:
+
+	- optimized 'annotate-annotations-overlay-in-range' by jumping from an
+	annotation to another, instead of scanning every single character of
+	the buffer.
+
+2025-03-06 cage
+
+
+	Merge pull request #166 from
+	cage2/updating-documentation-after-autosave-patch
+
 2025-03-05 cage
 
-        * README.org:
+	* Changelog,
+	* NEWS.org,
+	* README.org,
+	* annotate.el:
 
-        Merge pull request #165 from krvkir/master
-        - fixed typo in README.
-        - updated README.
+	Merge pull request #165 from krvkir/master
+	- fixed typo in README.
+	- updated README.
+	- updated Changelog.
+	- increased version number;
+	- updated NEWS file.
 
 2025-03-02 krvkir
 

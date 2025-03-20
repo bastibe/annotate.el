@@ -1,3 +1,7 @@
+- 2025-03-05 v2.3.1 cage ::
+
+  This version optimizes a function that searches for annotations in a buffer; this changes should speed up commands like ~annotate-toggle-all-annotations-text~.
+
 - 2025-03-05 v2.3.0 krvkir ::
 
   This version adds a new customizable variable to instructs annotate.el to save annotation's database each time a new annotation is created, deleted or amended.
