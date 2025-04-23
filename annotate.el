@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 2.3.1
+;; Version: 2.4.0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "2.3.1"
+  :version "2.4.0"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -255,6 +255,18 @@ annotation as defined in the database."
   "Whether annotations should be saved after each user action,
 e.g. new annotation created, existing one amended or deleted."
   :type 'boolean)
+
+(defcustom annotate-annotation-expansion-map '(("%d" . "date +%Y-%m-%d"))
+  "The expansion map for the annotation text. If a substring  in the annotation text matches the string in the car value of each cons cell of this alist, it is expanded with the results of  passing the cdr of each cell to a system shell. Example below.
+
+The expression:
+
+(setf annotate-annotation-expansion-map
+      '((\"%d\" . \"date +%Y-%m-%d\")))
+
+Will expand any occurrence of \"%d\" in the annotation's text with
+the current date (format: \"YYYY-MM-DD\")"
+  :type  '(alist :key-type string :value-type string))
 
 (defconst annotate-prop-chain-position
   'position)
@@ -727,6 +739,19 @@ specified by `FROM' and `TO'."
   (cl-count-if (lambda (a) (char-equal a ?\n))
                (buffer-substring-no-properties from to)))
 
+(defun annotate--expand-annotation-text (annotation-text)
+  (cl-loop with results = annotation-text
+	   for expansion in annotate-annotation-expansion-map
+	   when (string-match-p (car expansion) results)
+	   do (let ((expansion-results (string-trim (shell-command-to-string (cdr expansion)))))
+		(setf results
+		      (replace-regexp-in-string (car expansion)
+						expansion-results
+						results
+						t
+						t)))
+	   finally (return results)))
+
 (defun annotate-annotate (&optional color-index)
   "Create, modify, or delete annotation.
 if `COLOR-INDEX' is not null must be an index that adresses an element both in
@@ -741,7 +766,8 @@ and
                 ;; create a new annotation in the region returned by `annotate-bound'
                 (cl-destructuring-bind (start end)
                     (annotate-bounds)
-                  (let ((annotation-text (read-from-minibuffer annotate-annotation-prompt)))
+                  (let* ((raw-text        (read-from-minibuffer annotate-annotation-prompt))
+			 (annotation-text (annotate--expand-annotation-text raw-text)))
                     (condition-case nil
                         (annotate-create-annotation start end annotation-text nil color-index)
                       (annotate-no-new-line-at-end-file-error

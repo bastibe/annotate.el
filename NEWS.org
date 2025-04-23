@@ -1,3 +1,11 @@
+- 2025-04-23 v2.4.0 cage ::
+
+  This version adds annotation's text expansion feature:
+
+  #+BEGIN_SRC text
+  "%d foo" → "2025-04-23 foo"
+  #+END_SRC
+
 - 2025-03-05 v2.3.1 cage ::
 
   This version optimizes a function that searches for annotations in a buffer; this changes should speed up commands like ~annotate-toggle-all-annotations-text~.
