@@ -256,7 +256,7 @@ annotation as defined in the database."
 e.g. new annotation created, existing one amended or deleted."
   :type 'boolean)
 
-(defcustom annotate-annotation-expansion-map '(("%d" . "date +%Y-%m-%d"))
+(defcustom annotate-annotation-expansion-map '()
   "The expansion map for the annotation text. If a substring  in the annotation text matches the string in the car value of each cons cell of this alist, it is expanded with the results of  passing the cdr of each cell to a system shell. Example below.
 
 The expression:
