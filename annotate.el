@@ -251,7 +251,7 @@ of lines. The center of the region is the position of the
 annotation as defined in the database."
   :type 'number)
 
-(defcustom annotate-autosave nil
+(defcustom annotate-autosave t
   "Whether annotations should be saved after each user action,
 e.g. new annotation created, existing one amended or deleted."
   :type 'boolean)
