@@ -257,16 +257,15 @@ e.g. new annotation created, existing one amended or deleted."
   :type 'boolean)
 
 (defcustom annotate-annotation-expansion-map '()
-  "The expansion map for the annotation text. If a substring  in the annotation text matches the string in the car value of each cons cell of this alist, it is expanded with the results of  passing the cdr of each cell to a system shell. Example below.
+  "The expansion map for the annotation text. If a substring in the annotation text matches the string in the first item of each element of this list, it is expanded with the results of  passing the second item — as a command — to a system shell, if the third item is not null, the output string of the command's results are trimmed (spaces or some others non printable characters are removed from both ends, see: `string-trim'). Example below.
 
 The expression:
 
 (setf annotate-annotation-expansion-map
-      '((\"%d\" . \"date +%Y-%m-%d\")))
+      '((\"%d\" \"date +%Y-%m-%d\" t)))
 
-Will expand any occurrence of \"%d\" in the annotation's text with
-the current date (format: \"YYYY-MM-DD\")"
-  :type  '(alist :key-type string :value-type string))
+Will expand any occurrence of \"%d\" in the annotation's text with the current date (format: \"YYYY-MM-DD\"), moreover the results will be trimmed"
+  :type '(repeat (list string string boolean)))
 
 (defconst annotate-prop-chain-position
   'position)
@@ -740,17 +739,25 @@ specified by `FROM' and `TO'."
                (buffer-substring-no-properties from to)))
 
 (defun annotate--expand-annotation-text (annotation-text)
+  (cl-flet ((regex (expansion-item)
+		   (cl-first expansion-item))
+	    (trimp (expansion-item)
+		   (cl-third expansion-item))
+	    (command (expansion-item)
+		     (cl-second expansion-item)))
   (cl-loop with results = annotation-text
 	   for expansion in annotate-annotation-expansion-map
-	   when (string-match-p (car expansion) results)
-	   do (let ((expansion-results (string-trim (shell-command-to-string (cdr expansion)))))
+	   when (string-match-p (regex expansion) results)
+	   do (let ((expansion-results (shell-command-to-string (command expansion))))
+		(when (trimp expansion)
+		  (setf expansion-results (string-trim expansion-results)))
 		(setf results
-		      (replace-regexp-in-string (car expansion)
+		      (replace-regexp-in-string (regex expansion)
 						expansion-results
 						results
 						t
 						t)))
-	   finally (return results)))
+	   finally (return results))))
 
 (defun annotate-annotate (&optional color-index)
   "Create, modify, or delete annotation.
