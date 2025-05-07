@@ -221,6 +221,19 @@ Shows or hides the annotation's text in the whole buffer.
 **  annotate-autosave
 Whether annotations should be saved after each user action, e.g. new annotation created, existing one amended or deleted. Boolean value, default is ~nil~ i.e. do not perform autosave and update the annotations in a buffer, just after killing buffer or quitting Emacs.
 
+** annotate-annotation-expansion-map
+
+The expansion map for the annotation text. If a substring in the annotation text matches the string in the first item of each element of this list, it will be expanded with the results of passing the second item — as a command — to a system shell, if the third item is not null, the output string of the command's results will be trimmed (spaces or some others non printable characters will be removed from both ends, see: `string-trim'). Example below.
+
+The expression:
+
+#+BEGIN_SRC lisp
+  (setf annotate-annotation-expansion-map
+	'((\"%d\" \"date +%Y-%m-%d\" t)))
+#+END_SRC
+
+Will expand any occurrence of \"%d\" in the annotation's text with the current date (format: \"YYYY-MM-DD\"), moreover the results will be trimmed.
+
 * More documentation
 
 Please check ~M-x customize-group RET annotate~ as there is extensive documentation for each customizable variable.

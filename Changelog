@@ -1,10 +1,19 @@
+2025-03-20 cage
+
+	Merge pull request #168 from cage2/optimize-searching-for-annotations
+
 2025-03-19 cage
 
+	* Changelog,
+	* NEWS.org,
 	* annotate.el:
 
 	- optimized 'annotate-annotations-overlay-in-range' by jumping from an
 	annotation to another, instead of scanning every single character of
 	the buffer.
+	- increased version number;
+	- updated NEWS file and changelog;
+	- fixed docstring.
 
 2025-03-06 cage
 
