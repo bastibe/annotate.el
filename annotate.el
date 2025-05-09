@@ -99,13 +99,13 @@ name of the local database annotation"
                                       (:underline "#92EEF1")
                                       (:underline "#F192EE"))
   "List of faces for annotated text."
-  :type 'list)
+  :type '(repeat (list symbol string)))
 
 (defcustom annotate-annotation-text-faces '((:background "#EEF192"  :foreground "black")
                                             (:background "#92EEF1"  :foreground "black")
                                             (:background "#F192EE"  :foreground "black"))
   "List of faces for annotation's text."
-  :type 'list)
+  :type '(repeat (list symbol string symbol string)))
 
 (defface annotate-prefix
   '((t (:inherit default)))
@@ -257,14 +257,23 @@ e.g. new annotation created, existing one amended or deleted."
   :type 'boolean)
 
 (defcustom annotate-annotation-expansion-map '()
-  "The expansion map for the annotation text. If a substring in the annotation text matches the string in the first item of each element of this list, it is expanded with the results of  passing the second item — as a command — to a system shell, if the third item is not null, the output string of the command's results are trimmed (spaces or some others non printable characters are removed from both ends, see: `string-trim'). Example below.
+
+  "The expansion map for the annotation text. If a substring in the
+annotation text matches the string in the first item of each element of
+this list, it is expanded with the results of passing the second item —
+as a command — to a system shell, if the third item is not null, the
+output string of the command's results are trimmed (spaces or some
+others non printable characters are removed from both ends, see:
+`string-trim'). Example below.
 
 The expression:
 
 (setf annotate-annotation-expansion-map
-      '((\"%d\" \"date +%Y-%m-%d\" t)))
+      \\='((\"%d\" \"date +%Y-%m-%d\" t)))
 
-Will expand any occurrence of \"%d\" in the annotation's text with the current date (format: \"YYYY-MM-DD\"), moreover the results will be trimmed"
+Will expand any occurrence of \"%d\" in the annotation's text with the
+current date (format: \"YYYY-MM-DD\"), moreover the results will be
+trimmed"
   :type '(repeat (list string string boolean)))
 
 (defconst annotate-prop-chain-position
@@ -476,16 +485,17 @@ position (so that it is unchanged after this function is called)."
   (overlay-get annotation 'annotation))
 
 (defun annotate-annotation-set-position (annotation position)
-  "Set the annotation's position policy for `ANNOTATION` to the value bound to `POSITION`."
+  "Set the annotation's position policy for `ANNOTATION'
+to the value bound to `POSITION'."
   (overlay-put annotation 'annotate-position position))
 
 (defun annotate-annotation-get-position (annotation)
-  "Get the annotation's position policy for `ANNOTATION`."
+  "Get the annotation's position policy for `ANNOTATION'."
   (overlay-get annotation 'annotate-position))
 
 (defun annotate-overlay-maybe-set-position (overlay position)
-  "Set the annotation's position policy for `ANNOTATION` to the value bound to `POSITION`,
-but only if the value of the property 'position is not null."
+ "Set the annotation's position policy for `ANNOTATION' to the value bound
+to `POSITION',but only if the value of the property \\='position is not null."
   (when position
     (annotate-annotation-set-position overlay position)))
 
@@ -1699,11 +1709,13 @@ The limit is a list of two numbers (LEFT RIGHT) representing of the portion
 of the buffer where this annotation is applied.
 Note that this function returns the character interval
 yyyyyyyy ggg
-  ^^^^^^^  ← Annotation interval in the database (extends for one more than the last character)
+  ^^^^^^^  ← Annotation interval in the database
+             (extends for one more than the last character)
   |----|   ← The interval that this function returns.
 
-In other terms the interval in the database is a closed interval while the interval that
-this function return is closed on the left and open on the right side."
+In other terms the interval in the database is a closed interval while
+the interval that this function return is closed on the left and open on
+the right side."
   (annotate--make-interval (annotate-beginning-of-annotation annotation)
                            (1- (annotate-ending-of-annotation annotation))))
 
@@ -1852,14 +1864,15 @@ finally annotation is:
 
 \(START END ANNOTATION-STRING ANNOTATED-TEXT COLOR-INDEX)
 
-START:             the buffer position where annotated text start
-END:               the buffer position where annotated text ends
-ANNOTATION-STRING: the text of annotation
-ANNOTATED-TEXT:    the substring of buffer from START to END (as above)
-COLOR-INDEX:       the index position in `annotate-annotation-text-faces' and
-                   `annotate-highlight-faces' to chode the annotation's visual
-POSITIONING-POLICY a keyword representing the startegy for the annotation's text position;
-                   the allowed values are specified in: annotate-allowed-positioning-policy
+START:              the buffer position where annotated text start
+END:                the buffer position where annotated text ends
+ANNOTATION-STRING:  the text of annotation
+ANNOTATED-TEXT:     the substring of buffer from START to END (as above)
+COLOR-INDEX:        the index position in `annotate-annotation-text-faces' and
+                    `annotate-highlight-faces' to chode the annotation's visual
+POSITIONING-POLICY: a keyword representing the stategy for the annotation's
+                    text position; the allowed values are specified in:
+                    `annotate-allowed-positioning-policy'
 
 example:
 
@@ -2267,7 +2280,9 @@ The searched interval can be customized setting the variable:
 elements both in `annotate-color-index-from-dump'
 and `annotate-color-index-from-dump' to specify annotation appearance.
 
-Finally `POSITION` indicates the positioning policy for the annotation, if null the value bound to `annotate-annotation-position-policy` is used."
+Finally `POSITION` indicates the positioning policy for the annotation,
+if null the value bound to `annotate-annotation-position-policy' is
+used."
   (cl-labels ((face-annotation-shifting-point (position shifting-direction-function)
                 (when-let* ((annotation       (funcall shifting-direction-function
                                                        position))
@@ -2835,7 +2850,7 @@ sophisticated way than plain text."
      ((eq file-type :info)
       (with-current-buffer-window
        "*info*" nil nil
-       (info-setup file (current-buffer))
+       (info-pop-to-buffer file (current-buffer))
        (switch-to-buffer "*info*"))
       (with-current-buffer "*info*"
         (goto-char (button-get button 'go-to))))
@@ -2995,7 +3010,7 @@ results can be filtered with a simple query language: see
                                             snippet)))
               (build-snippet-info (filename annotation-begin annotation-end)
                 (with-temp-buffer
-                  (info-setup filename (current-buffer))
+                  (info-pop-to-buffer filename (current-buffer))
                   (buffer-substring-no-properties annotation-begin
                                                   annotation-end)))
               (build-snippet-from-buffer (filename annotation-begin annotation-end)
