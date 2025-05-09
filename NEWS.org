@@ -1,3 +1,7 @@
+- 2025-05-09 v2.4.1 cage ::
+
+  This version reomoves the compilation warnings and makes easier to customize the packacge.
+
 - 2025-04-23 v2.4.0 cage ::
 
   This version adds annotation's text expansion feature:
