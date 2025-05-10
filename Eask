@@ -12,7 +12,7 @@
 
 (source 'gnu)
 
-(depends-on "emacs" "26.1")
+(depends-on "emacs" "27.1")
 
 (add-hook 'eask-before-compile-hook
            (lambda ()
