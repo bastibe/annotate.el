@@ -8,6 +8,7 @@
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
 ;; Version: 2.4.1
+;; Package-Requires: ((emacs "30.1"))
 
 ;; This file is NOT part of GNU Emacs.
 

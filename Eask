@@ -12,6 +12,8 @@
 
 (source 'gnu)
 
+(depends-on "emacs" "30.1")
+
 (add-hook 'eask-before-compile-hook
            (lambda ()
              (setq byte-compile-error-on-warn t)))
