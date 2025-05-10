@@ -2849,9 +2849,9 @@ sophisticated way than plain text."
   "Display Info node FILE-OR-NODE in BUFFER.
 
 Compatibility wrapper for the function `info-setup' and `info-pop-to-buffer'."
-  (if (version< "30" emacs-version)
-      (info-pop-to-buffer file-or-node buffer)
-    (with-no-warnings
+  (with-no-warnings
+    (if (version< "30" emacs-version)
+        (info-pop-to-buffer file-or-node buffer)
       (info-setup file-or-node buffer))))
 
 (defun annotate-summary-show-annotation-button-pressed (button)
