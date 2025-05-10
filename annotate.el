@@ -601,7 +601,7 @@ See also the customizable variables: `annotate-echo-annotation-timer' and
 `annotate-print-annotation-under-cursor'."
   (with-current-buffer (current-buffer)
     (when annotate-mode
-      (when-let ((annotation (annotate-annotation-at (point))))
+      (when-let* ((annotation (annotate-annotation-at (point))))
         (message "%s%s"
                  annotate-print-annotation-under-cursor-prefix
                  (annotate-annotation-get-annotation-text annotation))))))
@@ -1008,15 +1008,15 @@ and
 (defun annotate-change-annotation-text-position ()
   "Change the policy positioning for the annotation under point."
   (interactive)
-  (when-let ((annotation (annotate-annotation-at (point))))
+  (when-let* ((annotation (annotate-annotation-at (point))))
     (let ((current-position (annotate-annotation-get-position annotation)))
       (if (null current-position)
           (annotate-annotation-set-position annotation
                                             (cl-first annotate-allowed-positioning-policy))
-        (when-let ((current-position-index (cl-position current-position
-                                                        annotate-allowed-positioning-policy))
-                   (next-position-index    (mod (1+ current-position-index)
-                                                (length annotate-allowed-positioning-policy))))
+        (when-let* ((current-position-index (cl-position current-position
+                                                         annotate-allowed-positioning-policy))
+                    (next-position-index    (mod (1+ current-position-index)
+                                                 (length annotate-allowed-positioning-policy))))
           (annotate-annotation-set-position annotation
                                             (elt annotate-allowed-positioning-policy
                                                  next-position-index)))))
@@ -1038,7 +1038,7 @@ and
                                                      (length annotate-annotation-text-faces))))
                       new-color-index)
                   0))))
-  (when-let ((annotation (annotate-annotation-at (point))))
+  (when-let* ((annotation (annotate-annotation-at (point))))
     (let ((new-color-index (new-color-index annotation)))
       (annotate-annotation-set-annotation-face annotation
                                                (elt annotate-annotation-text-faces
@@ -2303,8 +2303,8 @@ used."
                                     annotate-highlight-faces))
               (create-annotation (start end annotation-text)
                 (if (null color-index)
-                    (when-let ((new-face-index (available-face-index (face-annotation-before-point start)
-                                                                     (face-annotation-after-point end))))
+                    (when-let* ((new-face-index (available-face-index (face-annotation-before-point start)
+                                                                      (face-annotation-after-point end))))
                       (setf annotate-colors-index-counter
                             new-face-index))
                   (cl-incf annotate-colors-index-counter))
@@ -2581,7 +2581,7 @@ This function is not part of the public API."
 position where to look for annotation (default the cursor
 point)."
   (interactive)
-  (when-let ((annotation (annotate-annotation-at point)))
+  (when-let* ((annotation (annotate-annotation-at point)))
     (let* ((delete-confirmed-p (annotate--confirm-annotation-delete)))
       (when delete-confirmed-p
         (annotate--delete-annotation-chain annotation)
