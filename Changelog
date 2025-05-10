@@ -1,3 +1,45 @@
+2025-05-09 cage
+
+        * annotate.el:
+
+        - fixed type definition of customiziable variables related to font
+        faces of annotations;
+        - changed deprecated function related to info mode;
+        - reformatted some docstrings to fit 80 columns limit.
+
+2025-05-07 cage
+
+
+        Merge pull request #169 from cage2/master
+
+2025-04-30 cage
+
+        * README.org,
+        * annotate.el:
+
+        - improved expansion map to include a swith to enable trimming of
+        commands' output.
+
+2025-04-25 cage
+
+        * annotate.el:
+
+        - bound 'annotate-annotation-expansion-map' to the empty string, to
+        remove code used during development.
+        - bound 'annotate-autosave' to non nil, enabling the autosave feature
+        as default.
+
+2025-04-23 cage
+
+        * Changelog,
+        * NEWS.org,
+        * README.org,
+        * annotate.el:
+
+        - increased version number;
+        - added code to implement annotation's text expansion;
+        - updated README, changelog and NEWS files.
+
 2025-03-20 cage
 
 	Merge pull request #168 from cage2/optimize-searching-for-annotations
