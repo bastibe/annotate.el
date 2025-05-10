@@ -8,7 +8,7 @@
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
 ;; Version: 2.4.1
-;; Package-Requires: ((emacs "30.1"))
+;; Package-Requires: ((emacs "26.1"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -751,24 +751,24 @@ specified by `FROM' and `TO'."
 
 (defun annotate--expand-annotation-text (annotation-text)
   (cl-flet ((regex (expansion-item)
-		   (cl-first expansion-item))
-	    (trimp (expansion-item)
-		   (cl-third expansion-item))
-	    (command (expansion-item)
-		     (cl-second expansion-item)))
+           (cl-first expansion-item))
+        (trimp (expansion-item)
+           (cl-third expansion-item))
+        (command (expansion-item)
+             (cl-second expansion-item)))
   (cl-loop with results = annotation-text
-	   for expansion in annotate-annotation-expansion-map
-	   when (string-match-p (regex expansion) results)
-	   do (let ((expansion-results (shell-command-to-string (command expansion))))
-		(when (trimp expansion)
-		  (setf expansion-results (string-trim expansion-results)))
-		(setf results
-		      (replace-regexp-in-string (regex expansion)
-						expansion-results
-						results
-						t
-						t)))
-	   finally (return results))))
+       for expansion in annotate-annotation-expansion-map
+       when (string-match-p (regex expansion) results)
+       do (let ((expansion-results (shell-command-to-string (command expansion))))
+        (when (trimp expansion)
+          (setf expansion-results (string-trim expansion-results)))
+        (setf results
+              (replace-regexp-in-string (regex expansion)
+                        expansion-results
+                        results
+                        t
+                        t)))
+       finally (return results))))
 
 (defun annotate-annotate (&optional color-index)
   "Create, modify, or delete annotation.
@@ -785,7 +785,7 @@ and
                 (cl-destructuring-bind (start end)
                     (annotate-bounds)
                   (let* ((raw-text        (read-from-minibuffer annotate-annotation-prompt))
-			 (annotation-text (annotate--expand-annotation-text raw-text)))
+             (annotation-text (annotate--expand-annotation-text raw-text)))
                     (condition-case nil
                         (annotate-create-annotation start end annotation-text nil color-index)
                       (annotate-no-new-line-at-end-file-error
@@ -937,7 +937,7 @@ and
                         (goto-char (annotate-end-of-line-pos))
                         (annotate-annotate))))))))))))
       (when annotate-autosave
-	(annotate-save-annotations)))))
+    (annotate-save-annotations)))))
 
 (defun annotate-toggle-annotation-text ()
   "Hide annotation's text at current cursor's point, if such annotation exists."
@@ -1546,20 +1546,20 @@ surrounded by `BEGIN' and `END'."
   "Return the annotations overlays that are enclosed in the range
 defined by `FROM-POSITION' and `TO-POSITION'."
   (let ((annotations ())
-	(counter (max 0 (1- from-position))))
+    (counter (max 0 (1- from-position))))
     (catch 'scan-loop
       (while (<= counter
                  to-position)
-	(cl-incf counter)
-	(let ((annotation (annotate-next-annotation-starts counter)))
+    (cl-incf counter)
+    (let ((annotation (annotate-next-annotation-starts counter)))
           (if (annotationp annotation)
               (let ((chain-end   (overlay-end   (annotate-chain-last  annotation)))
                     (chain-start (overlay-start (annotate-chain-first annotation))))
-		(setf counter chain-end)
-		(when (and (>= chain-start from-position)
-			   (<= chain-end   to-position))
-		  (cl-pushnew annotation annotations)))
-	    (throw 'scan-loop t)))))
+        (setf counter chain-end)
+        (when (and (>= chain-start from-position)
+               (<= chain-end   to-position))
+          (cl-pushnew annotation annotations)))
+        (throw 'scan-loop t)))))
     (reverse annotations)))
 
 (defun annotate-annotations-chain-in-range (from-position to-position)
@@ -2843,6 +2843,15 @@ sophisticated way than plain text."
   'follow-link t
   'help-echo "Click to replace annotation")
 
+(defun annotate-info-setup (file-or-node buffer)
+  "Display Info node FILE-OR-NODE in BUFFER.
+
+Compatibility wrapper for the function `info-setup' and `info-pop-to-buffer'."
+  (if (version< "30" emacs-version)
+      (info-pop-to-buffer file-or-node buffer)
+    (with-no-warnings
+      (info-setup file-or-node buffer))))
+
 (defun annotate-summary-show-annotation-button-pressed (button)
   "Callback called when an annotate-summary-show-annotation-button is activated."
   (let* ((file      (button-get button 'file))
@@ -2851,7 +2860,7 @@ sophisticated way than plain text."
      ((eq file-type :info)
       (with-current-buffer-window
        "*info*" nil nil
-       (info-pop-to-buffer file (current-buffer))
+       (annotate-info-setup file (current-buffer))
        (switch-to-buffer "*info*"))
       (with-current-buffer "*info*"
         (goto-char (button-get button 'go-to))))
@@ -3011,7 +3020,7 @@ results can be filtered with a simple query language: see
                                             snippet)))
               (build-snippet-info (filename annotation-begin annotation-end)
                 (with-temp-buffer
-                  (info-pop-to-buffer filename (current-buffer))
+                  (annotate-info-setup filename (current-buffer))
                   (buffer-substring-no-properties annotation-begin
                                                   annotation-end)))
               (build-snippet-from-buffer (filename annotation-begin annotation-end)
