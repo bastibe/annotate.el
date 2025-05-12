@@ -86,8 +86,8 @@ See https://github.com/bastibe/annotate.el/ for documentation."
   :type 'file)
 
 (defcustom annotate-file-buffer-local nil
-  "If non nil (default `NIL'), for each annotated file 'filename', a database
-'filename.notes', containing the annotations, is generated in the
+  "If non nil (default `NIL'), for each annotated file \"filename\", a database
+\"filename.notes\", containing the annotations, is generated in the
 same directory that contains `filename'."
   :type 'string)
 
@@ -3149,7 +3149,7 @@ defined meaning according to our grammar.
 
 For example this string:
 
-p.* and (a or not b)'
+p.* and (a or not b)
 
 will be broken into these tokens:
 
@@ -3175,7 +3175,7 @@ The format is a proper list where:
  the substring limits for this token (as returned by
  MATCH-BEGINNING and MATCH-END.
 
-Note that spaces are ignored and all the tokens except 're' must
+Note that spaces are ignored and all the tokens except \"re\" must
 not be prefixed with a backslash to match.  So, for example not ->
 will match the token type \\='not but \not will match the token \\='re;
 this way we can \"protect\" a regexp that contains reserved
