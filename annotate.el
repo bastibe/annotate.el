@@ -669,7 +669,7 @@ Used when the mode is deactivated."
                                     (1 (annotate--change-guard)))))))
 
 (defun annotate-overlay-filled-p (overlay)
-  "Does this OVERLAY contains an \"annotation\" property?"
+  "Does this OVERLAY contains an `annotation' property?"
   (and overlay
        (overlayp overlay)
        (annotate-annotation-get-annotation-text overlay)))
@@ -1679,14 +1679,14 @@ file."
   (cl-first record))
 
 (defun annotate-beginning-of-annotation (annotation)
-  "Get the starting point of an annotation. The arg \"annotation\" must be a single
+  "Get the starting point of an annotation. The arg ANNOTATION must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
 \(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
   (cl-first annotation))
 
 (defun annotate-ending-of-annotation (annotation)
-  "Get the ending point of an annotation. The arg \"annotation\" must be a single
+  "Get the ending point of an annotation. The arg ANNOTATION must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
 \(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
@@ -1721,7 +1721,7 @@ the right side."
                            (1- (annotate-ending-of-annotation annotation))))
 
 (defun annotate-annotation-string (annotation)
-  "Get the text of an annotation. The arg \"annotation\" must be a single
+  "Get the text of an annotation. The arg ANNOTATION must be a single
 annotation field got from a file dump of all annotated buffers,
 essentially what you get from:
 \(annotate-annotations-from-dump (nth index (annotate-load-annotations))))."
@@ -2257,19 +2257,19 @@ must not be rendered."
   "Create a new annotation for selected region (from START to  END.
 
 Here the argument ANNOTATION-TEXT is the string that appears
-on the margin of the window and \"annotated-text\" is the string
+on the margin of the window and ANNOTATED-TEXT is the string
 that is underlined.
 
 If this function is called from procedure
-\"annotate-load-annotations\" the argument ANNOTATED-TEXT
+ANNOTATE-LOAD-ANNOTATIONS the argument ANNOTATED-TEXT
 should be not null.  In this case we know that an annotation
 existed in a text interval defined in the database
 metadata (the database located in the file specified by the
-variable \"annotate-file\") and should just be
+variable ANNOTATE-FILE) and should just be
 restored.  Sometimes the annotated text (see above) can not be
 found in said interval because the annotated file's content
-changed and `annotate-mode' could not track the
-changes (e.g. save the file when `annotate-mode' was not
+changed and `ANNOTATE-MODE' could not track the
+changes (e.g. save the file when `ANNOTATE-MODE' was not
 active/loaded) in this case the matching
 text (\"annotated-text\") is searched in a region surrounding the
 interval and, if found, the buffer is annotated right there.
@@ -2278,11 +2278,11 @@ The searched interval can be customized setting the variable:
 \"annotate-search-region-lines-delta\".
 
 COLOR-INDEX, if non-null (default nil), is used as index to address
-elements both in `annotate-color-index-from-dump'
-and `annotate-color-index-from-dump' to specify annotation appearance.
+elements both in ANNOTATE-COLOR-INDEX-FROM-DUMP
+and ANNOTATE-COLOR-INDEX-FROM-DUMP to specify annotation appearance.
 
 Finally POSITION indicates the positioning policy for the annotation,
-if null the value bound to `annotate-annotation-position-policy' is
+if null the value bound to ANNOTATE-ANNOTATION-POSITION-POLICY is
 used."
   (cl-labels ((face-annotation-shifting-point (position shifting-direction-function)
                 (when-let* ((annotation       (funcall shifting-direction-function
