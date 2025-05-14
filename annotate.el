@@ -86,9 +86,9 @@ See https://github.com/bastibe/annotate.el/ for documentation."
   :type 'file)
 
 (defcustom annotate-file-buffer-local nil
-  "If non nil (default `NIL'), for each annotated file \"filename\", a database
+  "If non nil (default `nil'), for each annotated file \"filename\", a database
 \"filename.notes\", containing the annotations, is generated in the
-same directory that contains `filename'."
+same directory that contains \"filename\"."
   :type 'string)
 
 (defcustom annotate-buffer-local-database-extension "notes"
@@ -118,10 +118,10 @@ This is the fill space between text lines and annotation text.")
   :type 'number)
 
 (defcustom annotate-diff-export-options ""
-  "Options passed to `diff' in `annotate-export-annotations'.
+  "Options passed to \"diff\" in `annotate-export-annotations'.
 This is used when diffing between a buffer with and without
 integrated annotations.
-Note that there is an implicit `-u' at the end of default options
+Note that there is an implicit \"-u\" at the end of default options
 that Emacs passes to the diff program."
   :type 'string)
 
@@ -143,7 +143,7 @@ annotated indirect buffer."
   :type 'character)
 
 (defcustom annotate-fallback-comment "#"
-  "When variable `COMMENT-START' is nil use this string instead."
+  "When variable `comment-start' is nil use this string instead."
   :type 'string)
 
 (defcustom annotate-blacklist-major-mode '()
@@ -196,7 +196,7 @@ placed on the right margin of the window instead of its own line
   decide by text's length
 
 if the length is more than the value of
-`ANNOTATE-ANNOTATION-MAX-SIZE-NOT-PLACE-NEW-LINE' place the
+`annotate-annotation-max-size-not-place-new-line' place the
 annotation on a new line, place on the right margin
 otherwise."
   :type  'symbol)
@@ -224,7 +224,7 @@ annotate-print-annotation-under-cursor is non nil"
   "The delay (in seconds) after an annotation id printed in the
 minibuffer, when the pursor is placed over an annotated text.
 
-This variable works only if ANNOTATE-PRINT-ANNOTATION-UNDER-CURSOR is non nil"
+This variable works only if `annotate-print-annotation-under-cursor' is non nil"
   :type 'float)
 
 (defcustom annotate-warn-if-hash-mismatch t
@@ -406,7 +406,7 @@ in the customizable colors lists:
               'annotate-error)
 
 (cl-defmacro annotate-with-disable-read-only (&body body)
-  "Run BODY with `READ-ONLY-MODE' temporary disabled."
+  "Run BODY with `read-only-mode' temporary disabled."
   (let ((read-mode-p (gensym)))
     `(let ((,read-mode-p (if buffer-read-only
                              1
@@ -424,7 +424,7 @@ in the customizable colors lists:
 
 (defun annotate-initialize-maybe ()
   "Initialize annotate mode only if buffer's major mode is not in the blacklist.
-See ANNOTATE-BLACKLIST-MAJOR-MODE."
+See `annotate-blacklist-major-mode'."
   (cl-flet ((shutdown ()
               (setq annotate-mode t)
               (annotate-shutdown)
@@ -491,7 +491,7 @@ to the value bound to POSITION."
   (overlay-put annotation 'annotate-position position))
 
 (defun annotate-annotation-get-position (annotation)
-  "Get the annotation's position policy for `ANNOTATION'."
+  "Get the annotation's position policy for ANNOTATION."
   (overlay-get annotation 'annotate-position))
 
 (defun annotate-overlay-maybe-set-position (overlay position)
@@ -595,10 +595,10 @@ local version (i.e. a different database for each annotated file"
 
 (defun annotate-timer-print-annotation-function ()
   "Print annotation under point in the minibuffer.
-Used by the timer set in ANNOTATE--MAYBE-MAKE-TIMER-PRINT-ANNOTATION.
+Used by the timer set in `annotate--maybe-make-timer-print-annotation'.
 
-See also the customizable variables: ANNOTATE-ECHO-ANNOTATION-TIMER and
-ANNOTATE-PRINT-ANNOTATION-UNDER-CURSOR."
+See also the customizable variables: `annotate-echo-annotation-timer' and
+`annotate-print-annotation-under-cursor'."
   (with-current-buffer (current-buffer)
     (when annotate-mode
       (when-let* ((annotation (annotate-annotation-at (point))))
@@ -773,9 +773,9 @@ specified by FROM and TO."
 (defun annotate-annotate (&optional color-index)
   "Create, modify, or delete annotation.
 if COLOR-INDEX is not null must be an index that adresses an element both in
-- ANNOTATE-HIGHLIGHT-FACES
+- `annotate-highlight-faces'
 and
-- ANNOTATE-ANNOTATION-TEXT-FACES"
+- `annotate-annotation-text-faces'"
   (interactive "P")
   (when color-index
     (setf color-index (min (max (1- color-index) 0)
@@ -1199,12 +1199,12 @@ annotation, and can be conveniently viewed in diff-mode."
 - the area between the overlay and the annotation
 - the newline that will display the annotation
 
-The first match will get `ANNOTATE--CHANGE-GUARD' as its
-`INSERT-IN-FRONT-HOOK', to make sure that if a newline is inserted
+The first match will get `annotate--change-guard' as its
+`insert-in-front-hook', to make sure that if a newline is inserted
 between the overlay and the annotation, the \"display\" property of
 the newline is properly disposed of.
 
-The second match will get `ANNOTATE--ANNOTATION-BUILDER' as its
+The second match will get `annotate--annotation-builder' as its
 `display' property, which makes the newline look like an
 annotation plus the newline."
   (goto-char (next-overlay-change (point)))
@@ -2261,15 +2261,15 @@ on the margin of the window and ANNOTATED-TEXT is the string
 that is underlined.
 
 If this function is called from procedure
-ANNOTATE-LOAD-ANNOTATIONS the argument ANNOTATED-TEXT
+`annotate-load-annotations' the argument ANNOTATED-TEXT
 should be not null.  In this case we know that an annotation
 existed in a text interval defined in the database
 metadata (the database located in the file specified by the
-variable ANNOTATE-FILE) and should just be
+variable `annotate-file') and should just be
 restored.  Sometimes the annotated text (see above) can not be
 found in said interval because the annotated file's content
-changed and `ANNOTATE-MODE' could not track the
-changes (e.g. save the file when `ANNOTATE-MODE' was not
+changed and `annotate-mode' could not track the
+changes (e.g. save the file when `annotate-mode' was not
 active/loaded) in this case the matching
 text (\"annotated-text\") is searched in a region surrounding the
 interval and, if found, the buffer is annotated right there.
@@ -2459,18 +2459,18 @@ used."
         (font-lock-fontify-block 1))))))
 
 (defun annotate-overlay-put-echo-help (overlay text)
-  "Set the property `HELP-ECHO' to TEXT in overlay OVERLAY."
+  "Set the property `help-echo' to TEXT in overlay OVERLAY."
   (overlay-put overlay 'help-echo text))
 
 (defun annotate-overlay-get-echo-help (overlay)
-  "Set the property `HELP-ECHO' from overlay OVERLAY."
+  "Set the property `help-echo' from overlay OVERLAY."
   (overlay-get overlay 'help-echo))
 
 (defun annotate-overlay-maybe-set-help-echo (overlay annotation-text)
-  "Set the property `HELP-ECHO' to ANNOTATION-TEXT in overlay OVERLAY if
+  "Set the property `help-echo' to ANNOTATION-TEXT in overlay OVERLAY if
 the annotations should be shown in a popup fashion.
 
-See the variable: ANNOTATE-USE-ECHO-AREA."
+See the variable: `annotate-use-echo-area'."
   (when annotate-use-echo-area
     (annotate-overlay-put-echo-help overlay annotation-text)))
 
@@ -2684,7 +2684,7 @@ annotation exists."
 
 (defun annotate-symbol-strictly-at-point ()
   "Return non nil if a symbol is at char immediately following
-the point. This is needed as `THING-AT-POINT' family of
+the point. This is needed as `thing-at-point' family of
  functions returns non nil if the thing (a symbol in this case)
  is around the point, according to the documentation."
   (cl-labels ((after-point ()
@@ -2945,7 +2945,7 @@ pressed."
 (cl-defun annotate-show-annotation-summary (&optional arg-query cut-above-point (save-annotations t))
   "Show a summary of all the annotations in a temp buffer, the
 results can be filtered with a simple query language: see
-ANNOTATE-SUMMARY-FILTER-DB."
+`annotate-summary-filter-db'."
   (interactive)
   (cl-labels ((ellipsize (text prefix-string)
                 (let* ((prefix-length   (string-width prefix-string))
@@ -3119,7 +3119,7 @@ ANNOTATE-SUMMARY-FILTER-DB."
 summary window is shown.")
 
 (defvar annotate-summary-query-current-token nil
-  "Holds the next token of the query in ANNOTATE-SUMMARY-QUERY.")
+  "Holds the next token of the query in `annotate-summary-query'.")
 
 (defun annotate-summary-query-lexer-symbol (res)
   "The symbol identifying the token (e.g. \\='and)."
@@ -3131,20 +3131,20 @@ summary window is shown.")
 
 (defun annotate-summary-query-lexer-start (res)
   "The starting point of the substring of
-ANNOTATE-SUMMARY-QUERY for this token."
+`annotate-summary-query' for this token."
   (elt res 2))
 
 (defun annotate-summary-query-lexer-end (res)
   "The ending point of the substring of
-ANNOTATE-SUMMARY-QUERY for this token."
+`annotate-summary-query' for this token."
 
   (elt res 3))
 
 (cl-defun annotate-summary-lexer (&optional (look-ahead-p nil))
-  "The lexer for ANNOTATE-SUMMARY-QUERY.
+  "The lexer for `annotate-summary-query'.
 
 This function, when called, will produce the next token from
-ANNOTATE-SUMMARY-QUERY; a token is a substring with a well
+`annotate-summary-query'; a token is a substring with a well
 defined meaning according to our grammar.
 
 For example this string:
@@ -3185,13 +3185,13 @@ The special value :no-more-token is returned after the whole
 input is processed.
 
 Calling this function with value of LOOK-AHEAD-P nil will consume the
-token from ANNOTATE-SUMMARY-QUERY (i.e. that string is modified).
+token from `annotate-summary-query' (i.e. that string is modified).
 
 example:
 \"a and b\" -> \"and b\", \\='(re \"a\" 0 1)
 
 when LOOK-AHEAD-P is not nil the token is recognized but not cut away
-from ANNOTATE-SUMMARY-QUERY.
+from `annotate-summary-query'.
 
 example:
 \"a and b\" -> \"a and b\", \\='(re \"a\" 0 1)"
@@ -3238,7 +3238,7 @@ example:
           res)))))
 
 (defun annotate-summary-query-parse-end-input-p (token)
-  "Non nil if there are no more tokens in ANNOTATE-SUMMARY-QUERY."
+  "Non nil if there are no more tokens in `annotate-summary-query'."
   (eq token :no-more-tokens))
 
 (defun annotate-summary-token-symbol-match (looking-symbol token)
@@ -3274,8 +3274,8 @@ Arguments:
 
 - filter-fn is a function that accept two parameters: the regular
   expression to match (a token of type \\='re, see the lexer
-  ANNOTATE-SUMMARY-LEXER and a single annotation record (see
-  ANNOTATE-LOAD-ANNOTATIONS).
+  `annotate-summary-lexer' and a single annotation record (see
+  `annotate-load-annotations`).
 
   This function will reject (its value is nil) records that do
   not match the annotation.
@@ -3432,7 +3432,7 @@ NOT        := \"not\"
 DELIMITER  := \" ; ASCII 34 (dec) 22 (hex)
 
 Note: this function returns the annotation part of the record, see
-ANNOTATE-LOAD-ANNOTATIONS."
+`annotate-load-annotations'."
   (lambda (annotation query file-filter-fn note-filter-fn)
     (let ((annotate-summary-query query) ; save the query
           (query-notes-only       nil)) ; the query for just the notes
@@ -3686,7 +3686,7 @@ The new interval is expanded so that includes A and B."
 
 (defun annotate--db-merge-annotations (host guest)
   "Merge annotation GUEST into annotation HOST.
-Uses ANNOTATE--MERGE-INTERVAL."
+Uses `annotate--merge-interval'."
   (when (annotate--db-annotations-overlaps-p host guest)
     (let* ((interval-host       (annotate-annotation-interval host))
            (interval-guest      (annotate-annotation-interval guest))
@@ -3702,7 +3702,7 @@ Uses ANNOTATE--MERGE-INTERVAL."
 
 (defun annotate--db-remove-overlap-annotations (annotations &optional accum)
   "Recursively merges overlapping annotations in ANNOTATIONS
-using ANNOTATE--DB-MERGE-ANNOTATIONS."
+using `annotate--db-merge-annotations'."
   (if (= (length annotations) 1)
       (push (cl-first annotations) accum)
     (let* ((probe            (cl-first annotations))
