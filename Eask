@@ -1,7 +1,7 @@
 ;; -*- mode: eask; lexical-binding: t -*-
 
 (package "annotate"
-         "2.4.1"
+         "2.4.2"
          "annotate files without changing them")
 
 (website-url "https://github.com/bastibe/annotate.el")
