@@ -1,11 +1,49 @@
+2025-05-14 cage
+
+	* annotate.el:
+
+	- fixed docstrings.
+
+2025-05-12 cage2
+
+	* annotate.el:
+
+	Merge pull request #172 from jcs-PR/ci/basic
+	- fixed type definition of customiziable variables related to font
+	faces of annotations, we can not know in advance the length of the
+	plists bound to these variables;
+	- fixed docstrings, only symbols names are wrapped in `…'.
+	- fixed docstrings.
+
+2025-05-10 cage2, JenChieh
+
+	* .github/workflows/test.yml,
+	* .gitignore,
+	* Eask,
+	* annotate.el:
+
+	Merge pull request #171 from cage2/master
+	ci: Add basic CI
+	fix: Set minimum version to 30.1
+	fix: snapshot warnings
+	fix: wrap info-setup
+	fix: indent issue and mix used of tab/spaces
+	fix: wrap entire info setup
+	fix: diff-buffers added after 27.1
+
 2025-05-09 cage
 
-        * annotate.el:
+	* Changelog,
+	* NEWS.org,
+	* annotate.el:
 
-        - fixed type definition of customiziable variables related to font
-        faces of annotations;
-        - changed deprecated function related to info mode;
-        - reformatted some docstrings to fit 80 columns limit.
+	- fixed type definition of customiziable variables related to font
+	faces of annotations;
+	- changed deprecated function related to info mode;
+	- reformatted some docstrings to fit 80 columns limit.
+	- increased version number;
+	- updated NEWS file;
+	- updated Changelog.
 
 2025-05-07 cage
 

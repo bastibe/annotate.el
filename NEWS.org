@@ -1,6 +1,10 @@
+- 2025-05-09 v2.4.2 cage ::
+
+  This versions adds a CI system and boilerplate for adding unit testing to annotate.el (thanks JenChieh!); also docstrings has been modified to be more compliant to Emacs documentation standards.
+
 - 2025-05-09 v2.4.1 cage ::
 
-  This version reomoves the compilation warnings and makes easier to customize the packacge.
+  This version removes the compilation warnings and makes easier to customize the package.
 
 - 2025-04-23 v2.4.0 cage ::
 
