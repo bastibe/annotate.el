@@ -184,7 +184,7 @@ placed on the right margin of the window instead of its own line
 
 (defconst annotate-allowed-positioning-policy
   '(:by-length :margin :new-line)
-  "The allowed values for annotation positioning")
+  "The allowed values for annotation positioning.")
 
 (defcustom annotate-annotation-position-policy :by-length
   "Policy for annotation's position:
@@ -269,7 +269,7 @@ others non printable characters are removed from both ends, see:
 
 The expression:
 
-(setf annotate-annotation-expansion-map
+\(setf annotate-annotation-expansion-map
       \\='((\"%d\" \"date +%Y-%m-%d\" t)))
 
 Will expand any occurrence of \"%d\" in the annotation's text with the
@@ -750,6 +750,8 @@ specified by FROM and TO."
                (buffer-substring-no-properties from to)))
 
 (defun annotate--expand-annotation-text (annotation-text)
+  "Expand substrings of ANNOTATION-TEXT, using rules defined in the variable in
+`in annotate-annotation-expansion-map'."
   (cl-flet ((regex (expansion-item)
               (cl-first expansion-item))
             (trimp (expansion-item)
