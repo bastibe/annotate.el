@@ -1598,11 +1598,6 @@ text will be discarded."
 
 ;;; database related procedures
 
-(defun annotate-info-actual-filename ()
-  "The info filename that feed this buffer or nil if not this
-buffer is not on info-mode"
-  (annotate-guess-filename-for-dump Info-current-file nil))
-
 (cl-defun annotate-indirect-buffer-p (&optional (buffer (current-buffer)))
   "Returns non nil if BUFFER (default the current buffer) is an indirect buffer."
   (buffer-base-buffer buffer))
@@ -1610,17 +1605,6 @@ buffer is not on info-mode"
 (defun annotate-indirect-buffer-current-p ()
   "Returns non nil if the current buffer is an indirect buffer."
   (annotate-indirect-buffer-p))
-
-(defun annotate-actual-file-name ()
-  "Get the actual file name of the current buffer."
-  (cond
-   ((annotate-indirect-buffer-current-p)
-    nil)
-   (t
-    (substring-no-properties (or (annotate-info-actual-filename)
-                                 (buffer-file-name)
-                                 (buffer-file-name (buffer-base-buffer))
-                                 "")))))
 
 (cl-defun annotate-guess-filename-for-dump (filename
                                             &optional (return-filename-if-not-found-p t))
@@ -1641,6 +1625,24 @@ buffer is not on info-mode"
               (setf found filename-maybe)
               (cl-return-from surrounding found)))))
       found))))
+
+(defun annotate-info-actual-filename ()
+  "The info filename that feed this buffer or nil if not this
+buffer is not on info-mode"
+  (annotate-guess-filename-for-dump Info-current-file nil))
+
+(defun annotate-actual-file-name ()
+  "Get the actual file name of the current buffer."
+  (cond
+   ((annotate-indirect-buffer-current-p)
+    nil)
+   (t
+    (let ((visited-filename (when (buffer-file-name)
+			      (abbreviate-file-name (buffer-file-name)))))
+      (substring-no-properties (or (annotate-info-actual-filename)
+                                   visited-filename
+                                   (buffer-file-name (buffer-base-buffer))
+                                   ""))))))
 
 (defun annotate-make-annotation-dump-entry (filename file-annotations checksum)
   "Make an annotation record: see `annotate-load-annotations'."
@@ -1990,16 +1992,16 @@ annotation."
    ((or save-empty-db
         data)
     (with-temp-file annotate-file
+      (cl-flet ((%make-record (annotation)
+		  (let ((full-filename (annotate-filename-from-dump    annotation))
+                        (annotations   (annotate-annotations-from-dump annotation))
+                        (file-checksum (annotate-checksum-from-dump    annotation)))
+                    (annotate-make-record (abbreviate-file-name full-filename)
+                                          annotations
+                                          file-checksum))))
       (let* ((print-length nil)
-             (%abbreviate-filename (lambda (record)
-                                     (let ((full-filename (annotate-filename-from-dump    record))
-                                           (annotations   (annotate-annotations-from-dump record))
-                                           (file-checksum (annotate-checksum-from-dump    record)))
-                                       (annotate-make-record (abbreviate-file-name full-filename)
-                                                             annotations
-                                                             file-checksum))))
-             (actual-data (mapcar %abbreviate-filename data)))
-        (prin1 actual-data (current-buffer)))))
+             (actual-data (mapcar #'%make-record data)))
+	(prin1 actual-data (current-buffer))))))
    ((file-exists-p annotate-file)
     (let* ((confirm-message    "Delete annotations database file %S? ")
            (delete-confirmed-p (or (not annotate-database-confirm-deletion)
