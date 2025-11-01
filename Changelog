@@ -1,8 +1,38 @@
-2025-05-14 cage
+2025-11-01 cage
 
 	* annotate.el:
 
+	- wrapped 'file-exists-p' with 'ignore-errors' to catch TRAMP
+	connection errors.
+	- fixed docstring for 'annotate-file-exists-p'.
+
+2025-10-31 cage
+
+	* annotate.el:
+
+	- abbreviated buffer's file name to allow annotating remote file using
+	TRAMP mode;
+	- fixed indentation and moved function definition.
+
+2025-05-15 cage
+
+	* annotate.el:
+
+	- added missing docstring for 'annotate--expand-annotation-text';
+	- fixed other two docstrings.
+
+2025-05-14 cage
+
+	* Changelog,
+	* Eask,
+	* NEWS.org,
+	* annotate.el:
+
 	- fixed docstrings.
+	- increased version number;
+	- updated NEWS file;
+	- updated Changelog.
+	- increased version number in eask file.
 
 2025-05-12 cage2
 

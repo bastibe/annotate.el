@@ -1,3 +1,7 @@
+- 2025-11-01 v2.4.3 cage ::
+
+  This version fixed a bug that prevented remote file to be annotated.
+
 - 2025-05-09 v2.4.2 cage ::
 
   This versions adds a CI system and boilerplate for adding unit testing to annotate.el (thanks JenChieh!); also docstrings has been modified to be more compliant to Emacs documentation standards.
