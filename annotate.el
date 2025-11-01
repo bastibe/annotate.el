@@ -418,7 +418,9 @@ in the customizable colors lists:
          (read-only-mode 1)))))
 
 (defun annotate-file-exists-p (filepath)
-  "Returns nil if the file pointed by `FILEPATH' does not exists or en error occurs during the test (e.g TRAMP mode fails to connect to remote server."
+  "Returns nil if the file pointed by `FILEPATH' does not exists
+or an error occurs during the test
+(e.g TRAMP mode fails to connect to remote server)."
   (ignore-errors (file-exists-p filepath)))
 
 (defun annotate-annotations-exist-p ()
