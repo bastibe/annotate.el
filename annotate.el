@@ -7,7 +7,7 @@
 ;; Maintainer: Bastian Bechtold <bastibe.dev@mailbox.org>, cage <cage-dev@twistfold.it>
 ;; URL: https://github.com/bastibe/annotate.el
 ;; Created: 2015-06-10
-;; Version: 2.4.2
+;; Version: 2.4.3
 ;; Package-Requires: ((emacs "27.1"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -59,7 +59,7 @@
 ;;;###autoload
 (defgroup annotate nil
   "Annotate files without changing them."
-  :version "2.4.2"
+  :version "2.4.3"
   :group 'text)
 
 (defvar annotate-mode-map
@@ -416,6 +416,12 @@ in the customizable colors lists:
        ,@body
        (when (= ,read-mode-p 1)
          (read-only-mode 1)))))
+
+(defun annotate-file-exists-p (filepath)
+  "Returns nil if the file pointed by `FILEPATH' does not exists
+or an error occurs during the test
+(e.g TRAMP mode fails to connect to remote server)."
+  (ignore-errors (file-exists-p filepath)))
 
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
@@ -1598,11 +1604,6 @@ text will be discarded."
 
 ;;; database related procedures
 
-(defun annotate-info-actual-filename ()
-  "The info filename that feed this buffer or nil if not this
-buffer is not on info-mode"
-  (annotate-guess-filename-for-dump Info-current-file nil))
-
 (cl-defun annotate-indirect-buffer-p (&optional (buffer (current-buffer)))
   "Returns non nil if BUFFER (default the current buffer) is an indirect buffer."
   (buffer-base-buffer buffer))
@@ -1611,24 +1612,13 @@ buffer is not on info-mode"
   "Returns non nil if the current buffer is an indirect buffer."
   (annotate-indirect-buffer-p))
 
-(defun annotate-actual-file-name ()
-  "Get the actual file name of the current buffer."
-  (cond
-   ((annotate-indirect-buffer-current-p)
-    nil)
-   (t
-    (substring-no-properties (or (annotate-info-actual-filename)
-                                 (buffer-file-name)
-                                 (buffer-file-name (buffer-base-buffer))
-                                 "")))))
-
 (cl-defun annotate-guess-filename-for-dump (filename
                                             &optional (return-filename-if-not-found-p t))
   "Guess an acceptable file name suitable for metadata database from FILENAME."
   (cond
    ((annotate-string-empty-p filename)
     nil)
-   ((file-exists-p filename)
+   ((annotate-file-exists-p filename)
     filename)
    (t
     (let ((found (if return-filename-if-not-found-p
@@ -1637,10 +1627,28 @@ buffer is not on info-mode"
       (cl-block surrounding
         (dolist (extension annotate-info-valid-file-extensions)
           (let ((filename-maybe (concat filename extension)))
-            (when (file-exists-p filename-maybe)
+            (when (annotate-file-exists-p filename-maybe)
               (setf found filename-maybe)
               (cl-return-from surrounding found)))))
       found))))
+
+(defun annotate-info-actual-filename ()
+  "The info filename that feed this buffer or nil if not this
+buffer is not on info-mode"
+  (annotate-guess-filename-for-dump Info-current-file nil))
+
+(defun annotate-actual-file-name ()
+  "Get the actual file name of the current buffer."
+  (cond
+   ((annotate-indirect-buffer-current-p)
+    nil)
+   (t
+    (let ((visited-filename (when (buffer-file-name)
+			      (abbreviate-file-name (buffer-file-name)))))
+      (substring-no-properties (or (annotate-info-actual-filename)
+                                   visited-filename
+                                   (buffer-file-name (buffer-base-buffer))
+                                   ""))))))
 
 (defun annotate-make-annotation-dump-entry (filename file-annotations checksum)
   "Make an annotation record: see `annotate-load-annotations'."
@@ -1969,7 +1977,7 @@ annotation."
     (let* ((annotations-file file)
            (attributes       (file-attributes annotations-file)))
       (cond
-       ((not (file-exists-p annotations-file))
+       ((not (annotate-file-exists-p annotations-file))
         (signal 'annotate-db-file-not-found (list annotations-file)))
        ((= (file-attribute-size attributes)
            0)
@@ -1990,17 +1998,17 @@ annotation."
    ((or save-empty-db
         data)
     (with-temp-file annotate-file
+      (cl-flet ((%make-record (annotation)
+		  (let ((full-filename (annotate-filename-from-dump    annotation))
+                        (annotations   (annotate-annotations-from-dump annotation))
+                        (file-checksum (annotate-checksum-from-dump    annotation)))
+                    (annotate-make-record (abbreviate-file-name full-filename)
+                                          annotations
+                                          file-checksum))))
       (let* ((print-length nil)
-             (%abbreviate-filename (lambda (record)
-                                     (let ((full-filename (annotate-filename-from-dump    record))
-                                           (annotations   (annotate-annotations-from-dump record))
-                                           (file-checksum (annotate-checksum-from-dump    record)))
-                                       (annotate-make-record (abbreviate-file-name full-filename)
-                                                             annotations
-                                                             file-checksum))))
-             (actual-data (mapcar %abbreviate-filename data)))
-        (prin1 actual-data (current-buffer)))))
-   ((file-exists-p annotate-file)
+             (actual-data (mapcar #'%make-record data)))
+	(prin1 actual-data (current-buffer))))))
+   ((annotate-file-exists-p annotate-file)
     (let* ((confirm-message    "Delete annotations database file %S? ")
            (delete-confirmed-p (or (not annotate-database-confirm-deletion)
                                    (y-or-n-p (format confirm-message annotate-file)))))
@@ -3040,7 +3048,7 @@ results can be filtered with a simple query language: see
                                         (1- annotation-end))
                   (clean-snippet (buffer-string))))
               (build-snippet (filename annotation-begin annotation-end)
-                (if (file-exists-p filename)
+                (if (annotate-file-exists-p filename)
                     (cond
                      ((eq (annotate-guess-file-format filename)
                           :info)
@@ -3646,7 +3654,7 @@ code, always use load files from trusted sources!"
   (let ((new-db (or database-file-path
                     (read-file-name "Database file location: "))))
     (when (not (annotate-string-empty-p new-db))
-      (if (file-exists-p new-db)
+      (if (annotate-file-exists-p new-db)
           (let* ((confirm-message "Loading elisp file from untrusted source may results in severe security problems. Load %S?")
                  (load-file-confirmed (or force-load
                                           (y-or-n-p (format confirm-message new-db)))))
@@ -3766,7 +3774,7 @@ their personal database."
             (remove-non-existing-files (annotations)
               (cl-remove-if-not (lambda (a)
                                   (let ((filename (annotate-filename-from-dump a)))
-                                    (file-exists-p filename)))
+                                    (annotate-file-exists-p filename)))
                                 annotations)))
     (let* ((confirm-message    (concat "Importing databases from untrusted source may cause severe "
                                        "security issues, continue?"))
