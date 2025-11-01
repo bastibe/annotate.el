@@ -417,6 +417,10 @@ in the customizable colors lists:
        (when (= ,read-mode-p 1)
          (read-only-mode 1)))))
 
+(defun annotate-file-exists-p (filepath)
+  "Returns nil if the file pointed by `FILEPATH' does not exists or en error occurs during the test (e.g TRAMP mode fails to connect to remote server."
+  (ignore-errors (file-exists-p filepath)))
+
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
   (cl-find-if 'annotationp
@@ -1612,7 +1616,7 @@ text will be discarded."
   (cond
    ((annotate-string-empty-p filename)
     nil)
-   ((file-exists-p filename)
+   ((annotate-file-exists-p filename)
     filename)
    (t
     (let ((found (if return-filename-if-not-found-p
@@ -1621,7 +1625,7 @@ text will be discarded."
       (cl-block surrounding
         (dolist (extension annotate-info-valid-file-extensions)
           (let ((filename-maybe (concat filename extension)))
-            (when (file-exists-p filename-maybe)
+            (when (annotate-file-exists-p filename-maybe)
               (setf found filename-maybe)
               (cl-return-from surrounding found)))))
       found))))
@@ -1971,7 +1975,7 @@ annotation."
     (let* ((annotations-file file)
            (attributes       (file-attributes annotations-file)))
       (cond
-       ((not (file-exists-p annotations-file))
+       ((not (annotate-file-exists-p annotations-file))
         (signal 'annotate-db-file-not-found (list annotations-file)))
        ((= (file-attribute-size attributes)
            0)
@@ -2002,7 +2006,7 @@ annotation."
       (let* ((print-length nil)
              (actual-data (mapcar #'%make-record data)))
 	(prin1 actual-data (current-buffer))))))
-   ((file-exists-p annotate-file)
+   ((annotate-file-exists-p annotate-file)
     (let* ((confirm-message    "Delete annotations database file %S? ")
            (delete-confirmed-p (or (not annotate-database-confirm-deletion)
                                    (y-or-n-p (format confirm-message annotate-file)))))
@@ -3042,7 +3046,7 @@ results can be filtered with a simple query language: see
                                         (1- annotation-end))
                   (clean-snippet (buffer-string))))
               (build-snippet (filename annotation-begin annotation-end)
-                (if (file-exists-p filename)
+                (if (annotate-file-exists-p filename)
                     (cond
                      ((eq (annotate-guess-file-format filename)
                           :info)
@@ -3648,7 +3652,7 @@ code, always use load files from trusted sources!"
   (let ((new-db (or database-file-path
                     (read-file-name "Database file location: "))))
     (when (not (annotate-string-empty-p new-db))
-      (if (file-exists-p new-db)
+      (if (annotate-file-exists-p new-db)
           (let* ((confirm-message "Loading elisp file from untrusted source may results in severe security problems. Load %S?")
                  (load-file-confirmed (or force-load
                                           (y-or-n-p (format confirm-message new-db)))))
@@ -3768,7 +3772,7 @@ their personal database."
             (remove-non-existing-files (annotations)
               (cl-remove-if-not (lambda (a)
                                   (let ((filename (annotate-filename-from-dump a)))
-                                    (file-exists-p filename)))
+                                    (annotate-file-exists-p filename)))
                                 annotations)))
     (let* ((confirm-message    (concat "Importing databases from untrusted source may cause severe "
                                        "security issues, continue?"))
