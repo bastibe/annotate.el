@@ -1,10 +1,22 @@
+2025-11-02 cage
+
+	* annotate.el:
+
+	- changed (in function 'annotate-file-exists-p') 'ignore-errors' with:
+	'with-demoted-errors', to convert errors to message.
+
 2025-11-01 cage
 
+	* Changelog,
+	* Eask,
+	* NEWS.org,
 	* annotate.el:
 
 	- wrapped 'file-exists-p' with 'ignore-errors' to catch TRAMP
 	connection errors.
 	- fixed docstring for 'annotate-file-exists-p'.
+	- increased version number;
+	- updated Changelog and NEWS files.
 
 2025-10-31 cage
 
