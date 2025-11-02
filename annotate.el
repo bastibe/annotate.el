@@ -421,7 +421,8 @@ in the customizable colors lists:
   "Returns nil if the file pointed by `FILEPATH' does not exists
 or an error occurs during the test
 (e.g TRAMP mode fails to connect to remote server)."
-  (ignore-errors (file-exists-p filepath)))
+  (with-demoted-errors "Error: %S"
+    (file-exists-p filepath)))
 
 (defun annotate-annotations-exist-p ()
   "Does this buffer contains at least one or more annotations?"
