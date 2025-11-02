@@ -1,3 +1,7 @@
+- 2025-11-02 v2.4.4 cage ::
+
+  This version informs the user when an error occurred while checking the existence of an annotated file.
+
 - 2025-11-01 v2.4.3 cage ::
 
   This version fixed a bug that prevented remote file to be annotated.
