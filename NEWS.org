@@ -1,3 +1,7 @@
+- 2025-11-11 v2.4.5 cage ::
+
+  This version fixes a bug that prevented correct loading of the annotations database.
+
 - 2025-11-02 v2.4.4 cage ::
 
   This version informs the user when an error occurred while checking the existence of an annotated file.

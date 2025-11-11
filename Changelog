@@ -1,9 +1,23 @@
+2025-11-11 cage
+
+	* annotate.el:
+
+	- removed expansion of file paths when deserializing annotations
+	records;
+	- moved to local function code for record's deserialization.
+
 2025-11-02 cage
 
+	* Changelog,
+	* Eask,
+	* NEWS.org,
 	* annotate.el:
 
 	- changed (in function 'annotate-file-exists-p') 'ignore-errors' with:
 	'with-demoted-errors', to convert errors to message.
+	- increased version number;
+	- updated NEWS and Changelog files.
+	Merge pull request #175 from cage2/master
 
 2025-11-01 cage
 
