@@ -1958,34 +1958,28 @@ annotation."
   (let ((db (annotate-db-clean-records (annotate-load-annotation-data t))))
     (annotate-dump-annotation-data db)))
 
-(defun annotate--expand-record-path (record)
-  "Expand file component of RECORD."
-  (let* ((short-filename  (annotate-filename-from-dump    record))
-         (annotations     (annotate-annotations-from-dump record))
-         (file-checksum   (annotate-checksum-from-dump    record))
-         (expandp         (not (or (file-remote-p short-filename)
-                                   (annotate-info-root-dir-p short-filename))))
-         (actual-filename (if expandp
-                              (expand-file-name short-filename)
-                            short-filename)))
-    (annotate-make-record actual-filename
-                          annotations
-                          file-checksum)))
-
 (defun annotate--deserialize-database-file (file)
   "Return a sexp from the annotation database contained in FILE."
-  (with-temp-buffer
-    (let* ((annotations-file file)
-           (attributes       (file-attributes annotations-file)))
-      (cond
-       ((not (annotate-file-exists-p annotations-file))
-        (signal 'annotate-db-file-not-found (list annotations-file)))
-       ((= (file-attribute-size attributes)
-           0)
-        nil)
-       (t
-        (insert-file-contents annotations-file)
-        (mapcar #'annotate--expand-record-path (read (current-buffer))))))))
+  (cl-flet ((deserialize-record (record)
+              "deserialize `RECORD' form its sexp form."
+              (let* ((filename  (annotate-filename-from-dump    record))
+                     (annotations     (annotate-annotations-from-dump record))
+                     (file-checksum   (annotate-checksum-from-dump    record)))
+                (annotate-make-record filename
+                                      annotations
+                                      file-checksum))))
+    (with-temp-buffer
+      (let* ((annotations-file file)
+             (attributes       (file-attributes annotations-file)))
+        (cond
+         ((not (annotate-file-exists-p annotations-file))
+          (signal 'annotate-db-file-not-found (list annotations-file)))
+         ((= (file-attribute-size attributes)
+             0)
+          nil)
+         (t
+          (insert-file-contents annotations-file)
+          (mapcar #'deserialize-record (read (current-buffer)))))))))
 
 (defun annotate-load-annotation-data (&optional ignore-errors)
   "Read and returns saved annotations."
